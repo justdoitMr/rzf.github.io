@@ -13,3 +13,6 @@
 ## Hive
 
 [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hive.md)
+
+## LeetCode笔记
+
