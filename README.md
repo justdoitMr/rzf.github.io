@@ -1,29 +1,5 @@
-# rzf
+# [我的主页](https://github.com/justdoitMr/rzf.github.io)
 
-## Hadoop笔记
+## Hive
 
-
-
-
-
-## Flink
-
-
-
-## Flink项目
-
-
-
-
-
-
-
-
-
-### spark
-
-[spark环境搭建](https://github.com/justdoitMr/rzf.github.io/blob/main/Notes/Spark.md)
-
-
-
-[github主页](https://github.com/justdoitMr/rzf.github.io)
+[Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hive.md)
