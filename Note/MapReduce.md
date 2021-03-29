@@ -1,6 +1,6 @@
 # MapReduce
 
-![1611807458144](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1611807458144.png)
+![1611807458144](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185545-451300.png)
 
 mapreducer一个作业的计算流程，适合迭代式计算，不适合并行计算。
 
@@ -1285,7 +1285,7 @@ Shuffle中的缓冲区大小会影响到MapReduce程序的执行效率，原则�
 
 **shuffle过程**
 
-![1611277994869](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1611277994869.png)
+![1611277994869](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185614-855115.png)
 
 - Mapreduce确保每个reducer的输入都是按键排序的。系统执行排序的过程（即将map输出作为输入传给reducer）称为shuffle，Map方法之后，Reduce方法之前的数据处理过程称之为Shuffle。
 
@@ -1655,7 +1655,7 @@ public int compareTo(FlowBean o) {
 
 **过程**
 
-![1611381649104](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1611381649104.png)
+![1611381649104](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185622-33383.png)
 
 **在全局排序的基础上添加分区代码**
 
@@ -1985,7 +1985,7 @@ OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现�
 
 **过程**
 
-![1611622859480](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1611622859480.png)
+![1611622859480](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185635-655515.png)
 
 **Mapper**
 
@@ -2420,7 +2420,7 @@ job.addCacheFile(new URI("file://e:/cache/pd.txt"));
 
 **分析**
 
-![1611637719288](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1611637719288.png)
+![1611637719288](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185648-771221.png)
 
 **在驱动中添加缓存文件**
 
@@ -3008,7 +3008,7 @@ YARN中的任务将其进度和状态(包括counter)返回给应用管理器, �
 
 #### 先进先出调度器（FIFO）
 
-![1611802720420](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1611802720420.png)
+![1611802720420](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185711-67928.png)
 
 作业按照先到先运行的方法进行调度。
 

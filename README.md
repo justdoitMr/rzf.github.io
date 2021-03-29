@@ -2,6 +2,12 @@
 
 ## Hadoop
 
+[Hadoop基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
+
+[分布式文件基础Hdfs](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
+
+[]
+
 
 
 ## Hive
