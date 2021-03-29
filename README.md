@@ -8,8 +8,6 @@
 
 [MapReduce计算模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/MapReduce.md)
 
-
-
 ## Hive
 
 [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hive.md)
