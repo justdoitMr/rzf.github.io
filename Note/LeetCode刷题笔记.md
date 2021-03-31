@@ -66,3 +66,55 @@ class Solution {
 }
 ~~~
 
+## 两数相加
+
+[两数相加](https://leetcode-cn.com/problems/add-two-numbers/)
+
+**迭代法**
+
+思路和合并两个链表一样
+
+~~~ java
+class Solution {
+    public ListNode addTwoNumbers(ListNode l1, ListNode l2) {
+
+        // 使用迭代法
+        int nextInt=0;
+        int totle=0;
+        // 第一个是头节点
+        ListNode res=new ListNode(0);
+        ListNode curr=res;
+        while(l1 != null && l2 != null){
+            totle=l1.val+l2.val+nextInt;
+            curr.next=new ListNode(totle % 10);
+            nextInt=totle /10;
+            l1=l1.next;
+            l2=l2.next;
+            curr=curr.next;
+        }
+
+        while(l1 != null){
+            totle = l1.val+nextInt;
+            curr.next=new ListNode(totle % 10);
+            nextInt=totle/10;
+            l1=l1.next;
+            curr=curr.next;
+        }
+
+        while(l2 != null){
+            totle = l2.val+nextInt;
+            curr.next=new ListNode(totle % 10);
+            nextInt=totle/10;
+            l2=l2.next;
+            curr=curr.next;
+        }
+        if(nextInt != 0){
+            curr.next=new ListNode(nextInt);
+        }
+
+        return res.next;
+
+    }
+}
+~~~
+
