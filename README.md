@@ -12,6 +12,10 @@
 
 [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hive.md)
 
+## HBase
+
+[HBase基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/HBase.md)
+
 ## LeetCode笔记
 
 [算法基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode.md)
