@@ -1193,6 +1193,50 @@ class Solution {
 
 ## 回溯法
 
+### 回溯算法框架
+
+~~~ java
+public static List<List<Integer>> combine(int n, int k) {
+
+        // 回溯法
+
+        List<List<Integer>> res = new ArrayList();
+        ArrayList<Integer> temp = new ArrayList();
+        
+//        一般都是从 1 开始递归回溯
+        backTracking(res, 1, n, k, temp);
+
+        return res;
+
+    }
+
+    /**
+     * 回溯方法体，可以基于下面代码进行修改
+     * @param res 返回的结果集
+     * @param index 开始回溯的第一个节点
+     * @param n
+     * @param k
+     * @param temp 临时结果集
+     */
+    private static void backTracking(List<List<Integer>> res, int index, int n, int k, ArrayList temp) {
+
+        // 首先找到递归出口条件，
+        if (temp.size() == k) {
+            // 把temp集合添加到结果集中，然后返回
+            res.add(new ArrayList(temp));
+            return;
+        }
+        // 对每一个节点进行递归操作
+        for (int i = index; i <= n; i++) {
+            temp.add(i);
+            backTracking(res, i + 1, n, k, temp);
+            //做剪枝操作，剪枝减去的是最后面的元素
+            temp.remove(temp.size() - 1);
+        }
+    }
+}
+~~~
+
 22 78 77 46
 
 ### 78

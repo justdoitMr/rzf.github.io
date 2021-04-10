@@ -845,6 +845,8 @@ Flush或者major大合并的时候会删除数据
 
 ### HBase的API操作
 
+#### DDL操作
+
 ~~~ java
 //获取配置信息，使用静态代码块初始化配置信息
 public class TestApi01 {
@@ -874,7 +876,7 @@ public class TestApi01 {
 }
 ~~~
 
-#### 判断表是否存在API
+##### 判断表是否存在API
 
 ~~~ java
 /**
@@ -894,7 +896,7 @@ public class TestApi01 {
     }
 ~~~
 
-#### 创建表API
+##### 创建表API
 
 创建表必须提供表名和列族信息
 
@@ -927,7 +929,7 @@ private static void createTable(String tableName,String ...arg ) throws IOExcept
    }
 ~~~
 
-#### 删除表API
+##### 删除表API
 
 ~~~ java
  /*
@@ -948,7 +950,7 @@ private static void createTable(String tableName,String ...arg ) throws IOExcept
 
 ~~~
 
-#### 关闭资源API
+##### 关闭资源API
 
 ~~~ java
  /**
@@ -978,6 +980,245 @@ private static void createTable(String tableName,String ...arg ) throws IOExcept
         deleTable("stud");
 //        关闭资源
         close();
+    }
+~~~
+
+##### 创建命名空间
+
+~~~ java
+  public static void createNameSpace(String ns)  {
+//       先创建一个builder，通过builder去创建一个namespace
+//        创建命名空间描述器
+        NamespaceDescriptor.Builder builder = NamespaceDescriptor.create(ns);
+        NamespaceDescriptor build = builder.build();
+
+//        创建命名空间
+        try {
+            admin.createNamespace(build);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+~~~
+
+##### 代码小结
+
+~~~ java
+public class TestApi01 {
+
+    private static Connection connection=null;
+    private static Admin admin=null;
+
+//    初始化静态变量
+    static {
+
+        try {
+//        使用新的api创建配置信息
+            Configuration conf = HBaseConfiguration.create();
+//        配置集群信息,zookeeper默认使用的客户端端口是2181，所以在这里不需要进行配置
+            conf.set("hbase.zookeeper.quorum","hadoop100,hadoop101,hadoop102");
+//        使用新的api操作
+            connection = ConnectionFactory.createConnection(conf);
+
+            // 使用connection创建admin对象,admin对象是操作表的，也就是对应ddl语言
+            admin = connection.getAdmin();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+    
+
+    /*
+    DDL:
+        1 判断表是否存在
+        2 创建表
+        3 创建命名空间
+        4 表的增和删
+
+    DMNL操作
+        1 数据的增删改查 get scan
+     */
+
+
+    /**
+     * 判断表是否存在
+     * @param tableName 表名
+     * @return 返回boolean表示表是否存在
+     */
+    public static boolean isExists(String tableName) throws IOException {
+//        使用全局的admin对象
+        /*
+        执行程序，首先会加载执行静态代码块，然后admin connection两个对象就创建出来了
+         */
+        boolean exists = admin.tableExists(TableName.valueOf(tableName));
+
+
+        return exists;
+    }
+
+    /**
+     * 单独关闭资源
+     */
+   public static void close() throws IOException {
+        if(admin != null){
+            admin.close();
+        }
+
+        if(connection != null){
+            connection.close();
+        }
+   }
+
+   private static void createTable(String tableName,String ...arg ) throws IOException {
+//       1 首先判断是否存在列族信息
+       if(arg.length <= 0){
+           System.out.println("请设置列族信息 ");
+           return;
+       }
+//       2 判断表是否存在
+       if(isExists(tableName)){
+           System.out.println("表已经存在");
+           return;
+       }
+
+//       3 创建一个表描述器
+       HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(tableName));
+
+//       4 添加列族信息
+       for (String temp:arg) {
+//           创建一个列族描述器
+           HColumnDescriptor hColumnDescriptor = new HColumnDescriptor(temp);
+//           添加列族信息
+           descriptor.addFamily(hColumnDescriptor);
+       }
+//      5 创建表
+       admin.createTable(descriptor);
+
+   }
+
+   /*
+   删除表操作
+    */
+   private static void deleTable(String tableName) throws IOException {
+//       首先判断表是否存在
+       if(!isExists(tableName)){
+           System.out.println("表不存在");
+           return;
+       }
+//       然后使表下线
+       admin.disableTable(TableName.valueOf(tableName));
+
+//       删除表
+       admin.deleteTable(TableName.valueOf(tableName));
+   }
+
+    public static void main(String[] args) throws IOException {
+//        测试表是否存在
+//        String tableName="stu";
+//        boolean exists = isExists(tableName);
+//        System.out.println(exists);
+//        创建表测试
+//        createTable("stud","info1","info2");
+
+//        删除表测试
+//        deleTable("stud");
+
+//        创建一个命名空间
+        createNameSpace("ns");
+
+//        关闭资源
+        close();
+    }
+
+    public static void createNameSpace(String ns)  {
+//       先创建一个builder，通过builder去创建一个namespace
+//        创建命名空间描述器
+        NamespaceDescriptor.Builder builder = NamespaceDescriptor.create(ns);
+        NamespaceDescriptor build = builder.build();
+
+//        创建命名空间
+        try {
+            admin.createNamespace(build);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+~~~
+
+#### DML操作
+
+##### 插入数据
+
+~~~ java
+/**
+     * 向表中插入数据
+     * @param tableName 表名
+     * @param rowKey 键
+     * @param cf 列族
+     * @param cn 列名
+     * @param value 值
+     */
+    public static void insertData(String tableName,String rowKey,String cf,String cn
+    ,String value) throws IOException {
+//        首先获取表对象
+        Table tab = connection.getTable(TableName.valueOf(tableName));
+
+//        创建put对象
+        Put put = new Put(Bytes.toBytes(rowKey));
+//        给put对象进行赋值操作
+        put.addColumn(Bytes.toBytes(cf),Bytes.toBytes(cn),Bytes.toBytes(value));
+
+//        插入数据
+        tab.put(put);
+    }
+~~~
+
+##### 获取数据
+
+~~~ java
+ /**
+     * 获取单行数据
+     * @param tableName 表名
+     * @param rowKey rowkey
+     * @param cf 列族
+     * @param cn 列名
+     */
+    public static void getData(String tableName,String rowKey,String cf,String cn) throws IOException {
+
+//        获取表对象
+        Table table = connection.getTable(TableName.valueOf(tableName));
+
+//        创建get对象
+        Get get = new Get(Bytes.toBytes(rowKey));
+
+//        获取指定的列族,里面的参数表示列族信息
+        get.addFamily(Bytes.toBytes(cf));
+
+//        指定列族和列
+        get.addColumn(Bytes.toBytes(cf),Bytes.toBytes(cn));
+
+//        设置获取数据的版本数,这里可以根据数据的版本数量进行自己设置
+        get.setMaxVersions();
+
+
+//        调用get方法获取数据
+        Result res = table.get(get);
+
+//        解析res结果,获取cell数组
+        Cell[] cells = res.rawCells();
+
+//        遍历cell打印数据,cell是由多个行组成的
+        for(Cell s:cells){
+            System.out.println("cf"+Bytes.toString(CellUtil.cloneFamily(s))
+            +"cn"+Bytes.toString((CellUtil.cloneQualifier(s)))
+            +"value"+Bytes.toString(CellUtil.cloneValue(s)));
+        }
+
+//        关闭表连接
+        table.close();
+
     }
 ~~~
 
