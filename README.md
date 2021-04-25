@@ -12,6 +12,18 @@
 
 [概述—类加载](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E6%A6%82%E8%BF%B0_%E7%B1%BB%E5%8A%A0%E8%BD%BD.md)
 
+[方法区](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E6%96%B9%E6%B3%95%E5%8C%BA.md)
+
+[堆区](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Jvm-%E5%A0%86%E5%8C%BA.md)
+
+[垃圾回收概念](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%9B%B8%E5%85%B3%E6%A6%82%E5%BF%B5.md)
+
+[垃圾回收算法概述](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0.md)
+
+[垃圾回收器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.md)
+
+[String-Table原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-String-Table%E5%8E%9F%E7%90%86.md)
+
 ## 大数据系列
 
 ### Hadoop
