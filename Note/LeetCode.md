@@ -131,6 +131,115 @@ class Solution {
 }
 ~~~
 
+### 三数之和
+
+[三数之和]()
+
+使用排序法+双指针法
+
+~~~ java
+class Solution {
+    public static List<List<Integer>> threeSum(int[] nums) {
+        List<List<Integer>>res=new ArrayList();
+
+// 使用排序方法+双指针法
+// 首先判断数据是否是空数组
+        if(nums == null || nums.length == 0 || nums.length < 3){
+            return res;
+        }
+        // 对数组进行排序
+        Arrays.sort(nums);
+        // 遍历数组
+        for(int k=0;k<nums.length-2;k++){
+            // 首先判断当前元素值是否大于零
+            if(nums[k] > 0 ){
+                // 退出进行下一次循环
+                continue;
+            }
+            if((k>0)&&(nums[k] == nums[k-1])){
+                continue;
+            }
+            int left=k+1;
+            int right=nums.length-1;
+            while(left < right){
+                int sum=nums[k] + nums[left] + nums[right];
+                if( sum== 0){
+                    // 添加元素到集合中
+                    res.add(new ArrayList(Arrays.asList(nums[k],nums[left],nums[right])));
+                    // 找下一个合适的点
+                    while(left< right && nums[left] == nums[left+1])
+                    left++;
+                    while(left < right && nums[right] == nums[right-1])
+                        right--;
+                }
+                if(sum < 0){
+                    left++;
+                }
+                if(sum > 0){
+                    right--;
+                }
+            }
+        }
+        return res;
+    }
+}
+~~~
+
+### 17
+
+[电话号码的字母组合](https://leetcode-cn.com/problems/letter-combinations-of-a-phone-number/)
+
+回溯法
+
+~~~ java
+class Solution {
+	//一个映射表，第二个位置是"abc“,第三个位置是"def"。。。
+	//这里也可以用map，用数组可以更节省点内存
+	String[] letter_map = {" ","*","abc","def","ghi","jkl","mno","pqrs","tuv","wxyz"};
+	public List<String> letterCombinations(String digits) {
+		//注意边界条件
+		if(digits==null || digits.length()==0) {
+			return new ArrayList<>();
+		}
+		iterStr(digits, new StringBuilder(), 0);
+		return res;
+	}
+	//最终输出结果的list
+	List<String> res = new ArrayList<>();
+	
+	//递归函数
+	void iterStr(String str, StringBuilder letter, int index) {
+		//递归的终止条件，注意这里的终止条件看上去跟动态演示图有些不同，主要是做了点优化
+		//动态图中是每次截取字符串的一部分，"234"，变成"23"，再变成"3"，最后变成""，这样性能不佳
+		//而用index记录每次遍历到字符串的位置，这样性能更好
+		if(index == str.length()) {
+			res.add(letter.toString());
+			return;
+		}
+		//获取index位置的字符，假设输入的字符是"234"
+		//第一次递归时index为0所以c=2，第二次index为1所以c=3，第三次c=4
+		//subString每次都会生成新的字符串，而index则是取当前的一个字符，所以效率更高一点
+		char c = str.charAt(index);
+		//map_string的下表是从0开始一直到9， c-'0'就可以取到相对的数组下标位置
+		//比如c=2时候，2-'0'，获取下标为2,letter_map[2]就是"abc"
+		int pos = c - '0';
+		String map_string = letter_map[pos];
+		//遍历字符串，比如第一次得到的是2，页就是遍历"abc"
+		for(int i=0;i<map_string.length();i++) {
+			//调用下一层递归，用文字很难描述，请配合动态图理解
+            letter.append(map_string.charAt(i));
+            //如果是String类型做拼接效率会比较低
+			//iterStr(str, letter+map_string.charAt(i), index+1);
+            iterStr(str, letter, index+1);
+            letter.deleteCharAt(letter.length()-1);
+		}
+	}
+}
+
+~~~
+
+
+
 ## 链表
 
 - 访问：o(n)
@@ -652,6 +761,173 @@ class Solution {
     }
 }
 ~~~
+
+## 二叉树
+
+### 101，对称二叉树
+
+[对称二叉树](https://leetcode-cn.com/problems/symmetric-tree/)
+
+**递归实现**
+
+思路：给定一棵对称的二叉树，镜对称，也就是说左子树和右子树结构一样，并且对应的节点里面的值也是一样的。所以我们要递归比较左子树和右子树。
+
+- 记左子树的为left,右子树为right,如果left和right不相等的话，直接返回就可以了。
+- 如果相等，那么接着比较left的左孩子和right的右孩子，left的右孩子和right的左孩子是否是一样的，
+- 然后一直向下递归比较即可
+
+从上面的过程，可以看到终止的条件
+
+- 如果left 和right都是null的话，那么就返回true
+- 如果left和right中有一个为空的话，那么不对称，返回false
+- 如果left和right节点中的值不一样的话，那么说明不是对称的，返回false.
+
+~~~ java
+class Solution {
+    public boolean isSymmetric(TreeNode root) {
+
+        // 使用递归实现
+        if(root == null){
+            return false;
+        }
+
+        return isSimiliar(root.left,root.right);
+
+    }
+
+    public boolean isSimiliar(TreeNode left,TreeNode right){
+        // 递归的终止条件
+        // 两个节点都是空，或者两个节点中有一个为空，或者两个节点中的值不一样
+        if(left == null && right == null){
+            return true;
+        }else if(left == null || right == null){
+            return false;
+        }else if(left.val != right.val){
+            return false;
+        }
+        // 递归遍历两个子节点
+        return isSimiliar(left.left,right.right)&& isSimiliar(left.right,right.left);
+        
+    }
+}
+~~~
+
+**使用bfs方法**
+
+~~~ java
+class Solution {
+    public boolean isSymmetric(TreeNode root) {
+
+        // 使用递归实现
+        if(root == null){
+            return false;
+        }
+        // 使用广度优先遍历
+        return bfs(root);
+    }
+
+    public  boolean bfs(TreeNode root){
+
+        if(root == null){
+            return false;
+        }
+        LinkedList<TreeNode>queue=new LinkedList();
+        // 添加根节点到队列中
+        queue.add(root);
+        while(!queue.isEmpty()){
+            // 记录每一层元素的个数
+            int len=queue.size();
+            // 抛出队列元素
+            ArrayList<Integer>res=new ArrayList();
+            while(len>0){
+                TreeNode temp=queue.poll();
+                len--;
+            // 访问元素
+               
+                // 添加当前节点的左右孩子
+                if(temp != null){
+                     res.add(temp.val);
+                    if(temp.left != null){
+                        queue.add(temp.left);
+                    }else{
+                        queue.add(null);
+                    }
+                    if(temp.right != null){
+                        queue.add(temp.right);
+                    }else{
+                        queue.add(null);
+                    }
+                }else{
+                    // 如果当前元素为null值,向结果集中添加两个最值
+                    res.add(-1);
+                    res.add(-1);
+
+                }
+                
+
+                //len--;
+            }
+             // 判断当前一层的元素是否是对称的
+                for(int i=0,j=res.size()-1;i<=j;i++,j--){
+                    if(res.get(i) != res.get(j)){
+                        return false;
+                    }
+                }
+            
+        }
+        return true;
+
+    }
+~~~
+
+### 98，验证二叉搜索树
+
+判断一棵二叉树是否是有效的二叉搜索树
+
+**递归法**
+
+思路：中序遍历二叉搜索树是一颗有序的树。
+
+~~~ java
+class Solution {
+    public boolean isValidBST(TreeNode root) {
+
+        // 儿茶排序树的中序遍历是有序的
+        ArrayList<Integer>res=new ArrayList();
+        if(root == null){
+            return false;
+        }
+        order(root,res);
+        // 判断结果集中的元素是否是有序的
+        for(int i=1;i<res.size();i++){
+            if(res.get(i)<=res.get(i-1)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public void order(TreeNode root , ArrayList<Integer>res){
+        // 使用中序遍历
+        if(root == null){
+            return ;
+        }
+        
+        // 递归遍历左子树
+        if(root.left != null){
+            order(root.left,res);
+        }
+         // 添加当前节点的值到结果集中
+        res.add(root.val);
+        
+        // 递归遍历右子树
+        if(root.right != null)
+        order(root.right,res);
+    }
+}
+~~~
+
+
 
 # 算法部分
 
@@ -1237,6 +1513,97 @@ public static List<List<Integer>> combine(int n, int k) {
 }
 ~~~
 
+### 77
+
+算法框架举例说明
+
+1. 路径：也就是已经做出的选择。
+
+2. 选择列表：也就是你当前可以做的选择。
+
+3. 结束条件：也就是到达决策树底层，无法再做选择的条件
+
+**回溯法算法基本框架**
+
+~~~ java
+result = []
+def backtrack(路径, 选择列表):
+    if 满足结束条件:
+        result.add(路径)
+        return
+
+    for 选择 in 选择列表:
+        做选择
+        backtrack(路径, 选择列表)
+        撤销选择
+~~~
+
+> **其核心就是 for 循环里面的递归，在递归调用之前「做选择」，在递归调用之后「撤销选择」**
+
+**全排列问题**
+
+比方说给三个数 `[1,2,3]`，你肯定不会无规律地乱穷举，一般是这样：
+
+先固定第一位为 1，然后第二位可以是 2，那么第三位只能是 3；然后可以把第二位变成 3，第三位就只能是 2 了；然后就只能变化第一位，变成 2，然后再穷举后两位……
+
+回溯法生成的递归树
+
+![1618237168776](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1618237168776.png)
+
+只要从根遍历这棵树，记录路径上的数字，其实就是所有的全排列。**我们不妨把这棵树称为回溯算法的「决策树」**。
+
+**为啥说这是决策树呢，因为你在每个节点上其实都在做决策**。比如说你站在下图的红色节点上：
+
+![1618237275796](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1618237275796.png)
+
+你现在就在做决策，可以选择 1 那条树枝，也可以选择 3 那条树枝。为啥只能在 1 和 3 之中选择呢？因为 2 这个树枝在你身后，这个选择你之前做过了，而全排列是不允许重复使用数字的。
+
+**现在可以解答开头的几个名词：[2] 就是「路径」，记录你已经做过的选择；[1,3] 就是「选择列表」，表示你当前可以做出的选择；「结束条件」就是遍历到树的底层，在这里就是选择列表为空的时候**。
+
+如果明白了这几个名词，**可以把「路径」和「选择」列表作为决策树上每个节点的属性**，比如下图列出了几个节点的属性：
+
+![1618237347454](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/12/222229-65151.png)
+
+**我们定义的 backtrack 函数其实就像一个指针，在这棵树上游走，同时要正确维护每个节点的属性，每当走到树的底层，其「路径」就是一个全排列**。
+
+再进一步，如何遍历一棵树？而多叉树的遍历框架就是这样：
+
+~~~ java
+void traverse(TreeNode root) {
+    for (TreeNode child : root.childern)
+        // 前序遍历需要的操作
+        traverse(child);
+        // 后序遍历需要的操作
+}
+~~~
+
+而所谓的前序遍历和后序遍历，他们只是两个很有用的时间点，我给你画张图你就明白了：
+
+![1618237432592](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1618237432592.png)
+
+**前序遍历的代码在进入某一个节点之前的那个时间点执行，后序遍历代码在离开某个节点之后的那个时间点执行**。
+
+回想我们刚才说的，「路径」和「选择」是每个节点的属性，函数在树上游走要正确维护节点的属性，那么就要在这两个特殊时间点搞点动作：
+
+![1618237553557](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1618237553557.png)
+
+~~~ java
+for 选择 in 选择列表:
+    # 做选择
+    将该选择从选择列表移除
+    路径.add(选择)
+    backtrack(路径, 选择列表)
+    # 撤销选择
+    路径.remove(选择)
+    将该选择再加入选择列表
+~~~
+
+**我们只要在递归之前做出选择，在递归之后撤销刚才的选择**，就能正确得到每个节点的选择列表和路径。
+
+当然，这个算法解决全排列不是很高效，应为对链表使用 `contains` 方法需要 O(N) 的时间复杂度
+
+但是必须说明的是，不管怎么优化，都符合回溯框架，而且时间复杂度都不可能低于 O(N!)，因为穷举整棵决策树是无法避免的。**这也是回溯算法的一个特点，不像动态规划存在重叠子问题可以优化，回溯算法就是纯暴力穷举，复杂度一般都很高**。
+
 22 78 77 46
 
 ### 78
@@ -1332,6 +1699,82 @@ public static List<List<Integer>> fun(int nums[]){
 **题目描述**
 
 数字 `n` 代表生成括号的对数，请你设计一个函数，用于能够生成所有可能的并且 **有效的** 括号组合。
+
+
+
+
+
+### 17
+
+[电话号码子集问题](https://leetcode-cn.com/problems/letter-combinations-of-a-phone-number/)
+
+~~~ java
+public class Test17 {
+
+    public static void main(String[] args) {
+        List<String> strings = letterCombinations("23");
+        System.out.println(strings.toString());
+
+    }
+
+    public static List<String> letterCombinations(String digits) {
+
+        // 先使用哈希表存储对应的映射关系
+        Map<Character,ArrayList<String>> map=new HashMap<Character,ArrayList<String>>();
+        map.put('2',new ArrayList(Arrays.asList("a","b","c")));
+        map.put('3',new ArrayList(Arrays.asList("d","e","f")));
+        map.put('4',new ArrayList(Arrays.asList("g","h","i")));
+        map.put('5',new ArrayList(Arrays.asList("j","k","l")));
+        map.put('6',new ArrayList(Arrays.asList("m","n","o")));
+        map.put('7',new ArrayList(Arrays.asList("p","q","r","s")));
+        map.put('8',new ArrayList(Arrays.asList("t","u","v")));
+        map.put('9',new ArrayList(Arrays.asList("w","x","y","z")));
+
+        ArrayList temp=new ArrayList();
+        for(int i=0;i<digits.length();i++){
+            char c=digits.charAt(i);
+            List list=map.get(c);
+            temp.addAll(list);
+
+        }
+
+        // 存放结果的数组
+        List<String> res=new ArrayList();
+
+        // 下面对temp集合中的元素做排列操作
+        int len=digits.length();
+        String s="";
+        //for(int j=0;j<temp.size();j++){
+            backTracking(res,len,0,s,temp);
+       // }
+
+
+        return res;
+    }
+    public static void backTracking(List<String> list, int len, int index, String s, ArrayList temp){
+
+        // 首先写出递归出口条件
+        if(s.length() == len){
+            // 添加结果到res
+//            把StringBuilder转换为string
+            String s1 = s.toString();
+            list.add(s1);
+            return;
+        }
+
+//        做选择
+        for(int i=index;i<temp.size();i++){
+            // 添加当前元素到字符串中
+            s=s+temp.get(i);
+            // 做递归操作
+            backTracking(list,len,i+1,s,temp);
+            // 做剪枝操作
+            s=s.substring(0,s.length()-1);
+        }
+    }
+}
+
+~~~
 
 
 

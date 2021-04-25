@@ -1222,3 +1222,37 @@ public class TestApi01 {
     }
 ~~~
 
+##### 扫描全表
+
+~~~ java
+/**
+     * 获取数据（scan)
+     */
+
+    public static void scanTab(String tableName) throws IOException {
+//        1 获取表对象
+        Table table = connection.getTable(TableName.valueOf(tableName));
+
+//        2 创建一个scan对象,空参数表示扫描的是全表
+        Scan scan = new Scan();
+
+//        扫描全表
+        ResultScanner scanner = table.getScanner(scan);
+
+//        4 解析返回的结果
+        for (Result result : scanner) {
+
+//            解析并且打印
+            for(Cell cell:result.rawCells()){
+                System.out.println("cf"+Bytes.toString(CellUtil.cloneFamily(cell))
+                        +"cn"+Bytes.toString((CellUtil.cloneQualifier(cell)))
+                        +"value"+Bytes.toString(CellUtil.cloneValue(cell)));
+            }
+
+        }
+
+//        关闭资源
+        table.close();
+    }
+~~~
+

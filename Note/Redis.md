@@ -1230,3 +1230,575 @@ keys * // 查询所有的key
 **查询模式规则**
 
 ![1618024065335](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/10/110745-726872.png)
+
+**为key改名字**
+
+~~~ java
+rename key newkey
+renamenx key newkey
+
+//案例
+keys str str3
+~~~
+
+**对所有key进行排序**
+
+~~~ java
+sort //Sort the elements in a list, set or sorted set ，sort仅仅是做排序操作，没有变化元数据
+//sort排序不可以对字符串进行排序
+//案例
+127.0.0.1:6379> lpush aa 111
+(integer) 1
+127.0.0.1:6379> lpush aa 222
+(integer) 2
+127.0.0.1:6379> lpush aa 8
+(integer) 3
+127.0.0.1:6379> lrange 0 -1
+(error) ERR wrong number of arguments for 'lrange' command
+127.0.0.1:6379> lrange aa 0 -1
+1) "8"
+2) "222"
+3) "111"
+127.0.0.1:6379> sort aaa
+(empty list or set)
+127.0.0.1:6379> sort aa
+1) "8"
+2) "111"
+3) "222"
+127.0.0.1:6379> sort aa desc
+1) "222"
+2) "111"
+3) "8"
+~~~
+
+**其他key的通用操作**
+
+~~~ java
+help @generic
+~~~
+
+### 数据库通用指令
+
+key的重复问题
+
+- key是由程序员定义的
+- redis在使用过程中，伴随着操作数据量的增加，会出现大量的数据以及对应的key
+- 数据不区分种类、类别混杂在一起，极易出现重复或冲突
+
+解决方案
+
+- redis为每个服务提供有16个数据库，编号从0到15
+- 每个数据库之间的数据相互独立
+
+![1618640749825](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/17/142551-290607.png)
+
+1. 切换数据库
+
+~~~ java
+select 15 //切换到数据库15
+~~~
+
+2. 其他操作
+
+~~~ java
+quit
+ping
+echo message  //打印信息
+ping //测试客户端是否和服务器联通
+
+//案例
+127.0.0.1:6379[15]> ping abc
+"abc"
+~~~
+
+3. 移动数据
+
+~~~ java
+//注意，移动数据必须保证数据库中有这个数据，并且移动操作必须保证另一个库中没有数据，如果有的话，会移动失败
+move key db
+
+//案例
+127.0.0.1:6379> set name rzf
+OK
+127.0.0.1:6379> select 1
+OK
+127.0.0.1:6379[1]> get name
+(nil)
+127.0.0.1:6379[1]> select 0
+OK
+127.0.0.1:6379> move name 1
+(integer) 1
+127.0.0.1:6379> get name
+(nil)
+127.0.0.1:6379> select 1
+OK
+127.0.0.1:6379[1]> get name
+"rzf"
+~~~
+
+4. 清除数据
+
+~~~ java
+dbsize //查看数据库中keys的个数
+flushdb //清空某一个数据库
+flushall //清空所有的数据库
+  
+//案例
+127.0.0.1:6379[1]> keys *
+1) "name"
+127.0.0.1:6379[1]> flushdb
+OK
+127.0.0.1:6379[1]> keys *
+(empty list or set)
+~~~
+
+## Jedis
+
+### 什么是Jedis
+
+Java语言连接redis服务
+
+![1618645810232](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/17/155013-434353.png)
+
+**Java语言连接redis服务**
+
+- Jedis 
+- SpringData
+- Redis Lettuce
+
+**可视化连接redis客户端**
+
+- Redis Desktop Manager 
+- Redis Client 
+- Redis Studio
+
+### Java语言操作Redis
+
+**导入依赖**
+
+~~~ java
+<dependency>
+   <groupId>redis.clients</groupId>
+   <artifactId>jedis</artifactId>
+   <version>2.9.1</version>
+</dependency>
+~~~
+
+1. 链接redis
+
+~~~ java
+//        1 链接redis
+        Jedis jedis = new Jedis("127.0.0.1",6379);
+~~~
+
+2. 操作redis
+
+~~~ java
+//        2 操作redis
+
+        jedis.set("name","rrr");
+
+        String name = jedis.get("name");
+        System.out.println(name);
+~~~
+
+3. 关闭redis
+
+~~~ java
+//        3 关闭redis
+        jedis.close();
+~~~
+
+### java操作list集合
+
+~~~ java
+public class JedisTest_list {
+
+    public static void main(String[] args) {
+
+//        1 链接redis
+        Jedis jedis = new Jedis("127.0.0.1",6379);
+
+//        2 操作redis
+
+        jedis.lpush("list","a","b","c","d");
+        jedis.rpush("list","x");
+        List<String> list = jedis.lrange("list", 0, -1);
+        for(String s:list){
+            System.out.println(s);
+        }
+//        输出list的长度
+        System.out.println(jedis.llen("list"));
+
+
+//        3 关闭redis
+        jedis.close();
+    }
+}
+
+~~~
+
+### java操作hash
+
+~~~ java
+public class JedisTest_hash {
+
+    public static void main(String[] args) {
+
+//        1 链接redis
+        Jedis jedis = new Jedis("127.0.0.1",6379);
+
+//        2 操作redis
+//        从redis取出来的数据都会转换为java中的数据类型进行展示
+
+        jedis.hset("hash","a1","aaa");
+        jedis.hset("hash","a2","bbb");
+        jedis.hset("hash","a3","ccc");
+
+        Map<String, String> hash = jedis.hgetAll("hash");
+        System.out.println(hash);
+        System.out.println(jedis.hlen("hash"));
+
+//        3 关闭redis
+        jedis.close();
+    }
+}
+~~~
+
+## Linux下的Redis
+
+### 下载并且安装redis
+
+**过程**
+
+- 下载安装包
+- 解压
+- 编译：make
+- 安装：make install
+
+**下载redis**
+
+~~~ java
+wget https://download.redis.io/releases/redis-4.0.0.tar.gz
+~~~
+
+解压后的目录结构
+
+![1619312831912](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619312831912.png)
+
+**安装gcc环境**
+
+由于redis是由C语言编写的，它的运行需要C环境，因此我们需要先安装gcc。安装命令如下：
+
+~~~ JAVA
+yum install gcc-c++
+  
+//如果出现以下错误，
+  错误：Package: libstdc++-devel-4.4.7-17.el6.x86_64 (base)
+          Requires: libstdc++(x86-64) = 4.4.7-17.el6
+          已安装: libstdc++-4.4.7-23.el6.x86_64 (@anaconda-CentOS-201806291108.x86_64/6.10)
+              libstdc++(x86-64) = 4.4.7-23.el6
+          Available: libstdc++-4.4.7-17.el6.x86_64 (base)
+              libstdc++(x86-64) = 4.4.7-17.el6
+ You could try using --skip-broken to work around the problem
+** Found 3 pre-existing rpmdb problem(s), 'yum check' output follows:
+2:postfix-2.6.6-8.el6.x86_64 has missing requires of libmysqlclient.so.16()(64bit)
+2:postfix-2.6.6-8.el6.x86_64 has missing requires of libmysqlclient.so.16(libmysqlclient_16)(64bit)
+2:postfix-2.6.6-8.el6.x86_64 has missing requires of mysql-libs
+[root@hadoop100 ~]# 
+//执行下面四条命令
+yum downgrade libgomp
+yum downgrade libstdc++
+yum downgrade libgcc
+yum downgrade cpp
+~~~
+
+进入到 redis目录下，进行编译与安装
+
+~~~ java
+//执行make install命令进行安装，
+//如果出现下面的错误
+[rzf@hadoop100 redis]$ make
+cd src && make all
+make[1]: Entering directory `/opt/module/redis/src'
+    CC adlist.o
+在包含自 adlist.c：34 的文件中:
+zmalloc.h:50:31: 错误：jemalloc/jemalloc.h：没有那个文件或目录
+zmalloc.h:55:2: 错误：#error "Newer version of jemalloc required"
+make[1]: *** [adlist.o] 错误 1
+make[1]: Leaving directory `/opt/module/redis/src'
+make: *** [all] 错误 2
+//执行
+make distclean
+
+//出现下面错误
+[rzf@hadoop100 src]$ make test
+    CC Makefile.dep
+You need tcl 8.5 or newer in order to run the Redis test
+//执行
+yum install tcl
+~~~
+
+**启动redis**
+
+~~~ java
+//进入redis目录中，执行下面的命令
+redis-server
+//执行下面命令，可以进入客户端
+redis-cli
+~~~
+
+**redis启动界面**
+
+![1619317808893](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/103010-24035.png)
+
+**redis基础环境配置**
+
+- 创建软连接
+
+  - ln -s 原始目录名 快速访问目录名
+- 创建配置文件管理目录
+  - mkdir conf
+- 创建日志存放目录
+  - mkdir data  
+
+### 指定端口号
+
+在企业中，如果想要启动多个redis服务的话，可以更换端口操作。
+
+~~~ java
+redis-server --port 6380
+//端口号可以自己指定
+~~~
+
+![1619318254431](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/103804-818582.png)
+
+可以连接到指定端口的redis服务
+
+~~~ java
+redis-cli -p 6380
+~~~
+
+![1619318316833](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/103840-424828.png)
+
+### 通过配置文件启动多台服务器
+
+~~~ java
+//过滤配置文件的信息，并且写入新的配置文件
+cat redis.conf | grep -v "#" | grep -v "^$" > redis-6379.conf
+
+//配置文件修改为一下内容
+port 6379
+daemonize yes //作为守护进程启动
+logfile "6379.log" //日志存放的位置
+dir /opt/module/redis/data //日志存放的路径
+~~~
+
+- daemonize yes 以守护进程方式启动，使用本启动方式，redis将以服务的形式存在，日志将不再打印到命令窗口中 
+
+- port 6 设定当前服务启动端口号 
+- dir “/自定义目录/redis/data“ 设定当前服务文件保存位置，包含日志文件、持久化文件（后面详细讲解）等 
+- logfile "6.log“ 设定日志文件名，便于查阅
+
+**使用配置文件的方式启动**
+
+~~~ java
+redis-server redis-6379.conf 
+//查看进程
+ps -ef | grep redis-
+  
+//直接连接redis服务即可
+//这里要注意权限问题
+~~~
+
+可以把启动的配置文件存放到新建的conf目录下面，容易管理。
+
+> 默认配置启动
+>
+> redis-server 
+>
+> redis-server –-port 6379 
+>
+> redis-server –-port 6380
+>
+> 指定配置文件启动
+>
+> redis-server redis.conf 
+>
+> redis-server redis-6379.conf 
+>
+> redis-server redis-6380.conf …… 
+>
+> redis-server conf/redis-6379.conf 
+>
+> redis-server config/redis-6380.conf ……
+>
+> redis客户端连接
+>
+> 默认连接 ：redis-cli
+>
+> 连接指定服务器：
+>
+> redis-cli -h 127.0.0.1 
+>
+> redis-cli –port 6379 
+>
+> redis-cli -h 127.0.0.1 –port 6379
+
+## Redis持久化
+
+### 持久化简介
+
+**什么是持久化**
+
+利用永久性存储介质将数据进行保存，在特定的时间将保存的数据进行恢复的工作机制称为持久化。
+
+**为什么要持久化**
+
+防止数据的意外丢失，确保数据安全性
+
+**持久化过程保存什么**
+
+- 将当前数据状态进行保存，快照形式，存储数据结果，存储格式简单，关注点在数据
+- 将数据的操作过程进行保存，日志形式，存储操作过程，存储格式复杂，关注点在数据的操作过程
+
+![1619323113827](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/115835-54169.png)
+
+在redis中，既有快照形式的数据结果存储，也就中间过程的步骤存储。
+
+### RDB持久化
+
+#### RDB启动方式
+
+谁，什么时间，干什么事情
+
+命令执行
+
+- 谁：redis操作者（用户）
+- 什么时间：即时（随时进行）
+- 干什么事情：保存数据
+
+**命令**
+
+~~~ java
+save
+~~~
+
+作用：执行save命令会在data目录下生成一个rdb结尾的文件，文件中存储的是当前数据库的快照信息。
+
+**save相关指令的配置**
+
+- dbfilename dump.rdb
+  - 说明：设置本地数据库文件名，默认值为 dump.rdb 
+  - 经验：通常设置为dump-端口号.rdb
+- dir
+  - 说明：设置存储.rdb文件的路径 
+  - 经验：通常设置成存储空间较大的目录中，目录名称data
+- rdbcompression yes
+  - 说明：设置存储至本地数据库时是否压缩数据，默认为 yes，采用 LZF 压缩 
+  - 经验：通常默认为开启状态，如果设置为no，可以节省 CPU 运行时间，但会使存储的文件变大（巨大）
+- rdbchecksum yes 
+  - 说明：设置是否进行RDB文件格式校验，该校验过程在写文件和读文件过程均进行 
+  - 经验：通常默认为开启状态，如果设置为no，可以节约读写性过程约10%时间消耗，但是存储一定的数据损坏风险
+
+**修改配置文件**
+
+在这里使用的是6379端口号的配置文件
+
+~~~ java
+port 6379
+daemonize yes
+logfile "6379.log"
+dir /opt/module/redis/data
+
+//添加下面内容
+dbfilename dump-6379.rdb
+rdbcompression yes
+rdbchecksum yes
+~~~
+
+重新写入数据，发现持久化文件名字已经改变。
+
+#### 数据恢复
+
+现在退出redis客户端并且杀死redis服务器进程，现在重新启动服务，并且连接客户端，查询数据发现已经全部恢复，redis是在启动服务的时候，重新从持久化文件中加载数据。
+
+#### save指令的工作原理
+
+![1619324786412](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/122627-916427.png)
+
+多个客户端连接同一个服务器，那么客户端发出的指令会按照先后的顺序排入一个队列中顺序发给服务器执行，但是如果rdb持久化过程很慢的话，可能会造成延迟过高，阻塞save后面的指令。
+
+#### 后台执行
+
+数据量过大，单线程执行方式造成效率过低如何处理？
+
+**后台执行**
+
+- 谁：redis操作者（用户）发起指令；redis服务器控制指令执行
+- 什么时间：即时（发起）；合理的时间（执行）
+- 干什么事情：保存数据
+
+**命令**
+
+~~~ java
+bgsave
+~~~
+
+作用：手动启动后台保存操作，但不是立即执行
+
+![1619325155397](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619325155397.png)
+
+save指令是如果调用，那么就会立即执行持久化操作，但是bgsave的话会在后台使用folk命令创建一个子进程，子进程负责持久化数据。两个指令保存的文件都是同一个文件。
+
+**工作原理**
+
+![1619326806599](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619326806599.png)
+
+注意： bgsave命令是针对save阻塞问题做的优化。Redis内部所有涉及到RDB操作都采用bgsave的方式，save命令可以放弃使用。
+
+**bgsave指令相关配置**
+
+- dbfilename dump.rdb
+- dir
+- rdbcompression yes
+- rdbchecksum yes
+- stop-writes-on-bgsave-error yes 
+  - 说明：后台存储过程中如果出现错误现象，是否停止保存操作 
+  - 经验：通常默认为开启状态
+
+#### 自动持久化操作
+
+反复执行保存指令，忘记了怎么办？不知道数据产生了多少变化，何时保存？
+
+自动执行
+
+- 谁：redis服务器发起指令（基于条件）
+- 什么时间：满足条件
+- 干什么事情：保存数据
+
+**指令**
+
+~~~ java
+save second changes
+~~~
+
+作用：满足限定时间范围内key的变化数量达到指定数量即进行持久化
+
+参数
+
+- second：监控时间范围 
+- changes：监控key的变化量
+
+位置
+
+- 在conf文件中进行配置
+
+案例
+
+~~~ java
+save 900 1 
+save 300 10 
+save 60 10000
+~~~
+

@@ -755,3 +755,228 @@ public class Test78 {
     }
 ~~~
 
+## 102，二叉树的层次遍历
+
+**使用队列层次遍历**
+
+~~~ java
+class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+
+  LinkedList<TreeNode> queue=new LinkedList();
+        List<List<Integer>> list=new ArrayList();
+        // 广度优先遍历，需要借助队列实现
+        if(root == null){
+            return list;
+        }
+      
+        queue.add(root);
+        while(queue.size()>0){
+          //存储当前队列中元素的个数
+            int len=queue.size();
+            ArrayList l=new ArrayList();
+            while(len>0){
+                TreeNode node=queue.poll();
+                l.add(node.val);
+                if(node.left != null){
+                queue.add(node.left);
+                }
+                 if(node.right != null){
+                    queue.add(node.right);
+                 }
+                len--;
+            }
+            list.add(l);
+        
+        }
+    
+     return list;
+    }
+~~~
+
+**使用dfs层次遍历**
+
+~~~ java
+class Solution {
+    public List<List<Integer>> levelOrder(TreeNode root) {
+      
+// 使用深度优先遍历算法
+        List<List<Integer>> list=new ArrayList();
+        if(root == null){
+            return list;
+        }
+        // 否则进行深度优先遍历,0代表从第0层开始遍历
+        dfs(root,list,0);
+        return list;
+    }
+
+    private void dfs(TreeNode node,List<List<Integer>> list ,int leval){
+// 递归出口
+        if(node == null){
+            return;
+        }
+        // 首先判断当前的层次是否超过数组的长度
+      //数组的长度就是代表二叉树的层数
+        if(leval > list.size()-1){
+            ArrayList l=new ArrayList();
+            // l.add(node.val);
+          //添加一个新的数组，代表新的一层
+            list.add(l);
+        }
+        // 把当前节点的元素添加到集合中
+        list.get(leval).add(node.val);
+        // 对左边的子树进行递归
+        dfs(node.left,list,leval+1);
+        // 对右边的子树进行递归
+        dfs(node.right,list,leval+1);
+    }
+}
+~~~
+
+## 107，二叉树的层次遍历
+
+**使用bfs遍历**
+
+~~~ java
+class Solution {
+    public List<List<Integer>> levelOrderBottom(TreeNode root) {
+        // // 可以使用广度优先遍历，但是插入元素使用头插法,借助于链表实现
+        List<List<Integer>>result =new ArrayList();
+    
+        if(root == null){
+            return result;
+        }
+        Queue<TreeNode> q = new LinkedList<>();
+        q.add(root);
+        // 先把结果存储到临时变量中
+        LinkedList<ArrayList<Integer>> temp = new LinkedList<>();
+
+        while (q.size() > 0) {
+            int size = q.size();
+            ArrayList<Integer> list = new ArrayList<>();
+            while (size > 0) {
+                TreeNode cur = q.poll();
+                list.add(cur.val);
+                if (cur.left != null) {
+                    q.add(cur.left);
+                }
+                if (cur.right != null) {
+                    q.add(cur.right);
+                }
+                size--;
+            }
+            temp.addFirst(new ArrayList<>(list));
+        }
+       
+        result.addAll(temp);
+        return result;
+    }
+~~~
+
+**使用dfs遍历**
+
+~~~ java
+class Solution {
+    public List<List<Integer>> levelOrderBottom(TreeNode root) {
+
+        // 使用dfs方法解答
+
+        List<List<Integer>>res=new ArrayList();
+        if(root == null)
+        {
+            return res;
+        }
+        // 使用深度优先遍历
+        dfs(root,res,0);
+        // 对返回的结果进行逆转
+        Collections.reverse(res);
+
+        return res;
+    }
+
+    private void dfs(TreeNode root,List<List<Integer>> list,int leavl){
+
+        // 递归函数的出口
+        if(root == null){
+            return;
+        }
+        
+        if(leavl > list.size()-1){
+            // 新的一层添加到数组中
+            ArrayList <Integer>l=new ArrayList();
+            list.add(l);
+        }
+        // 把当前的节点值添加到数组
+        list.get(leavl).add(root.val);
+        // 左边递归
+        dfs(root.left,list,leavl+1);
+        // 右边递归
+        dfs(root.right,list,leavl+1);
+
+
+
+    }
+}
+~~~
+
+## 169，多数元素
+
+**使用排序法**
+
+~~~ java
+class Solution {
+    public int majorityElement(int[] nums) {
+
+        if(nums == null || nums.length == 0){
+            return -1;
+        }
+        
+    //  使用排序法
+    Arrays.sort(nums);
+
+    return nums[nums.length/2];
+    }
+}
+~~~
+
+**使用hashMap**
+
+~~~ java
+class Solution {
+    public int majorityElement(int[] nums) {
+
+        if(nums == null || nums.length == 0){
+            return -1;
+        }
+    // 使用hashmap方法
+    //key存储值，value存储元素出现的次数
+    Map hashMap=new HashMap();
+    for(int i=0;i<nums.length;i++){
+        if(hashMap.containsKey(nums[i])){
+            hashMap.put(nums[i],(Integer)hashMap.get(nums[i])+1);
+        }else{
+            hashMap.put(nums[i],1);
+        }
+    }
+    Set<Map.Entry<Integer, Integer>> entries = hashMap.entrySet();
+    for (Map.Entry temp:entries) {
+        if((Integer)temp.getValue() > nums.length/2){
+            return (Integer)temp.getKey();
+        }
+        
+    }
+    return 0;
+    }
+}
+~~~
+
+**分治法**
+
+~~~ java
+
+~~~
+
+
+
+
+
