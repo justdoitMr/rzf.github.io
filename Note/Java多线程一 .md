@@ -2409,7 +2409,7 @@ class SubClass extends ThreadSafe{
     }).start();
 ~~~
 
-- 它们的每个方法是原子的,也就是对于每一个方法,已经添加`synchronized`关键字,是原子操作.
+- 它们的每个方法是原子的,也就是对于每一个方法,已经添加`synchronized`关键字,是原子操作.线程的上下文切换不会导致并发安全问题。
 - 但注意它们多个方法的组合不是原子的，见后面分析
 
 ##### 线程安全类方法的组合
@@ -2454,7 +2454,8 @@ public String substring(int beginIndex, int endIndex) {
 ~~~
 
 - 我们以`substring`源码来说明,其实最后使用`new String(value, beginIndex, subLen);`返回的是一个新的字符串,并不会影响字符串的本身.所以是线程安全的.
-- 在源码中把`Sring`设置为`final`类，目的就是遵循了设计模式中的开闭原则，防止继承`String`进而修改类源码.
+- 在源码中把`Sring`设置为`final`类，目的就是遵循了设计模式中的开闭原则，防止继承`String`进而修改类源码.比如有些子类继承与String类，然后对其中的一些方法进行重写，覆盖原来的方法，这样就不能保证线程安全。
+- 另外，如果变量使用final声明的话，仅仅能保证变量的引用不在改变，而不能保证对象本身内部的属性不能改变，所以使用final声明的对象仍然不能保证线程安全。
 
 ### 练习
 
@@ -2593,14 +2594,16 @@ class Account {
 	 }
 }
 //如果把锁加在this对象上面，那么锁住的只能是某一个对象的money变量，这里要锁住的是两个对象共享的变量，所以必须把锁添加在类上，如果没理解，请看线程8锁那一块
+//也就是说如果加所加载方法上面，只能锁住this对象，不能锁住target对象
 public synchronized void transfer(Account target, int amount) {
      if (this.money > amount) {
      this.setMoney(this.getMoney() - amount);
      target.setMoney(target.getMoney() + amount);
  	}
 }
-//要锁主类对象
+//要锁主类对象，也就是说this对象的money和target对象的money属性都需要被保护
 public void transfer(Account target, int amount) {
+  //在这里锁住的是类而第一种加锁的方式只能锁住this对象
   synchronized(Account.class){
      if (this.money > amount) {
      this.setMoney(this.getMoney() - amount);
@@ -2611,10 +2614,16 @@ public void transfer(Account target, int amount) {
 
 ~~~
 
+> 如果有多个需要保护的变量，需要锁住的是类对象
+
 ### Monitor的概念
 
 **Java 对象头**
 以 32 位虚拟机为例
+
+integer:12字节=8+4
+
+int:4字节
 
 **普通对象**
 
@@ -2640,7 +2649,11 @@ public void transfer(Account target, int amount) {
 
 #### Monitor锁
 
-- Monitor 被翻译为监视器或管程
+如下面的图所示，当开始执行synchronized代码块的时候，会将obj对象和操作系统的monitor对象进行关联，然后obj对象中的前30位记录monitor对象的地址，后两位修改为10，表示重量级锁，
+
+![1620105087062](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/04/131128-459069.png)
+
+- Monitor 被翻译为**监视器或管程**
 - 每个 Java 对象都可以关联一个 Monitor 对象，如果使用 synchronized 给对象上锁（重量级）之后，该对象头的Mark Word 中就被设置指向 Monitor 对象的指针
 - **Monitor 结构如下**
 
@@ -2648,7 +2661,7 @@ public void transfer(Account target, int amount) {
 
 - 刚开始Monitor中的Owner为null.
 - 当 Thread-2 执行 synchronized(obj) 就会将 Monitor 的所有者 Owner 置为 Thread-2，Monitor中只能有一
-  个 Owner
+  个 Owner，其中monitor是操作系统层面的对象，而obj是java层面的对象。
 - 在 Thread-2 上锁的过程中，如果 Thread-3，Thread-4，Thread-5 也来执行 synchronized(obj)，就会进入
   `EntryList BLOCKED`,**此队列中的线程是没有获取到锁的线程。**
 - Thread-2 执行完同步代码块的内容，然后唤醒 `EntryList `中等待的线程来竞争锁，竞争的时是非公平的
@@ -2701,7 +2714,10 @@ public static void main(java.lang.String[]);
         11: putstatic     #3                  // Field count:I.重新写回count操作
         14: aload_1//加载局部变量表中1位置的临时锁对象的地址
         15: monitorexit//将对象头的mark word进行重置，加锁前mark word存储的是hash code等信息，但是加锁后存储的是monotor指针，所以要重置为加锁之前的信息，然后唤醒entry list中的一个阻塞线程
+                  只是把monitor和obj对象头中的信息交换了一下，并没有丢失。
         16: goto          24//执行第24条指令，也就是返回
+        
+                  
         //如果锁中发生异常，就执行下面的代码，也可以正常释放锁
         19: astore_2//异常对象存储到局部变量表2的位置
         20: aload_1//重新加载锁的引用
@@ -2729,17 +2745,21 @@ public static void main(java.lang.String[]);
 
 #### synchronized原理进阶
 
+重量级锁--monitor
+
+轻量级锁--锁记录
+
 故事角色
 
 - 老王 - JVM
 - 小南 - 线程
 - 小女 - 线程
 - 房间 - 对象
-- 房间门上 - 防盗锁 - Monitor
-- 房间门上 - 小南书包 - 轻量级锁
-- 房间门上 - 刻上小南大名 - 偏向锁
-- 批量重刻名 - 一个类的偏向锁撤销到达 20 阈值
-- 不能刻名字 - 批量撤销该类对象的偏向锁，设置该类不可偏向
+- 房间门上 - **防盗锁 - Monitor**
+- 房间门上 - **小南书包 - 轻量级锁**
+- 房间门上 - **刻上小南大名 - 偏向锁**，锁偏向于某一个线程使用
+- 批量重刻名 - **一个类的偏向锁撤销到达 20 阈值**
+- 不能刻名字 - **批量撤销该类对象的偏向锁，设置该类不可偏向**
 
 
 
@@ -2759,6 +2779,7 @@ public static void main(java.lang.String[]);
 
 - **轻量级锁的使用场景：如果一个对象虽然有多线程要加锁，但加锁的时间是错开的（也就是没有竞争），那么可以使用轻量级锁来优化。**
 - 轻量级锁对使用者是透明的，即语法仍然是` synchronized`，假设有两个方法同步块，利用同一个对象加锁
+- 使用轻量级锁是jvm自动进行的，如果轻量级锁加锁失败了，jvm才会换为重量级锁。
 
 **代码说明**
 
@@ -2786,11 +2807,11 @@ public class Test17 {
 }
 ~~~
 
-- 创建锁记录（`lock record`)对象，每一个线程的栈帧都会包含一个**锁记录的结构**，内部可以存储锁定对象的`Mark Word`(也就是对象头中的`mark word`结构)。锁记录包含两部分：**1，对象引用存储的是锁对象的地址，2，lock record记录的是对象头的mark word信息。**，现在可以看到对象头中的锁标记是01，表示没有加锁的状态。
+- 创建锁记录（`lock record`)对象，其实这个锁记录就可以认为是monitor对象，每一个线程的栈帧都会包含一个**锁记录的结构**，内部可以存储锁定对象的`Mark Word`(也就是对象头中的`mark word`结构)。锁记录包含两部分：**1，对象引用存储的是锁对象的地址，2，lock record记录的是对象头的mark word信息。**，现在可以看到对象头中的锁标记是01，表示没有加锁的状态。
 
 ![1608430712495](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/101834-900964.png)
 
-- 让锁记录中的`object reference`指向刚才的锁对象， 并且尝试用`cas`替换掉`Object`中的`mark word`，并且将`mark work`的值存入锁记录。对象头中的01表示为加锁，添加到锁记录中就变为00，表示轻量级锁。在这里是将对象头中的`hashcode`等信息和`lock recode`信息做一个交换，因为解锁的时候，还需要进行恢复对象的状态。
+- 让锁记录中的`object reference`指向刚才的锁对象， 并且尝试用`cas`替换掉`Object`中的`mark word`，并且将`mark work`的值存入锁记录。对象头中的01表示为没有加锁，添加到锁记录中就变为00，表示轻量级锁。在这里是将对象头中的`hashcode`等信息和`lock recode`信息做一个交换，因为解锁的时候，还需要进行恢复对象的状态。obj中01表示没有加锁状态，而锁记录中00表示轻量级锁状态。
 
 ![1608431916759](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/103837-670129.png)
 
@@ -2800,7 +2821,7 @@ public class Test17 {
 
 - 如果`cas`失败，有两种情况
   - **如果是其他线程已经持有该对象的轻量级锁，这个时候表示有竞争，进入锁膨胀的过程。**
-  - 如果是自己执行了`synchronized`重入（也就是自己的线程又给同一个对象添加锁），那么需要添加一条`lock record`作为重入的计数，就是重新创建一个栈帧，把栈帧的锁记录重新做上面的一系列操作，比如`cas`操作,交换对象头和锁记录中的信息。重入实际就是判断同一个线程对锁对象添加了几次锁，直接可以根据`lock record`的数量就可以计算。最后在解锁的时候，解一次锁，就会去掉一个`lock record`记录。
+  - 如果是自己执行了`synchronized`重入（也就是自己的线程又给同一个对象添加锁），那么需要添加一条`lock record`作为重入的计数，就是重新创建一个栈帧，把栈帧的锁记录重新做上面的一系列操作，比如`cas`操作,交换对象头和锁记录中的信息。重入实际就是判断同一个线程对锁对象添加了几次锁，直接可以根据`lock record`的数量就可以计算。但是这样加锁会失败，因为第一次已经把obj对象头中的10修改为00,表示已经加锁了，但是会产生一个新的锁记录，锁记录的对象头中记录的是null值，最后在解锁的时候，解一次锁，就会去掉一个`lock record`记录。锁记录个数代表加锁的次数。
 
 ![1608432573493](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/104936-686289.png)
 
@@ -2808,13 +2829,13 @@ public class Test17 {
 
 ![1608433111541](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/105834-665733.png)
 
-- 当退出`synchronized`代码块锁记录的值不是`null`这种情况时候，这个时候使用`cas`将`mark word`的值恢复为对象头原来的初始值。
+- 当退出`synchronized`代码块锁记录的值不是`null`这种情况时候，这个时候使用`cas`将`mark word`的值恢复为对象头原来的初始值。cas是一个原子操作，不可以打断。
   - 回恢复成功，那么就解锁成功。
   - 失败，那么说明轻量级锁进行了锁膨胀，或者是升级为重量级锁，进入重量级锁的解锁流程。
 
 ##### 锁膨胀
 
-如果在尝试加轻量级锁的过程中，`CAS`操作无法成功，这个时候有一种情况就是有其他线程为锁对象已经添加上轻量级锁（也就是说明有线程在竞争），这个时候需要进行锁的膨胀，将轻量级锁升级为重量级锁。
+如果在尝试加轻量级锁的过程中，`CAS`操作无法成功，这个时候有一种情况就是有其他线程为锁对象已经添加上轻量级锁（也就是说明有线程在竞争），**这个时候需要进行锁的膨胀，将轻量级锁升级为重量级锁。**
 
 **代码说明**
 
@@ -2835,21 +2856,22 @@ public class Test17 {
 }
 ~~~
 
-- 当Thread-1进行添加轻量级锁的时候，Thread-0已经对该对象添加了轻量级锁
+- 当Thread-1进行添加轻量级锁的时候，Thread-0已经对该对象添加了轻量级锁，可以看到obj对象中锁状态已经变为00，
 
 ![1608433998815](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/111321-848617.png)
 
-- 这个时候Thread-1添加轻量级锁失败，需要进入锁膨胀的过程
+- 这个时候Thread-1添加轻量级锁失败，需要进入锁膨胀的过程，因为线程1没有申请锁成功，必须申请重量级锁进入阻塞队列等待，所以要升级。这个时候是对obj对象升级为重量级锁，而不是申请新的锁对象。
   - 首先为object对象申请一个重量级的monitor锁，让object指向重量级锁的地址。因为Thread-1没有拿到锁，就需要进入阻塞状态，但是轻量级锁没有阻塞这种状态，所以要升级为重量级锁。
   - 然后自己进入monitor的`EntryList BLOCK`阻塞队列中。其中锁的类型也修改为重量级锁标志10.
 
 ![1608434455417](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/112059-331227.png)
 
-- 当Thread-0退出同步代码块进行解锁的时候，使用cas将mark word恢复给对象头，如果失败，那么会进入重量级锁的解锁流程，也就是按照monitor的地址找到monitor对象，设置owner为null,同时唤醒entryList 中的block线程。
+- 当Thread-0退出同步代码块进行解锁的时候，使用cas将mark word恢复给对象头，如果失败，那么会进入重量级锁的解锁流程，也就是按照obj对象中monitor对象的地址找到monitor对象，设置owner为null,同时唤醒entryList 中的block线程。
+- 切记：obj中记录的是monitor对象地址，而monitor对象中记录的是obj对象中对象头的信息。
 
 ##### 自旋优化
 
-在重量级锁进行竞争的时候，还可以使用自旋来进行优化，如果当前线程自旋成功（即这时候持锁的线程已经退出同步代码块，释放了锁），这个时候当前线程就可以避免被阻塞（阻塞会发生上下文切换）。
+在**重量级锁进行竞争**的时候，还可以使用**自旋来进行优化**，如果当前线程自旋成功（即这时候持锁的线程已经退出同步代码块，释放了锁），什么叫自旋，也就是让将要进入阻塞队列的线程先不要进入阻塞队列，让他在原地进行几次循环等待，等待娶她线程让出锁，然后在获取锁，这样做可以减小上下文切换带来的压力，但是如果有很多线程都进入自旋的状态，那么很吃cpu的性能。这个时候当前线程就可以避免被阻塞（阻塞会发生上下文切换）。
 
 **自旋重试成功的情况**
 
@@ -2867,7 +2889,7 @@ public class Test17 {
 | -                        | 10（重置锁）重量锁指针 | 执行同步块                           |
 | ……                       |                        |                                      |
 
-- 自旋优化，适合是多`cpu`的。
+- 自旋优化，适合是多核`cpu`的。
 
 **自旋重试失败的情况**
 
@@ -2893,25 +2915,51 @@ public class Test17 {
 
 轻量级锁在没有竞争的时候（也就是说只有当前一个线程），每一次仍然需要进行cas操作，开销依然很大。
 
-jdk6中引入偏向锁进行优化，只有第一次使用cas将线程id(可以理解为线程的名字)设置到对象头的mark word头，之后发现这个线程的id是自己的就表示没有竞争，不用重新进行cas操作，以后只要不发生竞争，这个对象就归该线程所有。
+jdk6中引入偏向锁进行优化，只有第一次使用cas将线程id(可以理解为线程的名字)设置到对象头的mark word头，之后发现这个**线程的id**是自己的就表示没有竞争，不用重新进行cas操作，以后只要不发生竞争，这个对象就归该线程所有。线程id一般是唯一的，这样可以避免每一次进行cas操作。
 
 **代码说明**
 
 ~~~ java
-
+static final Object obj = new Object();
+public static void m1() {
+ synchronized( obj ) {
+ // 同步块 A
+ m2();
+ }
+}
+public static void m2() {
+ synchronized( obj ) {
+ // 同步块 B
+ m3();
+ }
+}
+public static void m3() {
+ synchronized( obj ) {
+// 同步块 C
+ }
+}
 ~~~
 
 **轻量级锁锁重入**
 
+可以看到，在m1()方法中获取到锁之后，在m2()中，还会去重新尝试获取锁，使用的是cas操作，同理，在m3()方法中还会使用cas重新获取锁。这样每次重新获取锁，然后添加锁记录会影响开销。每次尝试获取锁，都会添加锁记录，然后尝试使用cas去修改锁对象信息，
+
 ![1608508817117](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/21/080019-12287.png)
 
 **偏向锁**
+
+使用线程的id号。也就是把线程的id添加到monitor中。
 
 ![1608508883101](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/21/080124-149134.png)
 
 ###### 偏向状态
 
 **64位虚拟机对象头**
+
+- 10：表示是重量级锁。
+- 00：表示是轻量级锁。
+- 01：正常状态，没有添加锁。
+- biased_lock:表示是否启用偏向锁。
 
 ![1608426690728](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/20/091132-375421.png)
 
@@ -2921,21 +2969,65 @@ jdk6中引入偏向锁进行优化，只有第一次使用cas将线程id(可以�
 - 偏向锁开启默认是延迟的，不会再程序启动时立即生效，如果想避免延迟，可以添加vm参数：XX：BiasedLockingStartupDelay=0来禁用延迟。
 - 如果没有开启偏向锁，那么对象创建后，markword值为0x01,，也就是最后三位是001，这时他的hashcode，age,都是0，第一次使用hashcode的时候才会赋值。
 - 当给锁对象的对象头markword添加线程id后，当锁退出后，markword中存储的还是第一次解锁线程的线程id，除非是其他线程重新使用此对象锁，markdown中的线程id才会改变。
-- **偏向锁的使用场景是当只有一个线程的时候，也就是没有竞争的时候。**
+- **偏向锁的使用场景是当只有一个线程的时候，也就是没有竞争的时候。**当冲突很少的时候适合于偏向锁。
 
-######  撤销对象锁的偏向状态
+> 加锁的顺序：偏向锁--->轻量级锁--->重量级锁
 
-当一个对象获取对象的哈希码之后，会禁用偏向锁，应为哈希码占用了存储线程id的位置，也就是如果调用某个锁的hashcode()方法，那么此对象的偏向锁会被撤销。
+######  撤销对象锁的偏向状态- 调用对象的hashCode()方法
+
+当一个可偏向的对象获取对象的哈希码之后，会禁用偏向锁，因为哈希码占用了存储线程id的位置，也就是如果调用某个锁的hashcode()方法，那么此对象的偏向锁会被撤销。而轻量级锁的哈希码存储在所记录的栈帧中，而重量级锁的哈希码存储在monitor中。而偏向锁没有额外的存储位置。
 
 ###### 撤销-其他线程使用对象
 
 ==轻量级锁和偏向锁使用的前提是两个线程在访问对象锁的时间都是错开的。而重量级锁多个线程可以并发执行。==
 
-当某个线程给锁对象添加偏向锁后，然后解锁，当再次有其他线程给对象添加锁的时候，那么次对象的偏向锁状态会失效，升级为轻量级锁，也就是对象从可偏向状态转变为不可偏向状态。
+当某个线程给锁对象添加偏向锁后，然后解锁，当再次有其他线程给对象添加锁的时候，那么这次对象的偏向锁状态会失效，升级为轻量级锁，也就是对象从可偏向状态转变为不可偏向状态。
+
+~~~ java
+private static void test2() throws InterruptedException {
+ Dog d = new Dog();
+ Thread t1 = new Thread(() -> {
+ synchronized (d) {
+ log.debug(ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ synchronized (TestBiased.class) {
+ TestBiased.class.notify();
+ }
+ // 如果不用 wait/notify 使用 join 必须打开下面的注释
+ // 因为：t1 线程不能结束，否则底层线程可能被 jvm 重用作为 t2 线程，底层线程 id 是一样的
+ /*try {
+ System.in.read();
+ } catch (IOException e) {
+ e.printStackTrace();
+ }*/
+ }, "t1");
+ t1.start();
+ Thread t2 = new Thread(() -> {
+ synchronized (TestBiased.class) {
+ try {
+ TestBiased.class.wait();
+ } catch (InterruptedException e) {
+ e.printStackTrace();
+ }
+ }
+ log.debug(ClassLayout.parseInstance(d).toPrintableSimple(true));
+ synchronized (d) {
+ log.debug(ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ log.debug(ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }, "t2");
+ t2.start();
+}
+//输出
+[t1] - 00000000 00000000 00000000 00000000 00011111 01000001 00010000 00000101 
+[t2] - 00000000 00000000 00000000 00000000 00011111 01000001 00010000 00000101 
+[t2] - 00000000 00000000 00000000 00000000 00011111 10110101 11110000 01000000 
+[t2] - 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000001 
+~~~
 
 ###### 撤销-调用wait/notify
 
-wait/notify只有重量级锁才有，当调用这两个方法时候，会把偏向锁和轻量级锁升级为重量级锁。
+wait/notify只有**重量级锁**才有，当调用这两个方法时候，会把偏向锁和轻量级锁升级为重量级锁。
 
 ###### 批量重偏向
 
@@ -2943,9 +3035,140 @@ wait/notify只有重量级锁才有，当调用这两个方法时候，会把偏
 
 当撤销偏向锁阈值超过20次后，jvm会这样觉得，我是不是偏向错了呢。于是在给对象加锁时候重新偏向至加锁线程。
 
+~~~ java
+private static void test3() throws InterruptedException {
+ Vector<Dog> list = new Vector<>();
+ Thread t1 = new Thread(() -> {
+ for (int i = 0; i < 30; i++) {
+ Dog d = new Dog();
+ list.add(d);
+ synchronized (d) {
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ }
+ synchronized (list) {
+ list.notify();
+ } 
+ }, "t1");
+ t1.start();
+ 
+ Thread t2 = new Thread(() -> {
+ synchronized (list) {
+ try {
+ list.wait();
+ } catch (InterruptedException e) {
+ e.printStackTrace();
+ }
+ }
+ log.debug("===============> ");
+ for (int i = 0; i < 30; i++) {
+ Dog d = list.get(i);
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ synchronized (d) {
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ }, "t2");
+ t2.start();
+}
+
+~~~
+
 ###### 批量撤销
 
 当撤销偏向锁的阈值达到40次之后，jvm也会这样觉得，自己确实偏向错了，根本就不该偏向，于是整个类的所有对象都会变为不可偏向的，新建的对象也是不可偏向的。
+
+~~~ java
+static Thread t1,t2,t3;
+private static void test4() throws InterruptedException {
+ Vector<Dog> list = new Vector<>();
+ int loopNumber = 39;
+ t1 = new Thread(() -> {
+ for (int i = 0; i < loopNumber; i++) {
+ Dog d = new Dog();
+ list.add(d);
+ synchronized (d) {
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ }
+ LockSupport.unpark(t2);
+ }, "t1");
+ t1.start();
+ t2 = new Thread(() -> {
+ LockSupport.park();
+ log.debug("===============> ");
+ for (int i = 0; i < loopNumber; i++) {
+ Dog d = list.get(i);
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ synchronized (d) {
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ LockSupport.unpark(t3);
+ }, "t2");
+t2.start();
+ t3 = new Thread(() -> {
+ LockSupport.park();
+ log.debug("===============> ");
+ for (int i = 0; i < loopNumber; i++) {
+ Dog d = list.get(i);
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ synchronized (d) {
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ log.debug(i + "\t" + ClassLayout.parseInstance(d).toPrintableSimple(true));
+ }
+ }, "t3");
+ t3.start();
+ t3.join();
+ log.debug(ClassLayout.parseInstance(new Dog()).toPrintableSimple(true));
+}
+~~~
+
+###### 锁消除
+
+~~~ java
+@Fork(1)
+@BenchmarkMode(Mode.AverageTime)
+@Warmup(iterations=3)
+@Measurement(iterations=5)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
+public class MyBenchmark {
+ static int x = 0;
+ @Benchmark
+ public void a() throws Exception {
+ x++;
+ }
+ @Benchmark
+ public void b() throws Exception {
+ Object o = new Object();
+ synchronized (o) {
+ x++;
+    }
+ }
+}
+
+java -jar benchmarks.jar
+Benchmark Mode Samples Score Score error Units
+c.i.MyBenchmark.a avgt 5 1.542 0.056 ns/op 
+c.i.MyBenchmark.b avgt 5 1.518 0.091 ns/op 
+
+//-XX:-EliminateLocks表示关闭锁消除
+java -XX:-EliminateLocks -jar benchmarks.jar
+Benchmark Mode Samples Score Score error Units
+c.i.MyBenchmark.a avgt 5 1.507 0.108 ns/op 
+c.i.MyBenchmark.b avgt 5 16.976 1.572 ns/op 
+~~~
+
+#### 锁小结
+
+创建一个对象最初是无锁状态的，一个对象获取锁后升级为偏向锁，当出现锁竞争的时候，就升级为轻量级锁，轻量级锁然后在升级为重量级锁，但是在轻量级锁升级为重量级锁的过程中，有一个自旋优化的过程，这样可以减小开销。
+
+轻量级锁，在当前线程A创建一个锁记录，然后尝试通过CAS把markword更新为指向线程A的锁记录的指针，如果成功了，那么markword最后两位就变成00(轻量级锁)，如果此时又来了一个B线程，那么会在B线程中创建一个锁记录，尝试CAS把markword更新为指向线程A的该锁记录的指针，如果失败的话，会查看markword的指针指向的是不是B线程中的某个栈帧(锁记录)，如果是，即A和B是同一个线程，也就是当前操作是重入锁操作，即在当前线程对某个对象重复加锁，这是允许的，也就是可以获取到锁了。如果markword记录的不是B线程中的某个栈帧(锁记录)，那么线程B就会尝试自旋，如果自选超过一定次数，就会升级成重量级锁（轻量级锁升级成重量级锁的第一种时机：自选次数超过一定次数），如果B线程在自选的过程中，又来了一个线程C来竞争该锁，那么此时直接轻量级锁膨胀成重量级锁（轻量级锁升级成重量级锁的第二种时机：有两个以上的线程在竞争同一个锁。注：A,B,C3线程>2个线程）
+
+如果一开始是无锁状态，那么第一个线程获取索取锁的时候，判断是不是无锁状态，如果是无锁(001),就通过CAS将mark word里的部分地址记录为当前线程的ID，同时最后倒数第三的标志位置为1，即倒数三位的结果是(101)，表示当前为轻量级锁。下一个如果该线程再次获取该锁的时候，就直接判断mark word里记录的线程ID是不是我当前的线程ID，如果是的话，就成功获取到锁了，即不需再进行CAS操作，这就是相对轻量级锁来说，偏向锁的优势（只需进行第一次的CAS，而无需每次都进行CAS，当然这个理想过程是没有其他线程来竞争该锁）。如果中途有其他线程来竞争该锁，发现已经是101状态，那么就会查看偏向锁记录的线程是否还存活，如果未存活，即偏向锁的撤消，将markword记录的锁状态从101(偏向锁)置未001(无锁)，然后重新偏向当前竞争成功的线程，如果当前线程还是存活状态，那么就升级成轻量级锁。
 
 ### Wait/Notify
 

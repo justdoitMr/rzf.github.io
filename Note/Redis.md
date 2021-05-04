@@ -141,6 +141,10 @@ help @组名
 
 ![1617870057006](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/08/162057-857256.png)
 
+### 思维导图
+
+![1619590597102](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/28/141638-814448.png)
+
 ## Redis数据类型
 
 ### redis 数据存储格式
@@ -227,17 +231,13 @@ append key value
 
 **单数据操作和多数据操作如何选择**
 
-如果数据量太大，
-
-
-
 #### String类型的扩展操作
 
 **业务场景1**
 
 大型企业级应用中，分表操作是基本操作，使用多张表存储同类型数据，但是对应的主键 id 必须保证统一性，不能重复。Oracle 数据库具有 sequence 设定，可以解决该问题，但是 MySQL数据库并不具有类似的机制，那么如何解决？
 
-![1617938716851](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1617938716851.png)
+![1617938716851](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/28/141738-493220.png)
 
 可以让主键不重复，也就是key唯一，每一张表中的key都不相同。
 
@@ -1659,8 +1659,8 @@ ps -ef | grep redis-
 
 **持久化过程保存什么**
 
-- 将当前数据状态进行保存，快照形式，存储数据结果，存储格式简单，关注点在数据
-- 将数据的操作过程进行保存，日志形式，存储操作过程，存储格式复杂，关注点在数据的操作过程
+- 将当前**数据状态**进行保存，快照形式，存储数据结果，存储格式简单，关注点在数据
+- 将数据的**操作过程**进行保存，日志形式，存储操作过程，存储格式复杂，关注点在数据的操作过程
 
 ![1619323113827](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/115835-54169.png)
 
@@ -2400,11 +2400,179 @@ include /path/server-端口号.conf
 
 ## 高级数据类型
 
+### Bitmaps
+
+**存储需求**
+
+![1619956063200](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/194746-354174.png)
+
+**Bitmaps类型的基础操作**
+
+- 获取指定key对应偏移量上的bit值
+
+~~~ java
+getbit key offset
+~~~
+
+- 设置指定key对应偏移量上的bit值，value只能是1或0
+
+~~~ java
+setbit key offset value
+~~~
+
+- 基本操作
+
+~~~ java
+127.0.0.1:6379> setbit bit 0 1
+(integer) 0
+127.0.0.1:6379> getbit bit 0
+(integer) 1
+~~~
+
+**Bitmaps类型的扩展操作**
+
+![1619957001120](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/200324-844339.png)
 
 
 
+- 对指定key按位进行交、并、非、异或操作，并将结果保存到destKey中
 
+~~~ java
+bitop op destKey key1 [key2...]
+//这里的op代表是操作，可以使用下面的运算
+and：交
+or：并
+not：非
+xor：异或
+//最后可以通过
+bitcount destkey进行查看结果
+~~~
 
+- 统计指定key中1的数量
+
+~~~ java
+bitcount key [start end]
+//表示统计一个bitmaps里面1的个数
+~~~
+
+### HyperLogLog
+
+统计不重复数据的数量。
+
+**统计独立UV**
+
+- 原始方案：set
+  - 存储每个用户的id（字符串）
+- 改进方案：Bitmaps
+  - 存储每个用户状态（bit）
+- 全新的方案：Hyperloglog
+
+**基数**
+
+基数是数据集去重后元素个数
+
+- HyperLogLog 是用来做基数统计的，运用了LogLog的算法
+
+![1619957985726](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619957985726.png)
+
+**HyperLogLog类型的基本操作**
+
+- 添加数据
+
+~~~ java
+pfadd key element [element ...]
+~~~
+
+- 统计数据
+
+~~~ java
+pfcount key [key ...]
+~~~
+
+- 合并数据
+
+~~~ java
+pfmerge destkey sourcekey [sourcekey...]
+~~~
+
+**相关说明**
+
+- 用于进行基数统计，不是集合，不保存数据，只记录数量而不是具体数据
+- 核心是基数估算算法，最终数值存在一定误差
+- 误差范围：基数估计的结果是一个带有 0.81% 标准错误的近似值
+- 耗空间极小，每个hyperloglog key占用了12K的内存用于标记基数
+- pfadd命令不是一次性分配12K内存使用，会随着基数的增加内存逐渐增大，但是上限是12kb。
+- Pfmerge命令合并后占用的存储空间为12K，无论合并之前数据量多少
+
+### GEO
+
+这种类型是用来记录坐标的。
+
+- 添加坐标点
+
+~~~ java
+
+geoadd key longitude latitude member [longitude latitude member ...]
+
+127.0.0.1:6379> geoadd pos 1 1 a 
+(integer) 1
+127.0.0.1:6379> geoadd pos1 1 1 b 
+(integer) 1
+  
+//添加的坐标是在一个容器中，不可以从一个容器中去取另外一个容器中的内容
+~~~
+
+- 获取点坐标
+
+~~~ java
+geopos key member [member ...]
+
+127.0.0.1:6379> geopos pos a
+1) 1) "0.99999994039535522"
+   2) "0.99999945914297683"
+127.0.0.1:6379> geopos pos1 b
+1) 1) "0.99999994039535522"
+   2) "0.99999945914297683"
+~~~
+
+- 计算坐标点距离
+
+~~~ java
+geodist key member1 member2 [unit]
+
+127.0.0.1:6379> geodist pos a b
+"157270.0561"
+
+//必须在一个群组中计算距离，默认是以m为单位
+//也可以使用千米为单位
+127.0.0.1:6379> geodist pos a b km
+"157.2701"
+~~~
+
+**其他操作**
+
+- 添加坐标点
+
+~~~ java
+georadius key longitude latitude radius m|km|ft|mi [withcoord] [withdist] [withhash] [count count]
+
+~~~
+
+- 湖获取坐标点
+
+~~~ java
+georadiusbymember key member radius m|km|ft|mi [withcoord] [withdist] [withhash] [count count]
+~~~
+
+- 计算经纬度
+
+~~~ java
+geohash key member [member ...]
+~~~
+
+###  小结
+
+![1619959345857](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/204535-206132.png)
 
 ## 集群-主从复制
 
@@ -2642,3 +2810,702 @@ slave-serve-stale-data yes|no
 
 - 作用：运行id被用于在服务器间进行传输，识别身份 如果想两次操作均对同一台服务器进行，必须每次操作携带对应的运行id，用于对方识别
 - 实现方式：运行id在每台服务器启动时自动生成的，master在首次连接slave时，会将自己的运行ID发送给slave，slave保存此ID，通过info Server命令，可以查看节点的runid
+
+**复制缓冲区**
+
+概念：复制缓冲区，又名复制积压缓冲区，是一个先进先出（FIFO）的队列，用于存储服务器执行过的命
+令，每次传播命令，master都会将传播的命令记录下来，并存储在复制缓冲区，复制缓冲区是一个先进先出的队列。
+
+![1619595172924](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/28/153258-876303.png)
+
+**复制缓冲区的内部工作原理**
+
+![1619595210423](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/28/153333-276158.png)
+
+offset的位置一定是在一个完整的指令处结束，offset来记录master和slave传输到哪一个位置。master和slavez都需要记录offset的位置，防止发生数据丢失。master记录的offset表示目前位置传输数据的位置，而slave记录的offset表示目前位置接收的数据的位置。
+
+**复制缓冲区补充**
+
+概念：复制缓冲区，又名复制积压缓冲区，是一个先进先出（FIFO）的队列，用于存储服务器执行过的命
+令，每次传播命令，master都会将传播的命令记录下来，并存储在复制缓冲区
+
+- 复制缓冲区默认数据存储空间大小是1M，由于存储空间大小是固定的，当入队元素的数量大于队
+  列长度时，最先入队的元素会被弹出，而新元素会被放入队列
+
+由来：每台服务器启动时，如果开启有AOF或被连接成为master节点，即创建复制缓冲区
+
+作用：用于保存master收到的所有指令（仅影响数据变更的指令，例如set，select）
+
+数据来源：当master接收到主客户端的指令时，除了将指令执行，会将该指令存储到缓冲区中
+
+**主从服务器复制偏移量（offset）**
+
+概念：一个数字，描述复制缓冲区中的指令字节位置
+
+分类：
+
+- master复制偏移量：记录发送给所有slave的指令字节对应的位置（多个）
+- slave复制偏移量：记录slave接收master发送过来的指令字节对应的位置（一个）
+
+数据来源：
+
+- master端：发送一次记录一次
+- slave端：接收一次记录一次
+
+作用：同步信息，比对master与slave的差异，当slave断线后，恢复数据使用
+
+**数据同步+命令传播阶段工作流程**
+
+主从复制的工作流程
+
+![1619670729091](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/29/123213-498637.png)
+
+**心跳机制**
+
+进入命令传播阶段候，master与slave间需要进行信息交换，使用心跳机制进行维护，实现双方连接保持在线
+
+- master心跳：
+  - 指令：PING
+  - 周期：由repl-ping-slave-period决定，默认10秒
+  - 作用：判断slave是否在线
+  - 查询：INFO replication 获取slave最后一次连接时间间隔，lag项维持在0或1视为正常
+  - master的心跳主要用来判断是否和slave连线。
+-  slave心跳任务
+  - 指令：REPLCONF ACK {offset}
+  - 周期：1秒
+  - 作用1：汇报slave自己的复制偏移量，获取最新的数据变更指令
+  - 作用2：判断master是否在线
+
+**心跳阶段注意事项**
+
+当slave多数掉线，或延迟过高时，master为保障数据稳定性，将拒绝所有信息同步操作
+
+~~~ java
+min-slaves-to-write 2 //当slave个数小于这个参数的设定值的时候，停止同步信息
+min-slaves-max-lag 8 //当延迟大于这个设定的值的时候，停止同步
+~~~
+
+slave数量少于2个，或者所有slave的延迟都大于等于10秒时，强制关闭master写功能，停止数据同步
+
+- slave数量由slave发送REPLCONF ACK命令做确认
+- slave延迟由slave发送REPLCONF ACK命令做确认
+
+**主从复制完整工作流程**
+
+![1619671737003](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619671737003.png)
+
+1. 首先由slave节点发送replconf ack offset命令给master,然后master判断offset是否在缓冲区中，然后进行命令传播阶段的工作。
+2. 如果一次传播完成，那么slave还会接着重新开始发送replconf ack offset指令，这里要和数据同步阶段使用的指令区分开，数据同步阶段使用的是psync2进行数据的同步。
+3. 在这个过程中，master也会不停的发送ping命令来判断slave是否还在线。
+
+### 主从复制常见的问题
+
+#### **频繁的全量复制**
+
+频繁的全量复制，会影响性能
+
+伴随着系统的运行，master的数据量会越来越大，一旦master重启，runid将发生变化，会导致全部slave的
+全量复制操作
+
+**内部优化调整方案：**
+
+1. master内部创建master_replid变量，使用runid相同的策略生成，长度41位，并发送给所有slave
+2. 在master关闭时执行命令 shutdown save，进行RDB持久化,将runid与offset保存到RDB文件中
+   1. repl-id，repl-offset 
+   2. 通过redis-check-rdb命令可以查看该信息
+3. master重启后加载RDB文件，恢复数据，重启后，将RDB文件中保存的repl-id与repl-offset加载到内存中
+   1. master_repl_id = repl，master_repl_offset = repl-offset
+   2. 通过info命令可以查看该信息
+4. 作用：
+   本机保存上次runid，重启后恢复该值，使所有slave认为还是之前的master
+
+**导致频繁进行全量复制**
+
+- 问题现象
+  - 网络环境不佳，出现网络中断，slave不提供服务
+- 问题原因
+  - 复制缓冲区过小，断网后slave的offset越界，触发全量复制
+- 最终结果
+  -  slave反复进行全量复制
+- 解决方案
+  - 修改复制缓冲区大小
+
+~~~ java
+repl-backlog-size
+~~~
+
+- 建议设置如下：
+  - 测算从master到slave的重连平均时长second
+  - 获取master平均每秒产生写命令数据总量write_size_per_second
+  - 最优复制缓冲区空间 = 2 * second * write_size_per_second
+
+#### 频繁的网络中断
+
+**问题现象一**
+
+- 问题现象
+  - master的CPU占用过高 或 slave频繁断开连接
+- 问题原因
+  - slave每1秒发送REPLCONF ACK命令到master
+  - 当slave接到了慢查询时（keys * ，hgetall等），会大量占用CPU性能
+  - master每1秒调用复制定时函数replicationCron()，比对slave发现长时间没有进行响应
+- 最终结果
+  - master各种资源（输出缓冲区、带宽、连接等）被严重占用
+- 解决方案
+  通过设置合理的超时时间，确认是否释放slave
+
+~~~ java
+repl-timeout
+~~~
+
+该参数定义了超时时间的阈值（默认60秒），超过该值，释放slave
+
+**问题现象二**
+
+- 问题现象
+  - slave与master连接断开
+- 问题原因
+  - master发送ping指令频度较低
+  - master设定超时时间较短
+  - ping指令在网络中存在丢包
+- 解决方案
+  - 提高ping指令发送的频度
+
+~~~ java
+repl-ping-slave-period
+~~~
+
+超时时间repl-time的时间至少是ping指令频度的5到10倍，否则slave很容易判定超时
+
+#### 数据不一致
+
+- 问题现象
+  - 多个slave获取相同数据不同步
+
+- 问题原因
+  - 网络信息不同步，数据发送有延迟
+- 解决方案
+  - 优化主从间的网络环境，通常放置在同一个机房部署，如使用阿里云等云服务器时要注意此现象
+  - 监控主从节点延迟（通过offset）判断，如果slave延迟过大，暂时屏蔽程序对该slave的数据访问
+
+~~~ java
+slave-serve-stale-data yes|no
+~~~
+
+开启后仅响应info、slaveof等少数命令（慎用，除非对数据一致性要求很高）
+
+### 小结
+
+![1619676905058](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/29/141507-753602.png)
+
+## 哨兵
+
+### 哨兵简介
+
+![1619677202376](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619677202376.png)
+
+- 什么是哨兵？
+
+简单来说，就是redis集群中master宕机的话，需要从slave节点中产生新的master节点，但是如何选择出新的master节点，如何选取master节点可以有效避免节点之间进行全量复制，所以这就需要一个哨兵，及时监控集群，等到master宕机后，及时选出一个合适的master进行工作。
+
+- 如果master宕机后，需要做下面的工作
+  - 关闭master和所有slave
+  - 找一个slave作为master
+  - 修改其他slave的配置，连接新的主
+  - 启动新的master与slave
+  - 全量复制*N+部分复制*N
+
+- 关闭期间的数据服务谁来承接？
+- 找一个主？怎么找法？
+- 修改配置后，原始的主恢复了怎么办？
+
+要回答上面三个问题，就需要哨兵。
+
+**哨兵**
+
+哨兵(sentinel) 是一个**分布式系统**，用于对主从结构中的每台服务器进行监控，当出现故障时通过投票机制选择新的master并将所有slave连接到新的master。
+
+如下面这张图片所示，Sentinel是一台主机，里面多个线程监控redis集群，Sentinel有两个功能，第一个是监控功能，就是监控redis集群，第二个功能是选择，也就是master出问题的时候，及时选出新的master节点进行工作。
+
+![1619677454848](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/29/142415-710086.png)
+
+**哨兵的作用**
+
+- 监控 
+  - 不断的检查master和slave是否正常运行。 
+  - master存活检测、master与slave运行情况检测
+- 通知（提醒） 
+  - 当被监控的服务器出现问题时，向其他（哨兵间，客户端）发送通知
+- 自动故障转移 
+  - 断开master与slave连接，选取一个slave作为master，将其他slave连接到新的master，并告知客户端新的服务器地址
+
+> 注意： 哨兵也是一台redis服务器，只是不提供数据服务，通常哨兵配置数量为单数
+
+#### 启动哨兵模式
+
+**配置哨兵**
+
+- 配置一拖二的主从结构
+- 配置三个哨兵（配置相同，端口不同）
+
+~~~ java
+参看sentinel.conf
+~~~
+
+- 启动哨兵
+
+~~~ java
+redis-sentinel sentinel-端口号.conf
+~~~
+
+- 修改配置文件
+
+~~~ java
+[rzf@hadoop100 redis]$ cat sentinel.conf | grep -v "#" | grep -v "^$"
+port 26379 哨兵也是一个服务，这个时对外服务的端口
+dir /tmp  哨兵工作目录，存储信息的位置
+sentinel monitor mymaster 127.0.0.1 6379 2 设置哨兵的监控的主节点 2表示如果有2个哨兵认为master挂掉的话，那么就认为master已经挂掉，通常设置为哨兵个数的一半+1
+sentinel down-after-milliseconds mymaster 30000 表示主节点连接多长时间没有相应，就认为挂掉 mymaster表示主节点的名称
+sentinel parallel-syncs mymaster 1 当主服务器挂掉时候，从同步数据的时候，每一次有多少个从同步数据，这个数字设置的越小，服务器压力越小，如果设置过大，服务器压力性能差
+sentinel failover-timeout mymaster 180000 在同步的时候，多长时间同步完成算是有效，如果时间太长同步完成，认为是无效
+
+//把信息写到配置文件中
+ cat sentinel.conf | grep -v "#" | grep -v "^$" > ./conf/sentinel-26379.conf
+ 
+ //复制并且重新创建两个配置文件
+ [rzf@hadoop100 redis]$ sed 's/26379/26380/g' ./conf/sentinel-26379.conf > ./conf/sentinel-26380.conf 
+[rzf@hadoop100 redis]$ sed 's/26379/26381/g' ./conf/sentinel-26379.conf > ./conf/sentinel-26381.conf 
+
+//拷贝服务器配置文件
+[rzf@hadoop100 conf]$ sed 's/6380/6381/g' redis-6380.conf > redis-6381.conf
+~~~
+
+### 哨兵工作原理
+
+#### 主从切换
+
+哨兵在进行主从切换过程中经历三个阶段
+
+- 监控
+- 通知
+- 故障转移
+
+#### 阶段一：监控阶段
+
+![1619922176063](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/121058-623317.png)
+
+- 用于同步各个节点的状态信息
+  - 获取各个sentinel的状态（是否在线）
+  - 获取master的状态
+    - master属性
+      - runid
+      - role：master
+    - 各个slave的详细信息
+  - 获取所有slave的状态（根据master中的slave信息）
+    - slave属性
+      - runid
+      -  role：slave
+      - master_host、master_port
+      - offset
+
+**哨兵工作原理**
+
+![1619922316306](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/102518-641332.png)
+
+- sentinel上线以后首先连接master获取信息，会向master发送info信息，返回所有节点的详细信息，为了以后sentinel和master进行信息的交换，这个时候会建立一个cmd链接操作。
+- 建立链接以后，同时在sentinel端会记录所有的链接状态，也就是记录所有在线节点的状态。在msater记录了redis实例的信息。但是内容稍微有点不同。
+- 接下来sentinel会根据字节节点中存储的slave节点信息，链接每一个slave节点，然后发送info指令获取每一个节点的信息。到此为止，sentinel存储了每一个slave节点中的详细信息。
+- 如果有新的sentinel节点上线，那么此时会去链接master然后发送info指令去获取节点信息，并且建立cmd链接通道，如果发现获取的信息中有其他的sentinel节点，那么此时会去链接其他的sentinel节点，保证所有的sentinel节点中信息的一致性。然后sentinel之间会建立cmd通道发送信息。sentinel之间还会相互发送ping命令，查看对方是否还存存在。
+- 当有其他的sentinel节点加入进来，也会进行上面的操作，多个sentinel会建立smd通道，进行信息交换，并且还会发送ping命令。
+
+#### 阶段二：通知阶段
+
+通知阶段可以认为是信息的长期维护阶段。
+
+![1619923154895](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/103917-692161.png)
+
+多个哨兵之间通过cmd建立通道后，可以保持信息的互通，然后sentinel会通过和master和slave建立的链接，实时发送命令获取状态信息，master和slave会返回信息，然后获取到信息的哨兵节点会在自己的内部网络中通知其他哨兵同步信息。
+
+#### 阶段三：故障转移阶段
+
+![1619923365461](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/104248-237162.png)
+
+如果哨兵给master发送命令，没有接收到master的返回信息，当多次发送都没有信息返回的时候，那么sentinel就会给master标记为sdown状态，并且会把master挂掉的信息在内网中同步给其他的哨兵，然后其他的哨兵也去向master发送命令查看是否挂掉，如果master没有信息返回，那么每一个哨兵都会把master挂的消息发送到内网之中，同步其他哨兵节点保存的信息。最后所有节点都认为master已经挂掉，那么master出的信息就修改为odown状态。也即是说一个哨兵标记完成为sdown（主观下线），所有哨兵标记完为odown。但是实际上是如果一半哨兵标记完就认为是odown（客观下线）。一旦master被标记为客观下线，那么就开启下一个阶段，清理队伍。
+
+![1619923829691](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619923829691.png)
+
+在多个sentinel之间也会选出一个主的sentinel，选择规则也是半数机制。然后选出的sentinel会在slave中选出一个备选的slave作为master节点。
+
+sentinel选择master的原则如下：
+
+ 服务器列表中挑选备选master
+
+- 在线的
+- 响应慢的，相应慢的可能是因为网络差。
+- 与原master断开时间久的，与master断开时间久可能是因为距离master相对较远。
+- 优先原则
+  - 优先级
+  - offset
+  - runid
+
+发送指令（ sentinel ）
+
+- 向新的master发送slaveof no one
+- 向其他slave发送slaveof 新masterIP端口，然后slave和新的master建立链接。
+
+致至此，故障转移阶段结束，前面建立的cmd通道，就是用来发送各个指令使用的。
+
+切换master日志展示
+
+![1619928441502](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/120750-544670.png)
+
+**更换master**101
+
+![1619928680890](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619928680890.png)
+
+如果把挂掉的master节点重新启动，那么他就变成为slave节点。
+
+![1619928755102](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619928755102.png)
+
+### 小结
+
+![1619928856809](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/121418-501925.png)
+
+## 集群
+
+### 集群的简介
+
+集群就是使用网络将若干台计算机联通起来，并提供统一的管理方式，使其对外呈现单机的服务效果
+
+![1619929173954](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/121936-849172.png)
+
+**集群的作用**
+
+- 分散单台服务器的访问压力，实现负载均衡
+- 分散单台服务器的存储压力，实现可扩展性
+- 降低单台服务器宕机带来的业务灾难
+
+![1619929220652](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/122022-985274.png)
+
+### Redis集群结构设计
+
+![1619929410149](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/122332-129451.png)
+
+- 首先会把redis集群进行划分，分为若干个存储区域，比如16384个，然后根据输入的key计算出一个值，这个值用于查找当前的值应该存储在那一台机器上面。
+
+那么如果现在重新加入一台节点怎么办？
+
+redis会把前面的所有节点的内容重新进行优化，从每一台节点中拿出一点数据存储到新加入的节点上面。下面展示的是扩展节点操作
+
+![1619929746746](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/122909-676285.png)
+
+**集群内部通讯设计**
+
+![1619929891500](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/123137-785548.png)
+
+各个集群的节点中都会存储其他节点中保存的数据的位置，如果客户端需要进行查询操作：
+
+![1619930015306](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619930015306.png)
+
+客户端首先发出key的查询命令，然后经过计算去某台节点中查询，如果命中直接返回，如果没有命中，那么直接返回数据存储的具体位置，然后下一次客户端直接去数据存储的节点中查询数据。所以说最多两次就可以查询到数据。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 企业级解决方案
+
+### 缓存预热
+
+**宕机**
+
+服务器启动后迅速宕机
+
+**问题排查**
+
+1. 请求数量较高
+2. 主从之间数据吞吐量较大，数据同步操作频度较高
+
+**解决方案**
+
+前置准备工作：
+
+1. 日常例行统计数据访问记录，统计访问频度较高的热点数据
+2. 利用LRU数据删除策略，构建数据留存队列 例如：storm与kafka配合
+
+准备工作：
+
+1. 将统计结果中的数据分类，根据级别，redis优先加载级别较高的热点数据
+2. 利用分布式多服务器同时进行数据读取，提速数据加载过程
+3. 热点数据主从同时预热
+
+实施：
+
+1. 使用脚本程序固定触发数据预热过程
+2. 如果条件允许，使用了CDN（内容分发网络），效果会更好
+
+总结
+
+缓存预热就是系统启动前，提前将相关的缓存数据直接加载到缓存系统。避免在用户请求的时候，先查询数据库，然后再将数据缓存的问题！用户直接查询事先被预热的缓存数据！
+
+### 缓存雪崩
+
+**数据库服务器崩溃（1）**
+
+1. 系统平稳运行过程中，忽然数据库连接量激增
+2. 应用服务器无法及时处理请求
+3. 大量408，500错误页面出现
+4. 客户反复刷新页面获取数据
+5. 数据库崩溃
+6. 应用服务器崩溃
+7. 重启应用服务器无效
+8. Redis服务器崩溃
+9. Redis集群崩溃
+10. 重启数据库后再次被瞬间流量放倒
+
+**问题排查**
+
+1. 在一个较短的时间内，缓存中较多的key集中过期，而用户又大量访问过期的数据。
+2. 此周期内请求访问过期的数据，redis未命中，redis向数据库获取数据
+3. 数据库同时接收到大量的请求无法及时处理
+4. Redis大量请求被积压，开始出现超时现象
+5. 数据库流量激增，数据库崩溃
+6. 重启后仍然面对缓存中无数据可用
+7. Redis服务器资源被严重占用，Redis服务器崩溃
+8. Redis集群呈现崩塌，集群瓦解
+9. 应用服务器无法及时得到数据响应请求，来自客户端的请求数量越来越多，应用服务器崩溃
+10. 应用服务器，redis，数据库全部重启，效果不理想
+
+**问题分析**
+
+- 短时间范围内
+
+- 大量key集中过期
+
+**解决方案（道）**
+
+- 更多的页面静态化处理
+- 构建多级缓存架构
+  - Nginx缓存+redis缓存+ehcache缓存
+- 检测Mysql严重耗时业务进行优化
+  - 对数据库的瓶颈排查：例如超时查询、耗时较高事务等
+- 灾难预警机制
+  - 监控redis服务器性能指标
+  - CPU占用、CPU使用率
+  - 内存容量
+  - 查询平均响应时间
+  - 线程数
+- 限流、降级 
+  - 短时间范围内牺牲一些客户体验，限制一部分请求访问，降低应用服务器压力，待业务低速运转后再逐步放开访问
+
+**解决方案（术）**
+
+- LRU与LFU切换
+- 数据有效期策略调整
+  - 根据业务数据有效期进行分类错峰，A类90分钟，B类80分钟，C类70分钟
+  - 过期时间使用固定时间+随机值的形式，稀释集中到期的key的数量
+- 超热数据使用永久key
+- 定期维护（自动+人工）
+  - 对即将过期数据做访问量分析，确认是否延时，配合访问量统计，做热点数据的延时
+- 加锁 慎用！
+
+**小结**
+
+缓存雪崩就是瞬间过期数据量太大，导致对数据库服务器造成压力。如能够有效避免过期时间集中，可以有效解决雪崩现象的出现（约40%），配合其他策略一起使用，并监控服务器的运行数据，根据运行记录做快速调整。简单来说就是redis中的数据失效的很多，导致查询服务redis缓存不能及时返回，直接从数据库中获取数据，最终导致数据库的压力过大。
+
+![1619941338144](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/154219-164956.png)
+
+#### 缓存击穿
+
+**数据库服务器崩溃（2）**
+
+- 系统平稳运行过程中
+- 数据库连接量瞬间激增
+- Redis服务器无大量key过期
+- Redis内存平稳，无波动
+- Redis服务器CPU正常
+- 数据库崩溃
+
+**问题排查**
+
+1. Redis中某个key过期，该key访问量巨大
+2. 多个数据请求从服务器直接压到Redis后，均未命中
+3. Redis在短时间内发起了大量对数据库中同一数据的访问
+
+**问题分析**
+
+- 单个key高热数据
+- key过期
+
+**解决方案（术）**
+
+1. 预先设定 
+   1. 以电商为例，每个商家根据店铺等级，指定若干款主打商品，在购物节期间，加大此类信息key的过期时长 注意：购物节不仅仅指当天，以及后续若干天，访问峰值呈现逐渐降低的趋势
+2. 现场调整 
+   1. 监控访问量，对自然流量激增的数据延长过期时间或设置为永久性key
+3. 后台刷新数据 
+   1. 启动定时任务，高峰期来临之前，刷新数据有效期，确保不丢失
+4. 二级缓存 
+   1. 设置不同的失效时间，保障不会被同时淘汰就行
+5. 加锁 
+   1. 分布式锁，防止被击穿，但是要注意也是性能瓶颈，慎重！
+
+**总结**
+
+缓存击穿就是单个高热数据过期的瞬间，数据访问量较大，未命中redis后，发起了大量对同一数据的数据库访问，导致对数据库服务器造成压力。应对策略应该在业务数据分析与预防方面进行，配合运行监控测试与即时调整策略，毕竟单个key的过期监控难度较高，配合雪崩处理策略即可。
+
+#### 缓存穿透
+
+**数据库服务器崩溃（3）**
+
+1. 系统平稳运行过程中
+2. 应用服务器流量随时间增量较大
+3. Redis服务器命中率随时间逐步降低
+4. Redis内存平稳，内存无压力
+5. Redis服务器CPU占用激增
+6. 数据库服务器压力激增
+7. 数据库崩溃
+
+**问题排查**
+
+- Redis中大面积出现未命中
+- 出现非正常URL访问
+- 也就是说访问请求是一些不正常的或者不存在的东西。大量访问不存在的内容，redis不会做缓存。
+
+**问题分析**
+
+- 获取的数据在数据库中也不存在，数据库查询未得到对应数据
+- Redis获取到null数据未进行持久化，直接返回
+- 下次此类数据到达重复上述过程
+- 出现黑客攻击服务器
+
+**解决方案（术）**
+
+- 缓存null 
+  - 对查询结果为null的数据进行缓存（长期使用，定期清理），设定短时限，例如30-60秒，最高5分钟
+
+- 白名单策略
+  - 提前预热各种分类数据id对应的bitmaps，id作为bitmaps的offset，相当于设置了数据白名单。当加载正常数据时，放行，加载异常数据时直接拦截（效率偏低）
+  - 使用布隆过滤器（有关布隆过滤器的命中问题对当前状况可以忽略）
+- 实施监控
+  - 实时监控redis命中率（业务正常范围时，通常会有一个波动值）与null数据的占比
+    - 非活动时段波动：通常检测3-5倍，超过5倍纳入重点排查对象
+    - 活动时段波动：通常检测10-50倍，超过50倍纳入重点排查对象
+  - 根据倍数不同，启动不同的排查流程。然后使用黑名单进行防控（运营）
+- key加密
+  - 问题出现后，临时启动防灾业务key，对key进行业务层传输加密服务，设定校验程序，过来的key校验 例
+  - 如每天随机分配60个加密串，挑选2到3个，混淆到页面数据id中，发现访问key不满足规则，驳回数据访问
+
+**小结**
+
+- 缓存击穿访问了不存在的数据（不是说redis中不存在，而是整个数据库中不存在），跳过了合法数据的redis数据缓存阶段，每次访问数据库，导致对数据库服务器造成压力。通常此类数据的出现量是一个较低的值，当出现此类情况以毒攻毒，并及时报警。应对策略应该在临时预案防范方面多做文章。
+- 无论是黑名单还是白名单，都是对整体系统的压力，警报解除后尽快移除。
+
+### 性能指标监控
+
+监控指标
+
+- 性能指标：Performance
+- 内存指标：Memory
+- 基本活动指标：Basic activity
+- 持久性指标：Persistence
+- 错误指标：Error
+
+**性能指标：Performance**
+
+![1619947577112](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/172618-352263.png)
+
+**内存指标：Memory**
+
+![1619947606923](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/172648-715741.png)
+
+**基本活动指标：Basic activity**
+
+![1619947634908](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/172716-943198.png)
+
+**持久性指标：Persistence**
+
+![1619947730365](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/172851-283228.png)
+
+**错误指标：Error**
+
+![1619947757343](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/172917-555984.png)
+
+**监控方式**
+
+工具
+
+- Cloud Insight Redis
+- Prometheus
+- Redis-stat
+- Redis-faina
+- RedisLive
+- zabbix
+
+**命令**
+
+- benchmark
+- redis cli
+  - monitor
+  - showlog
+
+**benchmark**
+
+- 命令
+
+~~~ java
+redis-benchmark [-h ] [-p ] [-c ] [-n <requests]> [-k ]
+~~~
+
+- 案例
+
+~~~ java
+redis-benchmark
+//说明：50个连接，10000次请求对应的性能
+redis-benchmark -c 100 -n 5000
+//说明：100个连接，5000次请求对应的性能
+~~~
+
+![1619948571776](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/174253-123397.png)
+
+**monitor**
+
+- 命令
+
+~~~ java
+monitor
+//打印服务器调试信息
+~~~
+
+**showlong**
+
+- 命令
+
+~~~ java
+showlong [operator]
+~~~
+
+get ：获取慢查询日志
+len ：获取慢查询日志条目数
+reset ：重置慢查询日志
+
+- 相关配置
+
+~~~ java
+slowlog-log-slower-than 1000 #设置慢查询的时间下线，单位：微妙 
+slowlog-max-len 100 #设置慢查询命令对应的日志显示长度，单位：命令数
+~~~
+
+### 小结
+
+![1619948822321](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/02/174704-15947.png)
