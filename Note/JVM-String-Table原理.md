@@ -1,4 +1,4 @@
-# `深入理解String-Table
+# 深入理解String-Table原理
 
 [TOC]
 

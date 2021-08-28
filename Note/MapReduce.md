@@ -1,4 +1,6 @@
-# MapReduce
+# MapReduce原理
+
+[TOC]
 
 ![1611807458144](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185545-451300.png)
 
@@ -26,7 +28,7 @@ Mapreduce核心功能是将用户编写的业务逻辑代码和自带默认组�
 
 4. mapreduce分布式方案考虑的问题
    1. 运算逻辑要不要先分后合？ 
-   2. 程序如何分配运算任务（切片）？
+   2. 程序如何分配运算任务（**切片**）？
    3. 两阶段的程序如何启动？如何协调？
    4. 整个程序运行过程中的监控？容错？重试？
 
@@ -74,7 +76,7 @@ Mapreduce核心功能是将用户编写的业务逻辑代码和自带默认组�
 
 2. 第一个阶段的MapTask并发实例，完全并行运行，互不相干。
 
-3. 第二个阶段的ReduceTask并发实例互不相干，但是他们的数据依赖于上一个阶段的所有MapTask并发实例的输出。
+3. 第二个阶段的ReduceTask并发实例互不相干，但是他们的数据依赖于上一个阶段的所有MapTask并发实例的输出，map阶段输出的分区个数决定下一个阶段reduce的个数。
 
 4. MapReduce编程模型只能包含一个Map阶段和一个Reduce阶段，如果用户的业务逻辑非常复杂，那就只能多个MapReduce程序，串行运行。
 
@@ -83,7 +85,7 @@ Mapreduce核心功能是将用户编写的业务逻辑代码和自带默认组�
 ### MapReduce进程
 
 - 一个完整的mapreduce程序在分布式运行时有三类实例进程：
-  - MrAppMaster：负责整个程序的过程调度及状态协调
+  - MrAppMaster：负责整个程序的过程调度及状态协调，简单来说就是负责整个作业的执行情况。
   - MapTask：负责map阶段的整个数据处理流程
   - ReduceTask：负责reduce阶段的整个数据处理流程
 
@@ -294,7 +296,7 @@ public class WordCountDriver {
 //注意：文件的路径都是hdfs文件系统的路径
 ~~~
 
-## MapReduce理论篇
+## Hadoop序列化
 
 ### Writable序列化
 
@@ -310,7 +312,7 @@ Java的序列化是一个重量级（实现的功能比较多）序列化框架�
 
 Hadoop序列化的特点
 
-1. 紧凑，高效实用存储空间。
+1. 紧凑，高效使用存储空间。
 2. 快速，读写数据额外开销小。
 3. 可扩展，随着通信协议的升级可以升级。
 4. 互操作，支持多种语言交互。
@@ -404,7 +406,7 @@ id	手机号码		网络ip			上行流量  下行流量     网络状态码
 
 **过程分析**
 
-![1610709538094](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610709538094.png)
+![1610709538094](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/092830-692571.png)
 
 **编写流量统计的Bean对象**
 
@@ -573,6 +575,12 @@ public class FlowSumDriver {
 
 ## MapReduce框架原理
 
+**输入类继承关系**
+
+![1621483399717](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/120322-333613.png)
+
+![1621483430884](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621483430884.png)
+
 ### InputFormat数据输入
 
 #### 切片与MapTask并行度决定机制。
@@ -589,7 +597,7 @@ public class FlowSumDriver {
 
    数据切片：数据切片只是在**逻辑上**对输入进行分片，并不会在磁盘上将其切分成片进行存储。
 
-   ![1610713064253](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610713064253.png)
+   ![1610713064253](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/19/200515-905618.png)
 
    > 注意：切片是针对单个文件进行的，不会把多个文件呢合并到一起进行切片。
 
@@ -597,19 +605,19 @@ public class FlowSumDriver {
 
    **MapTask并行度决定机制**
 
-   ​	一个job的map阶段MapTask并行度（个数），由客户端提交job时的切片个数决定，并不是越多越好，如果切片很少，但是mapTask很多的情况下，启动mapTask就很浪费时间，启动mapTask的时间都超过程序的运行时间了，所以并不是mapTask越多越好。
+   一个job的map阶段MapTask并行度（个数），由客户端提交job时的切片个数决定，并不是越多越好，如果切片很少，但是mapTask很多的情况下，启动mapTask就很浪费时间，启动mapTask的时间都超过程序的运行时间了，所以并不是mapTask越多越好。
 
 #### Job提交流程源码和切片源码详解
 
 **图解**
 
-![1610844815012](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610844815012.png)
+![1610844815012](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/19/200516-947861.png)
 
 **代码说明**
 
 ~~~ java
-waitForCompletion()
-
+waitForCompletion()//提交作业的入口
+//下面的方法都是在submit()方法里面进行的
 submit();
 
 // 1建立连接
@@ -644,45 +652,289 @@ writeConf(conf, submitJobFile);
 status = submitClient.submitJob(jobId, submitJobDir.toString(), job.getCredentials());
 ~~~
 
+**作业提交流程图**
+
+![1621478221736](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621478221736.png)
+
+**详细源码调试**
+
+~~~ java
+//作业提交流程waitForCompletion()方法，提交作业
+//1，执行waitForCompletion()方法，提交作业
+boolean flag=job.waitForCompletion(true);
+//2,执行submit()提交操作
+public boolean waitForCompletion(boolean verbose
+                                   ) throws IOException, InterruptedException,
+                                            ClassNotFoundException {
+    if (state == JobState.DEFINE) {
+      submit();//进入这个方法
+    }
+    if (verbose) {
+      monitorAndPrintJob();
+    } else {
+      // get the completion poll interval from the client.
+      int completionPollIntervalMillis = 
+        Job.getCompletionPollInterval(cluster.getConf());
+      while (!isComplete()) {
+        try {
+          Thread.sleep(completionPollIntervalMillis);
+        } catch (InterruptedException ie) {
+        }
+      }
+    }
+    return isSuccessful();
+  }
+
+//进入submit()提交方法
+public void submit() 
+         throws IOException, InterruptedException, ClassNotFoundException {
+    ensureState(JobState.DEFINE);//判断作业当前的额状态
+    setUseNewAPI();//设置新旧api
+    connect();//进入建立集群的方法
+    final JobSubmitter submitter = 
+        getJobSubmitter(cluster.getFileSystem(), cluster.getClient());
+    status = ugi.doAs(new PrivilegedExceptionAction<JobStatus>() {
+      public JobStatus run() throws IOException, InterruptedException, 
+      ClassNotFoundException {
+        return submitter.submitJobInternal(Job.this, cluster);
+      }
+    });
+    state = JobState.RUNNING;
+    LOG.info("The url to track the job: " + getTrackingURL());
+   }
+//进入connect（）方法
+private synchronized void connect()
+          throws IOException, InterruptedException, ClassNotFoundException {
+    if (cluster == null) {
+      //在这里链接集群
+      cluster = 
+        ugi.doAs(new PrivilegedExceptionAction<Cluster>() {
+                   public Cluster run()
+                          throws IOException, InterruptedException, 
+                                 ClassNotFoundException {
+                     return new Cluster(getConfiguration());//进入建立集群的方法
+                   }
+                 });
+    }
+  }
+//进入建立集群的方法
+ public Cluster(InetSocketAddress jobTrackAddr, Configuration conf) 
+      throws IOException {
+    this.conf = conf;
+    this.ugi = UserGroupInformation.getCurrentUser();
+    initialize(jobTrackAddr, conf);//对创建的集群进行初始化操作
+  }
+//进入初始化集群的方法
+private void initialize(InetSocketAddress jobTrackAddr, Configuration conf)
+      throws IOException {
+
+    synchronized (frameworkLoader) {
+      for (ClientProtocolProvider provider : frameworkLoader) {
+        LOG.debug("Trying ClientProtocolProvider : "
+            + provider.getClass().getName());
+        ClientProtocol clientProtocol = null; 
+        try {
+          if (jobTrackAddr == null) {
+            clientProtocol = provider.create(conf);
+          } else {
+            clientProtocol = provider.create(jobTrackAddr, conf);
+          }
+
+          if (clientProtocol != null) {
+            clientProtocolProvider = provider;
+            client = clientProtocol;
+            LOG.debug("Picked " + provider.getClass().getName()
+                + " as the ClientProtocolProvider");
+            break;
+          }
+          else {
+            LOG.debug("Cannot pick " + provider.getClass().getName()
+                + " as the ClientProtocolProvider - returned null protocol");
+          }
+        } 
+        catch (Exception e) {
+          LOG.info("Failed to use " + provider.getClass().getName()
+              + " due to error: ", e);
+        }
+      }
+    }
+
+    if (null == clientProtocolProvider || null == client) {
+      throw new IOException(
+          "Cannot initialize Cluster. Please check your configuration for "
+              + MRConfig.FRAMEWORK_NAME
+              + " and the correspond server addresses.");
+    }
+  }
+//执行完毕初始化工作后，会重新回到创建集群的位置
+~~~
+
+初始化中会创建localRunner，如果是在集群中，那么就会创建yarnRunner。
+
+![1621475432607](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/095034-127971.png)
+
+最终会返回下面的位置
+
+![1621475614713](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/095336-446641.png)
+
+![1621475735555](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621475735555.png)
+
+~~~ java
+JobStatus submitJobInternal(Job job, Cluster cluster) 
+  throws ClassNotFoundException, InterruptedException, IOException {
+
+    //validate the jobs output specs 
+    checkSpecs(job);//校验输出路径是否正确
+
+    Configuration conf = job.getConfiguration();//获取作业的配置信息
+    addMRFrameworkToDistributedCache(conf);
+
+  //创建临时工作目录。也就是三个文件的提交路径
+    Path jobStagingArea = JobSubmissionFiles.getStagingDir(cluster, conf);
+    //configure the command line options correctly on the submitting dfs
+    InetAddress ip = InetAddress.getLocalHost();
+    if (ip != null) {
+      submitHostAddress = ip.getHostAddress();
+      submitHostName = ip.getHostName();
+      conf.set(MRJobConfig.JOB_SUBMITHOST,submitHostName);
+      conf.set(MRJobConfig.JOB_SUBMITHOSTADDR,submitHostAddress);
+    }
+  //获取jobid号码
+    JobID jobId = submitClient.getNewJobID();
+  //设置job的id
+    job.setJobID(jobId);
+    Path submitJobDir = new Path(jobStagingArea, jobId.toString());
+    JobStatus status = null;
+    try {
+      conf.set(MRJobConfig.USER_NAME,
+          UserGroupInformation.getCurrentUser().getShortUserName());
+      conf.set("hadoop.http.filter.initializers", 
+          "org.apache.hadoop.yarn.server.webproxy.amfilter.AmFilterInitializer");
+      conf.set(MRJobConfig.MAPREDUCE_JOB_DIR, submitJobDir.toString());
+      LOG.debug("Configuring job " + jobId + " with " + submitJobDir 
+          + " as the submit dir");
+      // get delegation token for the dir
+      TokenCache.obtainTokensForNamenodes(job.getCredentials(),
+          new Path[] { submitJobDir }, conf);
+      
+      populateTokenCache(conf, job.getCredentials());
+
+      // generate a secret to authenticate shuffle transfers
+      if (TokenCache.getShuffleSecretKey(job.getCredentials()) == null) {
+        KeyGenerator keyGen;
+        try {
+          keyGen = KeyGenerator.getInstance(SHUFFLE_KEYGEN_ALGORITHM);
+          keyGen.init(SHUFFLE_KEY_LENGTH);
+        } catch (NoSuchAlgorithmException e) {
+          throw new IOException("Error generating shuffle secret key", e);
+        }
+        SecretKey shuffleKey = keyGen.generateKey();
+        TokenCache.setShuffleSecretKey(shuffleKey.getEncoded(),
+            job.getCredentials());
+      }
+      if (CryptoUtils.isEncryptedSpillEnabled(conf)) {
+        conf.setInt(MRJobConfig.MR_AM_MAX_ATTEMPTS, 1);
+        LOG.warn("Max job attempts set to 1 since encrypted intermediate" +
+                "data spill is enabled");
+      }
+//提交文件信息，也就是文件的额切片信息
+      copyAndConfigureFiles(job, submitJobDir);
+
+      Path submitJobFile = JobSubmissionFiles.getJobConfPath(submitJobDir);
+      
+      // Create the splits for the job
+      LOG.debug("Creating splits at " + jtFs.makeQualified(submitJobDir));
+      int maps = writeSplits(job, submitJobDir);
+      conf.setInt(MRJobConfig.NUM_MAPS, maps);
+      LOG.info("number of splits:" + maps);
+
+      // write "queue admins of the queue to which job is being submitted"
+      // to job file.
+      String queue = conf.get(MRJobConfig.QUEUE_NAME,
+          JobConf.DEFAULT_QUEUE_NAME);
+      AccessControlList acl = submitClient.getQueueAdmins(queue);
+      conf.set(toFullPropertyName(queue,
+          QueueACL.ADMINISTER_JOBS.getAclName()), acl.getAclString());
+
+      // removing jobtoken referrals before copying the jobconf to HDFS
+      // as the tasks don't need this setting, actually they may break
+      // because of it if present as the referral will point to a
+      // different job.
+      TokenCache.cleanUpTokenReferral(conf);
+
+      if (conf.getBoolean(
+          MRJobConfig.JOB_TOKEN_TRACKING_IDS_ENABLED,
+          MRJobConfig.DEFAULT_JOB_TOKEN_TRACKING_IDS_ENABLED)) {
+        // Add HDFS tracking ids
+        ArrayList<String> trackingIds = new ArrayList<String>();
+        for (Token<? extends TokenIdentifier> t :
+            job.getCredentials().getAllTokens()) {
+          trackingIds.add(t.decodeIdentifier().getTrackingId());
+        }
+        conf.setStrings(MRJobConfig.JOB_TOKEN_TRACKING_IDS,
+            trackingIds.toArray(new String[trackingIds.size()]));
+      }
+
+      // Set reservation info if it exists
+      ReservationId reservationId = job.getReservationId();
+      if (reservationId != null) {
+        conf.set(MRJobConfig.RESERVATION_ID, reservationId.toString());
+      }
+
+      // Write job file to submit dir
+      //提交一些配置文件,也就是xml文件
+      writeConf(conf, submitJobFile);
+      
+      //
+      // Now, actually submit the job (using the submit name)
+      //
+      printTokens(jobId, job.getCredentials());
+      status = submitClient.submitJob(
+          jobId, submitJobDir.toString(), job.getCredentials());
+      if (status != null) {
+        return status;
+      } else {
+        throw new IOException("Could not launch job");
+      }
+    } finally {
+      if (status == null) {
+        LOG.info("Cleaning up the staging area " + submitJobDir);
+        if (jtFs != null && submitJobDir != null)
+          jtFs.delete(submitJobDir, true);
+
+      }
+    }
+  }
+//提交过程到此位置已经结束
+~~~
+
 #### **FileInputFormat切片机制**
 
 切片在本地运行模式中是32m，在hadoop版本一中是64m，在版本2中是128m。
 
-1. 处理流程
+**处理流程**
 
-   FileInputFormat源码解析(input.getSplits(job))
+FileInputFormat源码解析(input.getSplits(job))
 
-   （1）找到你数据存储的目录。
+1. 找到你数据存储的目录。
+2. 开始遍历处理（规划切片）目录下的每一个文件(**注意是以文件为单位进行遍历的**)
+3. 遍历第一个文件ss.txt
+   1. 获取文件大小fs.sizeOf(ss.txt);
+   2. 计算切片大小computeSliteSize(Math.max(minSize,Math.max(maxSize,blocksize)))=blocksize=128M
+   3. 默认情况下，切片大小=blocksize
+   4. 开始切，形成第1个切片：ss.txt—0:128M 第2个切片ss.txt—128:256M 第3个切片ss.txt—256M:300M（**每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分一块切片**）
+   5. 将切片信息写到一个切片规划文件中
+   6. 整个切片的核心过程在==getSplit()==方法中完成。
+   7. 数据切片只是在逻辑上对输入数据进行分片，并不会再磁盘上将其切分成分片进行存储。InputSplit只记录了分片的元数据信息，比如起始位置、长度以及所在的节点列表等。
+   8. 注意：block是HDFS上物理上存储的存储的数据，切片是对数据逻辑上的划分。
 
-​	（2）开始遍历处理（规划切片）目录下的每一个文件(**注意是以文件为单位进行遍历的**)
+4. 提交切片规划文件到yarn上，yarn上的MrAppMaster就可以根据切片规划文件计算开启maptask个数。
 
-​	（3）遍历第一个文件ss.txt
+**FileInputFormat中默认的切片机制：**
 
-​		a）获取文件大小fs.sizeOf(ss.txt);
-
-​		b）计算切片大小computeSliteSize(Math.max(minSize,Math.max(maxSize,blocksize)))=blocksize=128M
-
-​		c）默认情况下，切片大小=blocksize
-
-​		d）开始切，形成第1个切片：ss.txt—0:128M 第2个切片ss.txt—128:256M 第3个切片ss.txt—256M:300M（**每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分一块切片**）
-
-​		e）将切片信息写到一个切片规划文件中
-
-​		f）整个切片的核心过程在==getSplit()==方法中完成。
-
-​		g）数据切片只是在逻辑上对输入数据进行分片，并不会再磁盘上将其切分成分片进行存储。InputSplit只记录了分片的元数据信息，比如起始位置、长度以及所在的节点列表等。
-
-​		h）注意：block是HDFS上物理上存储的存储的数据，切片是对数据逻辑上的划分。
-
-​	（4）提交切片规划文件到yarn上，yarn上的MrAppMaster就可以根据切片规划文件计算开启maptask个数。
-
-2. FileInputFormat中默认的切片机制：
-
-   （1）简单地按照文件的内容长度进行切片
-
-   （2）切片大小，默认等于block大小
-
-   （3）**切片时不考虑数据集整体，而是逐个针对每一个文件单独切片**
+1. 简单地按照文件的内容长度进行切片
+2. 切片大小，默认等于block大小
+3. **切片时不考虑数据集整体，而是逐个针对每一个文件单独切片**
 
 ~~~ java
 //例子：
@@ -695,23 +947,23 @@ file1.txt.split3--  256~320
 file2.txt.split1--  0~10M
 ~~~
 
-3. FileInputFormat切片大小的参数配置
+**FileInputFormat切片大小的参数配置**
 
-   （1）通过分析源码，在FileInputFormat中，计算切片大小的逻辑：Math.max(minSize, Math.min(maxSize, blockSize));  
+通过分析源码，在FileInputFormat中，计算切片大小的逻辑：Math.max(minSize, Math.min(maxSize, blockSize));  
 
-   切片主要由这几个值来运算决定
+切片主要由这几个值来运算决定
 
-   - mapreduce.input.fileinputformat.split.minsize=1 默认值为1
+- mapreduce.input.fileinputformat.split.minsize=1 默认值为1
 
-   - mapreduce.input.fileinputformat.split.maxsize= Long.MAXValue 默认值Long.MAXValue
+- mapreduce.input.fileinputformat.split.maxsize= Long.MAXValue 默认值Long.MAXValue
 
-   因此，默认情况下，切片大小=blocksize。
+因此，默认情况下，切片大小=blocksize。
 
-   **maxsize（切片最大值）：参数如果调得比blocksize小，则会让切片变小，而且就等于配置的这个参数的值。**
+**maxsize（切片最大值）：参数如果调得比blocksize小，则会让切片变小，而且就等于配置的这个参数的值。**
 
-   **minsize （切片最小值）：参数调的比blockSize大，则可以让切片变得比blocksize还大。**
+**minsize （切片最小值）：参数调的比blockSize大，则可以让切片变得比blocksize还大。**
 
-4. 获取切片信息API
+1. 获取切片信息API
 
 ~~~ java
 // 根据文件类型获取切片信息
@@ -720,6 +972,121 @@ FileSplit inputSplit = (FileSplit) context.getInputSplit();
 String name = inputSplit.getPath().getName();
 ~~~
 
+**切片机制源码详解**
+
+是FileInputFormat()里面的默认切片机制。
+
+```java
+//获取切片
+ int maps = writeSplits(job, submitJobDir);
+//切片方法
+private int writeSplits(org.apache.hadoop.mapreduce.JobContext job,
+      Path jobSubmitDir) throws IOException,
+      InterruptedException, ClassNotFoundException {
+    JobConf jConf = (JobConf)job.getConfiguration();
+    int maps;
+    if (jConf.getUseNewMapper()) {
+      maps = writeNewSplits(job, jobSubmitDir);
+    } else {
+      maps = writeOldSplits(jConf, jobSubmitDir);
+    }
+    return maps;
+  }
+
+private <T extends InputSplit>
+  int writeNewSplits(JobContext job, Path jobSubmitDir) throws IOException,
+      InterruptedException, ClassNotFoundException {
+    Configuration conf = job.getConfiguration();
+    InputFormat<?, ?> input =
+      ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
+//真正进行切片的方法
+    List<InputSplit> splits = input.getSplits(job);
+    T[] array = (T[]) splits.toArray(new InputSplit[splits.size()]);
+
+    // sort the splits into order based on size, so that the biggest
+    // go first
+    Arrays.sort(array, new SplitComparator());
+    JobSplitWriter.createSplitFiles(jobSubmitDir, conf, 
+        jobSubmitDir.getFileSystem(conf), array);
+    return array.length;
+  }
+
+//下面是对文件进行切片的方法
+public List<InputSplit> getSplits(JobContext job) throws IOException {
+    StopWatch sw = new StopWatch().start();
+  //minSize是1
+  //maxSize默认是long的最大值
+    long minSize = Math.max(getFormatMinSplitSize(), getMinSplitSize(job));
+    long maxSize = getMaxSplitSize(job);
+
+    // generate splits
+    List<InputSplit> splits = new ArrayList<InputSplit>();
+    List<FileStatus> files = listStatus(job);
+  //遍历所有的文件，这里可以看出来是按照文件进行一个一个的切分，不会把多个文件进行合并切分
+    for (FileStatus file: files) {
+      Path path = file.getPath();
+      long length = file.getLen();
+      if (length != 0) {
+        BlockLocation[] blkLocations;
+        if (file instanceof LocatedFileStatus) {
+          blkLocations = ((LocatedFileStatus) file).getBlockLocations();
+        } else {
+          FileSystem fs = path.getFileSystem(job.getConfiguration());
+          blkLocations = fs.getFileBlockLocations(file, 0, length);
+        }
+        //判断文件是否可以进行切分
+        if (isSplitable(job, path)) {
+          //获取文件块的大小，默认是128m，老版本是64m,本地模式是32m
+          long blockSize = file.getBlockSize();
+          //计算切片的大小
+          long splitSize = computeSplitSize(blockSize, minSize, maxSize);
+
+          long bytesRemaining = length;
+          //判断剩余块的大小是否是切片大小的1.1倍
+          while (((double) bytesRemaining)/splitSize > SPLIT_SLOP) {
+            int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);
+            //如果大于1.1倍，那么就重新增加一个切片
+            splits.add(makeSplit(path, length-bytesRemaining, splitSize,
+                        blkLocations[blkIndex].getHosts(),
+                        blkLocations[blkIndex].getCachedHosts()));
+            bytesRemaining -= splitSize;
+          }
+
+          if (bytesRemaining != 0) {
+            int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);
+            splits.add(makeSplit(path, length-bytesRemaining, bytesRemaining,
+                       blkLocations[blkIndex].getHosts(),
+                       blkLocations[blkIndex].getCachedHosts()));
+          }
+        } else { // not splitable
+          splits.add(makeSplit(path, 0, length, blkLocations[0].getHosts(),
+                      blkLocations[0].getCachedHosts()));
+        }
+      } else { 
+        //Create empty hosts array for zero length files
+        splits.add(makeSplit(path, 0, length, new String[0]));
+      }
+    }
+    // Save the number of input files for metrics/loadgen
+    job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
+    sw.stop();
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Total # of splits generated by getSplits: " + splits.size()
+          + ", TimeTaken: " + sw.now(TimeUnit.MILLISECONDS));
+    }
+    return splits;
+  }
+
+//计算切片大小的方法
+ protected long computeSplitSize(long blockSize, long minSize,
+                                  long maxSize) {
+    return Math.max(minSize, Math.min(maxSize, blockSize));
+  }
+//默认块的大小等于切片的大小
+```
+
+> 注意：存储是物理上的存储，按照128m进行存储，但是切片是逻辑上的切片操作。129如果是存储，那么存储两块，但是如果是切片的话，就会切成1片。
+
 #### CombineTextInputFormat切片机制
 
 1. 框架默认的TextInputFormat切片机制是对任务按文件规划切片，不管文件多小，都会是一个单独的切片，都会交给一个MapTask，这样如果有大量小文件，就会产生大量的MapTask，处理效率极其低下。
@@ -727,7 +1094,7 @@ String name = inputSplit.getPath().getName();
 2. 优化策略：
 
    - 最好的办法，在数据处理系统的最前端（**预处理/采集**），将小文件先合并成大文件，再上传到HDFS做后续分析。
-   - 补救措施：如果已经是大量小文件在HDFS中了，可以使用另一种InputFormat来做切片（CombineTextInputFormat），它的切片逻辑跟TextFileInputFormat不同：它可以将多个小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交给一个maptask。
+   - 补救措施：如果已经是大量小文件在HDFS中了，可以使用另一种InputFormat来做切片（CombineTextInputFormat），它的切片逻辑跟TextFileInputFormat不同：**它可以将多个小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交给一个maptask。**
 
 3. 应用场景：
 
@@ -779,7 +1146,12 @@ CombineTextInputFormat.setMinInputSplitSize(job, 2097152);// 2m
 #### FileInputFormat实现类
 
 1. 思考：在运行MapReduce程序时，输入的文件格式包括：基于行的日志文件、二进制格式文件、数据库表等。那么，针对不同的数据类型，MapReduce是如何读取这些数据的呢？
-2. FileInputFormat常见的接口实现类包括：TextInputFormat(按照文件的大小进行切分，如果有很多小文件，那么就会产生很多碎片，key是long类型，行偏移量，value是text类型，是一行的内容)、KeyValueTextInputFormat（按照文件大小对文件进行切片，切完后第一列是key，剩下的内容是value）、NLineInputFormat（按照行数对文件进行切片,key是long类型，value是text类型）、CombineTextInputFormat（切片与设置的文件大小有关，key是long类型,value是text类型）和自定义InputFormat（跟默认切片一样）等。
+
+2. FileInputFormat常见的接口实现类包括：
+
+   TextInputFormat(按照文件的大小进行切分，如果有很多小文件，那么就会产生很多碎片，key是long类型，行偏移量，value是text类型，是一行的内容)、
+
+   KeyValueTextInputFormat（按照文件大小对文件进行切片，切完后第一列是key，剩下的内容是value）、NLineInputFormat（按照行数对文件进行切片,key是long类型，value是text类型）、CombineTextInputFormat（切片与设置的文件大小有关，key是long类型,value是text类型）和自定义InputFormat（跟默认切片一样）等。
 
 **继承关系**
 
@@ -787,7 +1159,7 @@ CombineTextInputFormat.setMinInputSplitSize(job, 2097152);// 2m
 
 ##### TextInputFormat
 
-TextInputFormat是默认的FileInputFormat实现类。按行读取每条记录。键是存储该行在整个文件中的起始字节偏移量， LongWritable类型。值是这行的内容，不包括任何行终止符（换行符和回车符），Text类型。
+TextInputFormat是默认的FileInputFormat实现类。按行读取每条记录。**键是存储该行在整个文件中的起始字节偏移量， LongWritable类型。值是这行的内容，不包括任何行终止符（换行符和回车符），Text类型。**
 
 ~~~ java
 //以下是一个示例，比如，一个分片包含了如下4条文本记录。
@@ -937,7 +1309,7 @@ From the real demand for more close to the enterprise
 //这里的键和值与TextInputFormat生成的一样。
 ~~~
 
-##### 案例演示
+###### 案例演示
 
 对每个单词进行个数统计，要求根据每个输入文件的行数来规定输出多少个切片。此案例要求每三行放入一个切片中。
 
@@ -1053,9 +1425,31 @@ public class NLineDriver {
 - 自定义InputFormat步骤如下：
   - 自定义一个类**继承FileInputFormat。**
   - 改写RecordReader，实现一次读取一个完整文件封装为KV。
-  - 在输出时使用SequenceFileOutPutFormat输出合并文件。
+  - 在输出时使用SequenceFileOutPutFormat（以文件名称为key，文件的内容为value存储）输出合并文件。
 
-#### 案例演示
+**InputFormat源码**
+
+~~~ java
+@InterfaceAudience.Public
+@InterfaceStability.Stable
+public abstract class InputFormat<K, V> {
+
+  public abstract 
+    List<InputSplit> getSplits(JobContext context
+                               ) throws IOException, InterruptedException;
+  
+ 
+  public abstract 
+    RecordReader<K,V> createRecordReader(InputSplit split,
+                                         TaskAttemptContext context
+                                        ) throws IOException, 
+                                                 InterruptedException;
+}
+~~~
+
+只需要实现类中的两个抽象方法即可。
+
+###### 案例演示
 
 无论HDFS还是MapReduce，在处理小文件时效率都非常低，但又难免面临处理大量小文件的场景，此时，就需要有相应解决方案。可以自定义InputFormat实现小文件的合并。
 
@@ -1079,7 +1473,69 @@ job.setOutputFormatClass(SequenceFileOutputFormat.class);
 https://github.com/justdoitMr/BigData_doc/tree/master/codes/hadoop/FileInputFormat/src/com/qq/rzf/FileInputFormat
 ~~~
 
+上面合并小文件要和CombineTextInputFormat合并小文件区分开，自定义输入合并小文件最终是把多个文件归并为一个文件，对外表现的是一个文件，文件里面存储的是小文件的名字和文件对应的内容，而CombineTextInputFormat合并小文件，对外表现是一个文件，但是在内部还是相互独立的小文件。
+
 **代码演示**
+
+**RecordReader源码**
+
+~~~ java
+@InterfaceAudience.Public
+@InterfaceStability.Stable
+public abstract class RecordReader<KEYIN, VALUEIN> implements Closeable {
+
+  /**
+   * Called once at initialization.
+   * @param split the split that defines the range of records to read
+   * @param context the information about the task
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public abstract void initialize(InputSplit split,
+                                  TaskAttemptContext context
+                                  ) throws IOException, InterruptedException;
+
+  /**
+   * Read the next key, value pair.
+   * @return true if a key/value pair was read
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public abstract 
+  boolean nextKeyValue() throws IOException, InterruptedException;
+
+  /**
+   * Get the current key
+   * @return the current key or null if there is no current key
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public abstract
+  KEYIN getCurrentKey() throws IOException, InterruptedException;
+  
+  /**
+   * Get the current value.
+   * @return the object that was read
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public abstract 
+  VALUEIN getCurrentValue() throws IOException, InterruptedException;
+  
+  /**
+   * The current progress of the record reader through its data.
+   * @return a number between 0.0 and 1.0 that is the fraction of the data read
+   * @throws IOException
+   * @throws InterruptedException
+   */
+  public abstract float getProgress() throws IOException, InterruptedException;
+  
+  /**
+   * Close the record reader.
+   */
+  public abstract void close() throws IOException;
+}
+~~~
 
 **自定义WhoFileInputFormat**
 
@@ -1242,6 +1698,8 @@ public class SequenceDriver {
     }
 }
 ~~~
+
+
 
 ### MapReduce工作流程
 
@@ -2872,154 +3330,7 @@ configuration.setClass("mapreduce.map.output.compress.codec", BZip2Codec.class, 
 	    FileOutputFormat.setOutputCompressorClass(job, BZip2Codec.class); 
 ~~~
 
-## Yarn资源调度器
 
-Yarn是一个资源调度平台，负责为运算程序提供服务器运算资源，相当于一个分布式的操作系统平台，而mapreduce等运算程序则相当于运行于操作系统之上的应用程序
 
-### Yarn的重要概念
 
-1. Yarn并不清楚用户提交的程序的运行机制
 
-2. Yarn只提供运算资源的调度（用户程序向Yarn申请资源，Yarn就负责分配资源）
-
-3. Yarn中的主管角色叫ResourceManager
-
-4. Yarn中具体提供运算资源的角色叫NodeManager
-
-5. 这样一来，Yarn其实就与运行的用户程序完全解耦，就意味着Yarn上可以运行各种类型的分布式运算程序（mapreduce只是其中的一种），比如mapreduce、storm程序，spark程序……
-
-6. 所以spark、storm等运算框架都可以整合在Yarn上运行，只要他们各自的框架中有符合Yarn规范的资源请求机制即可
-
-7. Yarn就成为一个通用的资源调度平台，从此，企业中以前存在的各种运算集群都可以整合在一个物理集群上，提高资源利用率，方便数据共享
-
-### Yarn基本架构
-
-YARN主要由ResourceManager（负责管理整个集群的资源）、NodeManager（负责管理单个节点的资源）、ApplicationMaster（负责管理单个作业的资源）和Container（虚拟计算机资源 ）等组件构成
-
-![1611804802087](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/113324-21224.png)
-
-### yarn工作机制
-
-![1611804915752](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/113518-100361.png)
-
-**工作机制详解**
-
-1. MR程序提交到客户端所在的节点。
-
-2. YarnRunner向ResourceManager申请一个Application。
-
-3. RM将该应用程序的资源路径返回给YarnRunner。
-
-4. 该程序将运行所需资源提交到HDFS上。
-
-5. 程序资源提交完毕后，申请运行mrAppMaster。
-
-6. RM将用户的请求初始化成一个Task。
-
-7. 其中一个NodeManager领取到Task任务。
-
-8. 该NodeManager创建容器Container，并产生MRAppmaster。
-
-9. Container从HDFS上拷贝资源到本地。
-
-10. MRAppmaster向RM 申请运行MapTask资源。
-
-11. RM将运行MapTask任务分配给另外两个NodeManager，另两个NodeManager分别领取任务并创建容器。
-12. MR向两个接收到任务的NodeManager发送程序启动脚本，这两个NodeManager分别启动MapTask，MapTask对数据分区排序。
-13. MrAppMaster等待所有MapTask运行完毕后，向RM申请容器，运行ReduceTask。
-14. ReduceTask向MapTask获取相应分区的数据。
-15. 程序运行完毕后，MR会向RM申请注销自己。
-
-### 作业提交全过程
-
-**图解**
-
-![1611805156296](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/113917-936052.png)
-
-客户端要想运行一个作业，首先联系资源管理器（resourcemanager),资源管理器找到一个能够在容器中启动application master的节点管理器（图中的2a和2b步骤），application master运行起来可以做什么依赖于应用本身，可能是简单的运行一个计算任务，也可能是向resources manager请求更多的容器资源（步骤三）来运行一个分布式计算任务（步骤4a和4b）。
-
-作业提交全过程详解
-
-1. 作业提交
-
-第1步：Client调用job.waitForCompletion方法，向整个集群提交MapReduce作业。
-
-第2步：Client向RM申请一个作业id。
-
-第3步：RM给Client返回该job资源的提交路径和作业id。
-
-第4步：Client提交jar包、切片信息和配置文件到指定的资源提交路径。
-
-第5步：Client提交完资源后，向RM申请运行MrAppMaster。
-
-2. 作业初始化
-
-第6步：当RM收到Client的请求后，将该job添加到容量调度器中。
-
-第7步：某一个空闲的NM领取到该Job。
-
-第8步：该NM创建Container，并产生MRAppmaster。
-
-第9步：下载Client提交的资源到本地。
-
-3. 任务分配
-
-第10步：MrAppMaster向RM申请运行多个MapTask任务资源。
-
-第11步：RM将运行MapTask任务分配给另外两个NodeManager，另两个NodeManager分别领取任务并创建容器。
-
-4. 任务运行
-
-第12步：MR向两个接收到任务的NodeManager发送程序启动脚本，这两个NodeManager分别启动MapTask，MapTask对数据分区排序。
-
-第13步：MrAppMaster等待所有MapTask运行完毕后，向RM申请容器，运行ReduceTask。
-
-第14步：ReduceTask向MapTask获取相应分区的数据。
-
-第15步：程序运行完毕后，MR会向RM申请注销自己。
-
-5. 进度和状态更新
-
-YARN中的任务将其进度和状态(包括counter)返回给应用管理器, 客户端每秒(通过mapreduce.client.progressmonitor.pollinterval设置)向应用管理器请求进度更新, 展示给用户。
-
-6. 作业完成
-
-除了向应用管理器请求作业进度外, 客户端每5秒都会通过调用waitForCompletion()来检查作业是否完成。时间间隔可以通过mapreduce.client.completion.pollinterval来设置。作业完成之后, 应用管理器和Container会清理工作状态。作业的信息会被作业历史服务器存储以备之后用户核查。
-
-- 作业提交过程之MapReduce
-
-**mapReducer作业的提交**
-
-![1611805793862](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/114957-457459.png)
-
-**作业提交**
-
-![1611805836562](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/115038-294763.png)
-
-**读取数据**
-
-![1611805865232](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/115108-80525.png)
-
-**写数据**
-
-![1611805890703](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/115133-262134.png)
-
-### 调度器
-
-#### 先进先出调度器（FIFO）
-
-![1611802720420](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/185711-67928.png)
-
-作业按照先到先运行的方法进行调度。
-
-#### 容量调度器（Capacity Scheduler）
-
-![1611802838738](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/110041-117502.png)
-
-每一个队列的资源可以任意分配，容量调度器是多个fifo调度器的整合，可以提高并发程度。有多少个队列，并发度就是几。
-
-#### 公平调度器（Fair Scheduler）
-
-![1611803190582](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/28/110636-942398.png)
-
-这种缺额，也就是把缺额资源看做是一种优先级。同一个队列中，也可以有多个作业同时运行，比容量调度器并发度更高。

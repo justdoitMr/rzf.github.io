@@ -1442,6 +1442,7 @@ abstract class RDD[T: ClassTag](
     @transient private var _sc: SparkContext,
     @transient private var deps: Seq[Dependency[_]]
   ) extends Serializable with Logging 
+//transinent表示币可以进行序列化操作
 ~~~
 
 **图示**
@@ -1636,7 +1637,7 @@ RDD 的一个重要优势是能够记录 RDD 间的依赖关系，即所谓血�
 
 RDD数据的处理方式类似于IO流，也有装饰者设计模式，但是也有不同，io中真正new对象时候不会触发文件数据的读取，RDD数据只有在调用collect的时候才会真正执行逻辑操作，之前的封装都是对功能的扩展，RDD他是不保存数据，也就是没有缓冲区，但是IO流有缓冲区，会临时保存数据。RDD其实就是通过功能的组合，最终完成一个复杂的功能计算。
 
-我们不可以可到RDD有很多的子类
+我们可以看到RDD有很多的子类，也就是我们可以有多种数据源。
 
 ![1621764853796](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/181418-940811.png)
 
@@ -1958,7 +1959,6 @@ object RddMemory {
 		context.stop()
 	}
 }
-
 //makeRDD()方法的底层代码，使用makRDD方法创建需要给出分区的个数
 def makeRDD[T: ClassTag](
       seq: Seq[T],
@@ -1973,7 +1973,6 @@ def parallelize[T: ClassTag](
     assertNotStopped()
     new ParallelCollectionRDD[T](this, seq, numSlices, Map[Int, Seq[String]]())
   }
-
 ~~~
 
 ###### 从外部存储（文件）创建RDD
@@ -2956,7 +2955,42 @@ object Spark_RDD_transform_mapPartitionsWithIndex_ {
 		context.stop()
 	}
 }
+//案例二
+object Test05 {
 
+		def main(args: Array[String]): Unit = {
+			//	创建SparkContext
+			//	1 创建SparkConf配置文件
+			val conf: SparkConf = new SparkConf().setMaster("local[6]").setAppName("sparkContext")
+
+			//	2 创建SparkContext,是程序的入口，可以设置参数，创建rdd
+			val sc = new SparkContext(conf)
+
+			sc.parallelize(Seq(1,2,3,4,5,6),2)
+				//mapPartitions()方法接受一个函数，函数的参数是一个集合,iter是一个集合
+				.mapPartitions(iter =>{
+					//iter.foreach(println)//对集合进行遍历
+					//遍历每一个分区中的数据，对分区中的每一个数据做转换，转换完毕之后，返回iter集合
+				//	iter是scala集合类型，下面的map()是scala中的函数
+					val res: Iterator[Int] = iter.map(item => item * 10)
+					res
+				})
+					.collect()
+					.foreach(println)
+
+
+			sc.parallelize(Seq(1,2,3,4,5,6),2)
+					.mapPartitionsWithIndex((index,iter)=>{
+						println("index"+index)
+						iter.foreach(println)
+						iter
+					})
+					.collect()
+
+
+			sc.stop()
+		}
+}
 ~~~
 
 > mapPartitions和mapPartitionsWithIndex最大的区别是mapPartitionsWithIndex的参数中多出一个分区号，可以针对指定的分区进行操作。
@@ -3598,6 +3632,81 @@ object Spark_RDD_transform_coalesce {
 ~~~~~~
 
 思考一个问题： coalesce 和 repartition 区别？ 
+
+**案例二**
+
+~~~ java
+object Test07 {
+
+	def main(args: Array[String]): Unit = {
+		val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+		val sc: SparkContext = new SparkContext(sparkConf)
+		sc.setLogLevel("WARN")
+
+		val rdd1: RDD[String] = sc.parallelize(List("hadoop", "spark", "flink"), 4)
+		println(rdd1.getNumPartitions) //4
+
+		//注意：重分区:改变的是新生成的RDD的分区数,原来的RDD的分区数不变
+		//-1.repartition,可以增加和减少分区
+		val rdd2: RDD[String] = rdd1.repartition(5)
+		println(rdd1.getNumPartitions) //4,原来rdd的分区个数
+		println(rdd2.getNumPartitions) //5 新生成的RDD的分区的个数
+
+		val rdd3: RDD[String] = rdd1.repartition(3)
+		println(rdd1.getNumPartitions) //4
+		println(rdd3.getNumPartitions) //3 ，只是改变新生成的RDD的分区的个数
+
+		//-2.coalesce,默认只能减少分区
+		val rdd4: RDD[String] = rdd1.coalesce(5)
+		println(rdd1.getNumPartitions) //4
+		println(rdd4.getNumPartitions) //4
+		val rdd5: RDD[String] = rdd1.coalesce(3)
+		println(rdd1.getNumPartitions) //4
+		println(rdd5.getNumPartitions) //3
+
+
+		//-3.默认按照key的hash进行分区
+		val resultRDD: RDD[(String, Int)] = sc.textFile("D:\\soft\\idea\\work\\work04\\src\\main\\resources\\word")
+			.flatMap(_.split(" "))
+			.map((_, 1)) //_表示每一个单词
+			.reduceByKey(_ + _)
+
+		resultRDD.foreachPartition(iter => {
+			iter.foreach(t => {
+				val key: String = t._1
+				val num: Int = TaskContext.getPartitionId()
+				println(s"默认的hash分区器进行的分区:分区编号:${num},key:${key}")
+			})
+		})
+
+		//-4.自定义分区
+		val resultRDD2: RDD[(String, Int)] = sc.textFile("D:\\soft\\idea\\work\\work04\\src\\main\\resources\\word")
+			.flatMap(_.split(" "))
+			.map((_, 1)) //_表示每一个单词
+			.reduceByKey(new MyPartitioner(1), _ + _)
+		resultRDD2.foreachPartition(iter => {
+			iter.foreach(t => {
+				val key: String = t._1
+				val num: Int = TaskContext.getPartitionId()
+				println(s"自定义分区器进行的分区:分区编号:${num},key:${key}")
+			})
+		})
+
+		sc.stop()
+	}
+
+	//自定义的分区器
+	class MyPartitioner(partitions: Int) extends Partitioner {
+		override def numPartitions: Int = partitions
+
+		override def getPartition(key: Any): Int = {
+			0
+		}
+	}
+}
+~~~
+
+
 
 ###### sortBy 
 
@@ -5174,6 +5283,27 @@ val rdd: RDD[Int] = sc.makeRDD(List(1,2,3,4))
 val reduceResult: Int = rdd.reduce(_+_)  （curr,agg）
 ~~~
 
+**案例二**
+
+~~~ java
+object Test08 {
+
+	def main(args: Array[String]): Unit = {
+		val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+		val sc: SparkContext = new SparkContext(sparkConf)
+		sc.setLogLevel("WARN")
+
+		val data: RDD[Int] = sc.parallelize(1 to 10, 2)
+
+		val sum: Int = data.reduce((curr, agg) => {
+			println("curr=" + curr + "  agg=" + agg)
+			curr + agg
+		})
+		println(sum)
+	}
+}
+~~~
+
 ##### collect
 
 以数组的形式返回结果集中的所有元素
@@ -5388,6 +5518,81 @@ object Spark_RDD_agg {
 }
 ~~~
 
+**案例二**
+
+~~~ java
+object Test11 {
+
+	def main(args: Array[String]): Unit = {
+		//1.准备环境(Env)sc-->SparkContext
+		val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+		val sc: SparkContext = new SparkContext(sparkConf)
+		sc.setLogLevel("WARN")
+
+		//2.加载数据
+		val nums: RDD[Int] = sc.parallelize( 1 to 10) //和55
+
+		val result1: Double = nums.sum() //55//底层:fold(0.0)(_ + _)
+		val result2: Int = nums.reduce(_+_)//55 注意:reduce是action ,reduceByKey是transformation
+		val result3: Int = nums.fold(0)(_+_)//55
+		//(zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U)
+		//(初始值)(各个分区的聚合函数,多个分区结果的聚合函数)
+		val result4: Int = nums.aggregate(0)(_+_,_+_)
+
+		println(result1)
+		println(result2)
+		println(result3)
+		println(result4)
+
+		//5.关闭资源
+		sc.stop()
+	}
+}
+~~~
+
+**案例三**
+
+~~~ java
+object Test10 {
+
+	def main(args: Array[String]): Unit = {
+		val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+		val sc: SparkContext = new SparkContext(sparkConf)
+		sc.setLogLevel("WARN")
+
+
+		val data: RDD[Int] = sc.parallelize(1 to 10, 2)
+
+		//查看每一个分区的数据
+		data.foreachPartition(iter =>{
+			//println(TaskContext.getPartitionId()+" "+iter.foreach(println))
+			println(s"p-${TaskContext.getPartitionId()}: ${iter.mkString(", ")}")
+		})
+
+		val top2: mutable.Seq[Int] = data.aggregate(new ListBuffer[Int]())(
+			// 分区内聚合函数，每个分区内数据如何聚合  seqOp: (U, T) => U,
+			(u, t) => {
+				println(s"p-${TaskContext.getPartitionId()}: u = $u, t = $t")
+				// 将元素加入到列表中
+				u += t //
+				// 降序排序
+				val top = u.sorted.takeRight(2)
+				// 返回
+				top
+			},
+			// 分区间聚合函数，每个分区聚合的结果如何聚合 combOp: (U, U) => U
+			(u1, u2) => {
+				println(s"p-${TaskContext.getPartitionId()}: u1 = $u1, u2 = $u2")
+				u1 ++= u2 // 将列表的数据合并，到u1中
+				//
+				u1.sorted.takeRight(2)
+			}
+		)
+		println(top2)
+	}
+}
+~~~
+
 ##### fold 
 
 **函数签名**
@@ -5430,6 +5635,28 @@ object Spark_RDD_agg {
 		println(res)
 
 		context.stop()
+	}
+}
+~~~
+
+**案例二**
+
+~~~ java
+object Test09 {
+
+	def main(args: Array[String]): Unit = {
+		val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+		val sc: SparkContext = new SparkContext(sparkConf)
+		sc.setLogLevel("WARN")
+
+
+		val data: RDD[Int] = sc.parallelize(1 to 10, 2)
+		//设定初始值是10，只是参与一次运算
+		val sum: Int = data.fold(10)((curr, agg) => {
+			println("curr=" + curr + "  agg=" + agg)
+			curr + agg
+		})
+		println(sum)
 	}
 }
 ~~~
@@ -5745,6 +5972,77 @@ object Spark_RDD_foreach_ {
 ~~~
 
 每次调用行动算子，都会触发一个job。
+
+#### 阶段性项目
+
+1. 读取文件
+2. 抽取需要的列
+3. 按照年和月进行聚合操作
+4. 排序，获取最终结果
+
+**代码实现**
+
+~~~ java
+object Test16 {
+	def main(args: Array[String]): Unit = {
+		//准备环境,local[*]:local表示本地环境，[*]表示使用本机默认的核数
+		val conf = new SparkConf().setMaster("local[6]").setAppName("exertise")
+
+		//	创建上写文
+		val sc = new SparkContext(conf)
+		//读取数据集,读取的时候，是把每一行数据作为字符串读取进来,列以,分隔
+		val sourceRDD: RDD[String] = sc.textFile("")
+
+		//抽取固定列的数据
+		val mapRDD: RDD[((String, String), String)] = sourceRDD.map(item => {
+			val words: Array[String] = item.split(",")
+			//	抽取出:年，月，Pm,但是这种形式不是键值对类型，所以我们把年，月当做组合的键值
+			((words(1), words(2)), words(6)) //((key,value),value)
+		})
+		//数据的清洗,过滤空的字符串，过滤na值
+		val filterRDD: RDD[((String, String), String)] = mapRDD.filter((item => {
+			StringUtils.isNotEmpty(item._2) && !item._2.equalsIgnoreCase("NA")
+		}))
+		//聚合操作,按照(年，月)key进行聚合操作
+		//但是首先要把第二项转换为int类型的数据值
+		val rdd: RDD[((String, String), Int)] = filterRDD.map(item => {
+			(item._1, item._2.toInt)
+		})
+
+		//对数据做聚合操作
+		//curr是当前对象的值，agg是局部聚合的结果
+		val reduceRes: RDD[((String, String), Int)] = rdd.reduceByKey((curr, agg) => {
+			curr + agg
+		})
+
+		//对聚合后的结果进行排序操作
+		//按照元祖的第二项进行排序
+		val res: RDD[((String, String), Int)] = reduceRes.sortBy(item => {
+			item._2
+		})
+
+		//获取前10的数据
+		val finalRes: Array[((String, String), Int)] = res.take(10)
+
+		//打印输出最后的结果
+		finalRes.foreach(println)
+
+		//关闭sc
+		sc.stop()
+	}
+}
+~~~
+
+通过上面程序的练习，要掌握RDD程序的编写步骤：
+
+1. 创建SparkContext()运行环境
+2. 创建原始的RDD数据级
+3. 处理RDD，进行数据处理
+4. 触发行动算子，获取结果
+
+![1622103180737](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622103180737.png)
+
+![1622103206865](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/27/161336-470579.png)
 
 #### RDD 序列化 
 
@@ -6112,21 +6410,34 @@ def collect(): Array[T] = withScope {
 > - 一个job中如果有shuffle依赖，那么一个job中就右多个阶段
 > - 而一个阶段中可能会有多个分区，所以就会产生多个TASK,极限情况下有一个分区，产生一个task
 
-#### RDD 持久化 
+### RDD 缓存
 
-##### 使用缓存的意义
+#### RDD的三个特性
 
-**可以减少shuffle操作次数**
+- RDD的分区和hsuffle过程
 
-![1616988151858](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616988151858.png)
+- RDD的缓存
 
-**容错**
+- RDD的Checkpoint
 
-![1616988200887](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616988200887.png)
+#### 使用缓存的意义
+
+1. **可以减少shuffle操作次数**
+
+![1616988151858](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/145628-224411.png)
+
+因为在最后两步获取结果的时候，调用了两次Action算子，相当于触发了两个作业，但是这两个作业前半部分的数据处理基本一致，这样就导致了重复计算，浪费资源，并且每一个作业都执行了两次shuffle操作，我们说程序中药尽量减少shuffle操作。但是入股可以把前面的相同计算的结果进行缓存，那么这样就可以减少shuffle操作。
+
+2. **容错**
+
+![1616988200887](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/150207-401488.png)
 
 可以对中间的计算结果进行缓存操作，后面如果出现失败时候可以直接从缓存点获取计算数据，重新计算。
 
-##### 问题引出
+- 减少shuffle，减少其他算子执行缓存算子生成的结果
+- 容错
+
+#### 问题引出
 
 ~~~ java
 object Spark_RDD_persist {
@@ -6176,7 +6487,7 @@ object Spark_RDD_persist {
 }
 ~~~
 
-**改进**
+**改进，使用cache()缓存**
 
 ~~~ java
 object Spark_RDD_persist_ {
@@ -6200,6 +6511,7 @@ object Spark_RDD_persist_ {
 			(word, 1)
 		})
 //在这里调用了缓存的操作，可以把计算结果进行缓存
+//cache()也是一个算子，会返回一个新的RDD
 		val resRdd:RDD[(String,Int)] = mapRdd.reduceByKey(_ + _).cache()
       
       //两次行动算子的调用，会执行两次数据流的操作，每一个行动算子都会生成一个job
@@ -6221,6 +6533,16 @@ object Spark_RDD_persist_ {
 }
 ~~~
 
+**cache()源码**
+
+~~~ java
+ def cache(): this.type = persist()
+//默认的存储级别
+def persist(): this.type = persist(StorageLevel.MEMORY_ONLY)
+~~~
+
+可以发现,cache的底层使用的是persist()方法。
+
 **图解**
 
 也就是说把map算子处的数据使用缓存进行缓存处理，然后后面的算子可以直接使用数据，不需要在进行前面算子的转换操作，可以有效减少shufffle操作次数，提高效率。多个作业之间可以共用数据。
@@ -6235,7 +6557,7 @@ object Spark_RDD_persist_ {
 
 RDD持久化操作不一定是为了重用操作，在数据执行时间较长或者比较重要的场合也用持久化操作。
 
-##### RDD Cache 缓存 
+#### RDD Cache 缓存 
 
 RDD 通过 Cache （也是一个算子操作）或者 Persist 方法将前面的计算结果缓存，默认情况下会把数据以缓存在 JVM 的堆内存中。但是并不是这两个方法被调用时立即缓存，而是触发后面的 action 算子时，该 RDD 将会被缓存在计算节点的内存中，并供后面重用。 
 
@@ -6248,7 +6570,7 @@ wordToOneRdd.cache()
 //mapRdd.persist(StorageLevel.MEMORY_AND_DISK_2)
 ~~~
 
-**存储级别 **
+#### 缓存级别
 
 ![1616989064097](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/113906-955896.png)
 
@@ -6256,7 +6578,7 @@ wordToOneRdd.cache()
 
 是否以反序列化的形式进行存储，如果是，那么存储的就是一个对象，如果不是，那么存储的就是一个序列化过的值。必粗要序列化之后对象才可以存储在磁盘中，如果deserialized是true的话存储的就是一个对象，如果是false的话存储的就是二进制数据。
 
-![1616989874428](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616989874428.png)
+![1616989874428](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/153603-809804.png)
 
 上图中带2后缀的表示存储的副本数是2
 
@@ -6286,9 +6608,37 @@ val OFF_HEAP = new StorageLevel(true, true, true, false, 1)
 
 Spark 会自动对一些 Shuffle 操作的中间数据做持久化操作(比如： reduceByKey)。这样做的目的是为了当一个节点 Shuffle 失败了避免重新计算整个输入。但是，在实际使用的时候，如果想重用数据，仍然建议调用 persist 或 cache。 
 
-##### RDD CheckPoint 检查点 
+### RDD检查点
+
+####  **CheckPoint的作用**
+
+hdfs的edits机制
+
+![1622188275718](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/155119-274350.png)
+
+**检查点作用**
+
+将数据checkpoint的情况非常少，一般都是缓存在hdfs上面保存。
+
+![1616990352556](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/154326-179761.png)
+
+将checkpoint数据存储在本地，和缓存的差别特别小。
+
+什么是依赖连，多个RDD之间会形成依赖的关系，如果这个依赖太长的话，那么假如后边某一个RDD计算出现错误，那么就会依赖前面的RDD，需要从最开始的RDD重新计算一遍数据，所以，需要使用checkPoint机制去斩断这个依赖过长的链子。
+
+![1622188716121](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622188716121.png)
+
+解决办法就是把RDD4的数据存储在HDFS上面，这样就可以保证数据出错误后，原始的数据没有丢失。
+
+#### RDD CheckPoint API 
 
 所谓的检查点其实就是通过将 RDD 中间结果写入磁盘,由于血缘依赖过长会造成容错成本过高，这样就不如在中间阶段做检查点容错，如果检查点之后有节点出现问题， 可以从检查点开始重做血缘，减少了开销。对 RDD 进行 checkpoint 操作并不会马上被执行，必须执行 Action 操作才能触发。 
+
+![1622189132343](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/160543-335853.png)
+
+使用缓存后会返回一个新的RDD，而rdd.heckpoint()后，不会返回新的RDD，rdd本身就变为一个checkpoint的rdd。不准确的说,checkpoint()是一个action()操作，如果调用checkpoint()算子，会重新计算一下rdd，然后把结果存储在hdfs上面。所以在checkpoint()之前应该进行一次缓存操作，这样每一次checkpoint()的时候，使用的都是缓存的数据，自然也就不会触发多个作业的执行。
+
+**代码演示**
 
 ~~~ java
 object Spark_RDD_checkpoint {
@@ -6339,13 +6689,7 @@ object Spark_RDD_checkpoint {
 }
 ~~~
 
-##### 缓存和检查点区别 
-
-**检查点作用**
-
-将数据checkpoint的情况非常少，一般都是缓存在hdfs上面保存。
-
-![1616990352556](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616990352556.png)
+#### 缓存和检查点区别 
 
 - cache:将数据临时存储在内存中重用，会在血缘关系中添加新的依赖，一旦出现问题，可以从头读取数据
 - persist将数据临时存放在磁盘中进行数据重用，但是涉及到磁盘io操作，性能低，但是数据安全，如果作业执行完毕，临时保存的数据的数据文件就会消失
@@ -6358,13 +6702,15 @@ mapRdd.checkpoint()
 
 - checkpoint在执行过程中会切断血缘关系，重新建立新的血缘关系，checkpoint等同于改变我们的数据源
 
-> Cache 缓存只是将数据保存起来，不切断血缘依赖。 Checkpoint 检查点切断血缘依赖。 
+![1622188892411](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/160137-266981.png)
+
+> Cache 缓存只是将数据保存起来内存或者磁盘中，不可靠存储，不切断血缘依赖。 Checkpoint 检查点切断血缘依赖。 
 >
 > Cache 缓存的数据通常存储在磁盘、内存等地方，可靠性低。 Checkpoint 的数据通常存储在 HDFS 等容错、高可用的文件系统，可靠性高。 
 >
 > 建议对 checkpoint()的 RDD 使用 Cache 缓存，这样 checkpoint 的 job 只需从 Cache 缓存中读取数据即可，否则需要再从头计算一次 RDD。 
 
-#### RDD 分区器 
+### RDD 分区器 
 
 Spark 目前支持 **Hash** 分区和 **Range** 分区，和**用户自定义分区**。 Hash 分区为当前的默认分区。分区器直接决定了 RDD 中分区的个数、 RDD 中每条数据经过 Shuffle 后进入哪个分区，进而决定了 Reduce 的个数。 
 
@@ -6660,21 +7006,21 @@ object Spark_RDD_FileSaveObj {
 }
 ~~~
 
-#### RDD的分区和Shuffle
+### RDD的分区和Shuffle
 
 RDD分区的作用
 
-- RDD通常需要读取外部系统的数据文件进行创建RDD，外部存储系统往往支持分片操作，分片侧重于存储，分区侧重于计算，所以RDD需要支持分区来和外部系统的分片进行一一对应，
+- RDD通常需要读取外部系统的数据文件进行创建RDD，外部存储系统往往**支持分片操作**，分片侧重于存储，分区侧重于计算，所以RDD需要支持分区来和外部系统的分片进行一一对应，
 - RDD是一个并行计算的实现手段
 
-![1616978719222](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616978719222.png)
+![1616978719222](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/132943-57112.png)
 
-##### 查看分区的方式
+#### 查看分区的方式
 
 1.  通过webUi方式进行查看
-2. 通过partitions.size方法进行查看
+2. 通过rdd.partitions.size方法进行查看
 
-##### 指定RDD分区个数的方式
+#### 指定RDD分区个数的方式
 
 1. 通过本地集合创建的时候指定分区
 
@@ -6691,52 +7037,527 @@ val value1: RDD[String] = context.textFile("path", 5)
 //但是这里指定的分区数是最小的分区数，一实际分区数比这个值大
 ~~~
 
-##### 重定义分区数
+#### 重定义分区数
 
 coalesce()这个方法默认是不进行shuffle操作的，所以也就限制了在分区的时候只能把分区的个数变小，不能增大分区的个数，如果想要增大分区的个数，必须把shuffle操作设置为true,每一次调用这个方法都会生成新的rdd，改变分区也是在新的RDD上面改变分区的个数，不会再旧的分区上面改变RDD分区的个数。
 
+![1622180675786](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/134436-379378.png)
+
 repartition():这个方法不仅可以增加分区个数，还可以减少分区的个数，只有一个参数可以设置。在repartition的底层，仍然使用的是coalease()方法，并且shuffle永远指定为true.
 
-##### 通过其他算子指定分区个数
+~~~ java
+def repartition(numPartitions: Int)(implicit ord: Ordering[T] = null): RDD[T] = withScope {
+  //可以看到底层调用的是coalesce
+    coalesce(numPartitions, shuffle = true)
+  }
+~~~
+
+#### 通过其他算子指定分区个数
 
 reduceByKey():此方法有一个参数可以指定分区的个数，含义是指定新生成的RDD生成的分区的个数。
 
+~~~ java
+//重载的方法，可以指定分区的个数
+def reduceByKey(func: (V, V) => V, numPartitions: Int): RDD[(K, V)] = self.withScope {
+    reduceByKey(new HashPartitioner(numPartitions), func)
+  }
+~~~
+
 groupByKey:也可以指定分区的个数
 
-joink（）：此方法也可以指定分区的个数，很多方法都可以指定分区的个数。
+joink（）：此方法也可以指定分区的个数
 
-hen多方法都有重载的方法，可以重新指定分区的个数。一般涉及shuffle操作的方法都可以重新指定分区的个数。如果没有指定分区的个数，那么就会从父级的RDD中继承分区个数。
+很多方法都可以指定分区的个数，都有重载的方法，可以重新指定分区的个数。一般涉及shuffle操作的方法都可以重新指定分区的个数。如果没有指定分区的个数，那么就会从父级的RDD中继承分区个数。
 
 **分区函数**
 
-![1616981407434](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616981407434.png)
+![1616981407434](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/133747-903556.png)
 
-默认使用的是Hash算法进行分区操作，我们也可以重写partitoner函数自定义分区操作
+默认使用的是Hash算法进行分区操作，首先获取key的哈希码，然后哈西莫对分区的个数取余，就可以存储到对应的分区当中，我们也可以重写partitoner函数自定义分区操作
 
 **分区接口**
 
 ~~~ java
+//分区是一个抽象类
 abstract class Partitioner extends Serializable {
   def numPartitions: Int
   def getPartition(key: Any): Int
 }
+//默认的hash分区也是集成子这个抽象类
+class HashPartitioner(partitions: Int) extends Partitioner{}
 ~~~
 
-##### RDD中的shuffle过程
+#### RDD中的shuffle过程
 
-![1616985508729](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616985508729.png)
+什么是shuffle。
 
-HashBase nshuffle会在nap端把准备发往reducer端的数据进行份文件存储，然后reducer端可以根据自己分区的数据区各个map端输出额文件中拉取数据，但是这种方式的效率非常的底下，比如有1000个map和1000个reducer，那么中间会生成1000*1000g个临时的文件，所以非常占用资源
+![1622182893936](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/142155-875814.png)
+
+如何确定map端的数据分发到reduce端的哪一个分区---->通过分区函数确定，默认使用HashPartitions
+
+![1622183172936](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/142718-591744.png)
+
+![1622183258139](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/142742-817591.png)
+
+partitoner用于计算数据发送到那一台机器上面。
+
+Hash base和Sort Base用于描述中间过程如何存储文件。
+
+**Hash base shuffle**
+
+![1616985508729](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/141922-12632.png)
+
+如果使用Hash base ,右端有2个reduce，那么每一个map端应该输出两个文件，（发往reduce1的数据存储到第一个文件当中，发往reduce2的数据存储到第二个文件当中），然后reduce去各自的文件中拉去数据，每一个map都是如此操作。
+
+HashBase shuffle会在nap端把准备发往reducer端的数据进行份文件存储，然后reducer端可以根据自己分区的数据区各个map端输出额文件中拉取数据，但是这种方式的效率非常的底下，比如有1000个map和1000个reducer，那么中间会生成1000*1000g个临时的文件，所以非常占用资源
 
 mapreduce没有使用hash base shuffle，但是spark RDD使用的是hash base shuffle
 
-**第二种**
+**Sort base shuffle**
 
-![1616986258409](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1616986258409.png)
+![1616986258409](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/141832-409739.png)
 
-对于每一个map需要输出的数据，不在根据reducer进行划分然后输出到磁盘文件存储，而是把map中的所有数据首先按照partition id进行排序操作，然后按照key的哈希码进行排序操作，但是所有的数据全部存储在一个集合中，可以想象为mr中的环形缓冲区一样，然后把数据分发到各个reducer端
+对于每一个map需要输出的数据，不在根据reducer的个数进行划分然后输出到磁盘文件存储，而是把map中的所有输出数据按照追加的方式输出到一个文件当中，然后对这个大文件，首先按照partition id进行排序操作，然后按照key的哈希码进行排序操作，但是所有的数据全部存储在一个集合中，可以想象为mr中的环形缓冲区一样，然后把数据分发到各个reducer端，这个大文件中间有分界符，按照分界符把每一个数据分发到reduce端。
 
 这种方法可以明显解决临时文件过多的问题
+
+### Spark原理
+
+#### 总体概述
+
+![1617162057870](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/31/114100-22630.png)
+
+##### 再看WordCount案例
+
+~~~ java
+object Test18 {
+
+	def main(args: Array[String]): Unit = {
+
+		val conf = new SparkConf().setMaster("local[6]").setAppName("wordcount")
+		val sc = new SparkContext(conf)
+
+		val sourceData: RDD[String] = sc.textFile("D:\\soft\\idea\\work\\work04\\src\\main\\resources\\word")
+
+		val flatmapData: RDD[String] = sourceData.flatMap(item => {
+			val words: Array[String] = item.split(" ")
+			words
+		})
+
+		val mapData: RDD[(String, Int)] = flatmapData.map(item => {
+			(item, 1)
+		})
+
+	//	做最后的数据统计
+	val reduceData: RDD[(String, Int)] = mapData.reduceByKey((curr, agg) => {
+		curr + agg
+	})
+
+		//最终结果转换为字符串
+		val strRDD: RDD[String] = reduceData.map(item => {
+			s"${item._1},${item._2}"
+		})
+
+		strRDD.collect().foreach(println(_))
+
+		sc.stop()
+	}
+}
+~~~
+
+##### 再看Spark集群
+
+![1622545211777](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/190016-688571.png)
+
+守护进程，可以理解为一般不做什么工作，只是负责管理一台机器的资源。
+
+为什么把一个节点叫做master或者是worker，因为在master节点上运行了一个master daeman进程负责接收用户提交的作业，而在worker节点上面，运行着worker daeman进程，负责执行master分发的任务，所以运行master daemon进程的节点我们叫做master节点，而运行worker daemon进程的节点叫做worker节点，他们都负责自己所在的节点的事务处理。
+
+另外，workerdaemo进程还负责启动executor进程去执行作业，executor进程运行在一个容器当中。这个容器叫做Executor Backend，worker daemon就是通过Executor Backend来管理我们的Executor进程的。每一个Executor Backend只负责管理一个Executor进程,也就是说Executor BackendJVM实例持有一个Executor对象。
+
+Driver是整个应用程序的驱动节点，负责整个作业的具体执行。当所有节点把任务执行完毕之后，所有的结果最终会汇总到Driver节点然后进行输出。其实Action操作获取结果是把结果发送给Dreiver进程。
+
+##### 逻辑执行图
+
+逻辑执行图就是描述数据如何进行流动，如何计算。
+
+![1622546628507](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/192356-531101.png)
+
+`println(strRDD.toDebugString)`可以打印程序的逻辑执行图。
+
+~~~ java
+(2) MapPartitionsRDD[5] at map at Test18.scala:31 []
+ |  ShuffledRDD[4] at reduceByKey at Test18.scala:26 []
+ +-(2) MapPartitionsRDD[3] at map at Test18.scala:21 []
+    |  MapPartitionsRDD[2] at flatMap at Test18.scala:16 []
+    |  D:\soft\idea\work\work04\src\main\resources\word MapPartitionsRDD[1] at textFile at Test18.scala:14 []
+    |  D:\soft\idea\work\work04\src\main\resources\word HadoopRDD[0] at textFile at Test18.scala:14 []
+~~~
+
+可以看到，strRDD是一个MapPartitionsRDD,他依赖于其父RDD，父RDD是一个ShuffleRDD,也就是ReduceByKey产生的RDD，具体的过程通过下面的图说明：
+
+![1622546939803](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/192907-142590.png)
+
+> 逻辑执行图就是RDD之间的依赖关系，也就是多个RDD之间形成的链条，描述的是数据处理步骤。但是这个逻辑计划并不能放到集群中去执行，需要转换为物理计划放到集群中去执行。
+
+##### 物理执行图
+
+物理执行图就是描述RDD如何放到集群中运行，
+
+![1622547745733](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/194230-668707.png)
+
+阶段的划分是按照是否有shuffle操作来划分的，比如上图中，在shuffleRDD之前的操作，分区的个数没有改变，所以叫做一个阶段stage,而一个阶段中，每一个分区上的操作叫做任务，上面的阶段中有三个分区，每一个分区上的算子都是一个任务。
+
+#### 逻辑执行计划
+
+###### 明确边界
+
+在逻辑图中研究的就是数据的流转方向。描述的是数据的处理和存储过程的表达。
+
+![1622548395511](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/195334-657438.png)
+
+~~~ java
+override def compute(theSplit: Partition, context: TaskContext): InterruptibleIterator[(K, V)]
+//这个方法本来是RDD的方法，在HadoopRDD中重新复写了这个方法，也就是说改变了RDD的计算方式。
+//HadoopRDD继承自RDD类，所以需要重写里面的一些方法
+~~~
+
+![1622613397614](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/135642-733667.png)
+
+###### RDD的生成
+
+**textFile算子原理**
+
+![1622548508367](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/195512-340497.png)
+
+![1622548555942](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/195605-459688.png)
+
+> 继承RDD的类，都需要进行重写五大属性，根据这五大属性来实现不同的功能。例如HadoopRDD就描述了每一个分区对应hdfs中的一个块数据，compute计算函数就是从块中读取数据到每一个分区当中。
+
+**下面我们也可以查看map算子背后生成的RDD**
+
+![1622548963630](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/200735-527506.png)
+
+![1622549275990](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622549275990.png)
+
+**flatMap算子**
+
+![1622549407179](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/201235-214972.png)
+
+![1622613367214](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/135610-22420.png)
+
+######  RDD之间的依赖关系
+
+RDD之间的关系，其实就是分区之间的关系。
+
+对于窄依赖，其对应的RDD的分区可以放在一个流水线上面执行，也就是可以放在一个task中去执行。而宽依赖中间有shuffle过程，必须等待所有rdd执行完毕后才可以执行，所以不能放在一个task中去执行。
+
+**一对一关系**
+
+![1622607330697](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/121532-673360.png)
+
+**多对一关系**
+
+![1622608740390](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/123903-632422.png)
+
+**窄依赖**
+
+- 求笛卡尔积操作
+
+~~~ java
+object WordCountTest {
+
+	def main(args: Array[String]): Unit = {
+
+		// 创建 Spark 运行配置对象
+		val sparkConf = new SparkConf().setMaster("local[*]").setAppName("WordCount")
+
+		// 创建 Spark 上下文环境对象（连接对象）
+		val sc: SparkContext = new SparkContext(sparkConf)
+
+		val rdd1: RDD[Int] = sc.parallelize(Seq(1, 2, 3, 4, 5, 6))
+		val rdd2: RDD[Char] = sc.parallelize(Seq('a', 'b', 'c'))
+
+		//求两个rdd的笛卡尔积
+		val rdd3: RDD[(Int, Char)] = rdd1.cartesian(rdd2)
+
+		rdd3.collect().foreach(print)
+		//关闭 Spark 连接
+		sc.stop()
+
+	}
+
+}
+~~~
+
+![1622609372039](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/125534-308512.png)
+
+上面的rddc的p1分区只依赖了rdda中的p1分区，并且还依赖了rddb中的p1分区，并没有依赖一个rdd中的多个分区，所以可以认为rddc中的p1分区只依赖了一个分区，所以上面的数据流向是一个窄依赖，不是一个宽依赖。shuffle操作一般有分区操作。
+
+![1622610307898](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/130511-159092.png)
+
+从源码角度查看是宽窄依赖
+
+~~~ java
+class CartesianRDD[T: ClassTag, U: ClassTag](
+    sc: SparkContext,
+    var rdd1 : RDD[T],
+    var rdd2 : RDD[U])
+  extends RDD[(T, U)](sc, Nil)
+  with Serializable {
+  //
+   override def getDependencies: Seq[Dependency[_]] = List(
+    new NarrowDependency(rdd1) {
+      def getParents(id: Int): Seq[Int] = List(id / numPartitionsInRdd2)
+    },
+    new NarrowDependency(rdd2) {
+      def getParents(id: Int): Seq[Int] = List(id % numPartitionsInRdd2)
+    }
+  )
+}
+//CartesianRDD重写了父类的getDependencies方法，我们可以看到，返回的是一个NarrowDependency
+~~~
+
+宽窄依赖的源码
+
+~~~ java
+@DeveloperApi
+abstract class Dependency[T] extends Serializable {
+  def rdd: RDD[T]
+}
+
+
+/**
+ * :: DeveloperApi ::
+ * Base class for dependencies where each partition of the child RDD depends on a small number
+ * of partitions of the parent RDD. Narrow dependencies allow for pipelined execution.
+ */
+//窄依赖
+@DeveloperApi
+abstract class NarrowDependency[T](_rdd: RDD[T]) extends Dependency[T] {
+  /**
+   * Get the parent partitions for a child partition.
+   * @param partitionId a partition of the child RDD
+   * @return the partitions of the parent RDD that the child partition depends upon
+   */
+  def getParents(partitionId: Int): Seq[Int]
+
+  override def rdd: RDD[T] = _rdd
+}
+
+
+/**
+ * :: DeveloperApi ::
+ * Represents a dependency on the output of a shuffle stage. Note that in the case of shuffle,
+ * the RDD is transient since we don't need it on the executor side.
+ *
+ * @param _rdd the parent RDD
+ * @param partitioner partitioner used to partition the shuffle output
+ * @param serializer [[org.apache.spark.serializer.Serializer Serializer]] to use. If not set
+ *                   explicitly then the default serializer, as specified by `spark.serializer`
+ *                   config option, will be used.
+ * @param keyOrdering key ordering for RDD's shuffles
+ * @param aggregator map/reduce-side aggregator for RDD's shuffle
+ * @param mapSideCombine whether to perform partial aggregation (also known as map-side combine)
+ * @param shuffleWriterProcessor the processor to control the write behavior in ShuffleMapTask
+ */
+//宽依赖
+@DeveloperApi
+class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
+    @transient private val _rdd: RDD[_ <: Product2[K, V]],
+    val partitioner: Partitioner,
+    val serializer: Serializer = SparkEnv.get.serializer,
+    val keyOrdering: Option[Ordering[K]] = None,
+    val aggregator: Option[Aggregator[K, V, C]] = None,
+    val mapSideCombine: Boolean = false,
+    val shuffleWriterProcessor: ShuffleWriteProcessor = new ShuffleWriteProcessor)
+  extends Dependency[Product2[K, V]] {
+
+  if (mapSideCombine) {
+    require(aggregator.isDefined, "Map-side combine without Aggregator specified!")
+  }
+  override def rdd: RDD[Product2[K, V]] = _rdd.asInstanceOf[RDD[Product2[K, V]]]
+
+  private[spark] val keyClassName: String = reflect.classTag[K].runtimeClass.getName
+  private[spark] val valueClassName: String = reflect.classTag[V].runtimeClass.getName
+  // Note: It's possible that the combiner class tag is null, if the combineByKey
+  // methods in PairRDDFunctions are used instead of combineByKeyWithClassTag.
+  private[spark] val combinerClassName: Option[String] =
+    Option(reflect.classTag[C]).map(_.runtimeClass.getName)
+
+  val shuffleId: Int = _rdd.context.newShuffleId()
+
+  val shuffleHandle: ShuffleHandle = _rdd.context.env.shuffleManager.registerShuffle(
+    shuffleId, this)
+
+  _rdd.sparkContext.cleaner.foreach(_.registerShuffleForCleanup(this))
+  _rdd.sparkContext.shuffleDriverComponents.registerShuffle(shuffleId)
+}
+
+
+/**
+ * :: DeveloperApi ::
+ * Represents a one-to-one dependency between partitions of the parent and child RDDs.
+ */
+@DeveloperApi
+class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
+  override def getParents(partitionId: Int): List[Int] = List(partitionId)
+}
+
+
+/**
+ * :: DeveloperApi ::
+ * Represents a one-to-one dependency between ranges of partitions in the parent and child RDDs.
+ * @param rdd the parent RDD
+ * @param inStart the start of the range in the parent RDD
+ * @param outStart the start of the range in the child RDD
+ * @param length the length of the range
+ */
+@DeveloperApi
+class RangeDependency[T](rdd: RDD[T], inStart: Int, outStart: Int, length: Int)
+  extends NarrowDependency[T](rdd) {
+
+  override def getParents(partitionId: Int): List[Int] = {
+    if (partitionId >= outStart && partitionId < outStart + length) {
+      List(partitionId - outStart + inStart)
+    } else {
+      Nil
+    }
+  }
+}
+~~~
+
+**宽依赖**
+
+什么是宽依赖
+
+注：宽窄依赖的分辨就是看是否有shuffle操作
+
+![1622610742744](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/131239-438484.png)
+
+上图中我们可以看到，RDDB中的每一个分区都依赖于RDDA中的三个分区，所以是shuffle操作。判断是不是宽依赖就看有没有shuffle操作，判断有没有shuffle操作就看子RDD和父RDD之间是一对一的关系还是多对一的关系，如果是多对一的关系，那么就是shuffle操作。简单来说shuffle就是一种广播的操作。
+
+>  上面我们可以看到,rddb中的p1分区依赖了rdda中的三个分区，是一种zshuffle操作
+
+如何分辨宽窄依赖
+
+![1617344256206](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/132255-450350.png)
+
+![1617343496571](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/02/141432-340187.png)
+
+下面这种多对一关系不是宽依赖，因为前两个分区只是把数据合并了一下，然后复制到下一个分区，并没有做数据的分发工作。
+
+![1617344097042](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/02/141538-508253.png)
+
+下面这种才是shuffle操作，因为每一个父分区都在分发自己分区内的数据给子分区。
+
+![1617344182939](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/132430-502778.png)
+
+通过rdd中的dependence()函数可以查看依赖关系，默认的rdd是窄依赖。如果看到一个rdd没有重写getDependence()方法，那么默认使用的的就是父类的。依赖关系，而父类默认使用的是窄依赖关系。
+
+依赖的继承关系
+
+![1622612446436](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/134051-300436.png)
+
+常见的窄依赖
+
+![1622612974187](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/134941-367502.png)
+
+![1622612946642](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/134945-924220.png)
+
+![1622613097877](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/10/085743-164106.png)
+
+比如有3个RDD是窄依赖关系，那么这三个RDD的分区是可以放到一个task中去执行。
+
+![1622613338810](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/135541-925463.png)
+
+**小结**
+
+![1622606829462](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/121430-17428.png)
+
+划分宽窄依赖入党依据是是否有shuffle操作。
+
+#### 物理执行图
+
+##### 物理执行图的作用
+
+![1622614085476](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622614085476.png)
+
+![1622614314085](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/141158-206279.png)
+
+![1622614451993](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622614451993.png)
+
+![1622614612547](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622614612547.png)
+
+##### RDD的计算-Task
+
+![1622616060811](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/144656-674997.png)
+
+这样设计task的话，每一个RDD中有多个分区，每一个分区设计一个task的话，多个算子之间进行数据传输很消耗资源，基本上和hadoop的mr一样，
+
+![1622616732425](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/145215-673416.png)
+
+如果是这样的话，中间有shuffle操作的话，这就要等待其他所有分区的数据全部执行完毕后才可以继续向下执行
+
+![1622616821048](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/145344-237906.png)
+
+##### 如何划分阶段
+
+![1622617073537](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/145758-31966.png)
+
+stage的划分，根是否有shuffle操作，把处理数据的流划分为多个阶段，有shuffle，就断开形成一个stage。
+
+![1622617171995](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/145935-429264.png)
+
+##### 数据如何流动
+
+![1622617610914](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/150654-28529.png)
+
+触发数据的计算发生在需要数据的地方，也就是最后由Action算子触发。
+
+#### 运行过程
+
+##### 首先生成逻辑图
+
+![1622618028000](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/151354-487968.png)
+
+![1622618056836](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/151421-195877.png)
+
+##### 物理图
+
+![1622618108237](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/151514-770304.png)
+
+Action会触发job的运行，调用Action操作，首先会调用runJob(）方法，然后再会调用dagScheduler方法，dagScheduler的作用就是把生成的逻辑执行计划转换为一个一个的Stage和Task任务，然后放到物理机器上面执行，最后调用taskScheduler把任务分发到集群中运行。
+
+![1622618380841](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/10/092454-532883.png)
+
+##### Job和Stage的关系
+
+![1622618806873](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622618806873.png)
+
+一个job中有多个Stage，多个Stage之间是串行的关系。
+
+![1622619333586](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/153542-703365.png)
+
+##### Stage和Task的关系
+
+![1622619467380](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622619467380.png)
+
+一个Stage中可能有多个Task，一个Stage就是一组Task在运行。
+
+![1622619542646](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622619542646.png)
+
+![1622619586695](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/02/153951-697348.png)
+
+一个Stage对应一个TaskSet，可以把TaskSet想象为线程池。
+
+![1622619697307](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622619697307.png)
+
+##### 整体执行流程
+
+![1622619827049](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622619827049.png)
+
+
 
 ### 累加器 
 
@@ -7184,9 +8005,7 @@ Top10 热门品类
 分别统计每个品类点击的次数，下单的次数和支付的次数：
 （品类，点击总数）（品类，下单总数）（品类，支付总数） 
 
-
-
-
+待完成
 
 ## 三层架构模式
 

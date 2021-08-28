@@ -1,4 +1,4 @@
-共享模型之无锁(乐观锁)
+## 共享模型之无锁(乐观锁)
 
 ### 问题提出
 
@@ -12,7 +12,6 @@ public class Test39 {
         Account.demo(new AccountUnsafe(10000));
     }
 }
-
 
 interface Account {
     // 获取余额
@@ -60,7 +59,7 @@ class AccountUnsafe implements Account {
 }
 ~~~
 
-### 解决思路-加锁
+#### 解决思路-加锁
 
 解决方法是使用`synchronized`锁去保护我们共享资源的安全性。
 
@@ -79,7 +78,7 @@ class AccountUnsafe implements Account {
     }
 ~~~
 
-### 使用无锁的方式解决
+#### 使用无锁的方式解决
 
 **代码说明**
 
@@ -199,6 +198,14 @@ public void withdraw(Integer amount) {
 
 #### volatile
 
+**AtomicInteger源码**
+
+~~~ java
+//具体存储的值保存在下面的属性中
+private volatile int value;
+cas必须配合volatile才可以获取最新值
+~~~
+
 - 获取共享变量时，为了保证该变量的可见性，需要使用` volatile `修饰。
 - 它可以用来修饰**成员变量和静态成员变量**，他可以避免线程从自己的工作缓存中查找变量的值，必须到主存中获取它的值，线程操作` volatile` 变量都是直接操作主存。即一个线程对 `volatile` 变量的修改，对另一个线程可见。
 
@@ -213,7 +220,7 @@ private volatile int value;
 
 #### 为什么无锁效率高
 
-- 无锁情况下，即使重试失败，线程始终在高速运行，没有停歇，而 synchronized 会让线程在没有获得锁的时候，发生上下文切换，进入阻塞。
+- **无锁情况下，即使重试失败，线程始终在高速运行，没有停歇，而 synchronized 会让线程在没有获得锁的时候，发生上下文切换，进入阻塞。**
 - 打个比喻线程就好像高速跑道上的赛车，高速运行时，速度超快，一旦发生上下文切换，就好比赛车要减速、熄火，等被唤醒又得重新打火、启动、加速... 恢复到高速运行，代价比较大
 - 但无锁情况下，因为线程要保持运行，需要额外 CPU 的支持，CPU 在这里就好比高速跑道，没有额外的跑道，线程想高速运行也无从谈起，虽然不会进入阻塞，但由于没有分到时间片，仍然会进入可运行状态，还是会导致上下文切换。所以线程数要少于cpu的核心数，否则还会发生上下文切换。
 - 线程数少于cpu核心数使用cas是非常合适的。
@@ -228,13 +235,30 @@ private volatile int value;
   - 因为没有使用 `synchronized`，所以线程不会陷入阻塞，这是效率提升的因素之一
   - 但如果竞争激烈，可以想到重试必然频繁发生，反而效率会受影响
 
-### 原子整数
+### 原子类型
 
-`J.U.C` 并发包提供了：（是工具包，所有的包装都是保证操作是原子的。底层都是送`cas`算法实现）
+#### 原子整数
+
+`J.U.C` 并发包提供了：（是工具包，所有的包装都是保证操作是原子的。底层都是基于`cas`算法实现）
 
 - AtomicBoolean
 - AtomicInteger
 - AtomicLong
+
+**继承关系**
+
+![1620365258345](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/191152-430466.png)
+
+~~~ java
+public class AtomicInteger extends Number implements java.io.Serializable{}
+
+//属性
+private static final long serialVersionUID = 6214790243416807050L;
+   // setup to use Unsafe.compareAndSwapInt for updates
+private static final Unsafe unsafe = Unsafe.getUnsafe();//保证是原子操作
+private static final long valueOffset;//基于偏移量去获取值
+private volatile int value;//存储具体的值
+~~~
 
 **以 AtomicInteger 为例**
 
@@ -271,7 +295,7 @@ System.out.println(i.addAndGet(-5));
 // 其中函数中的操作能保证原子，但函数需要无副作用
 System.out.println(i.getAndUpdate(p -> p - 2));
 // 更新并获取（i = -2, p 为 i 的当前值, 结果 i = 0, 返回 0）
-// 其中函数中的操作能保证原子，但函数需要无副作用
+// 其中函数中的操作能保证原子，但函数需要无副作用，参数是蓝魔大表达式
 System.out.println(i.updateAndGet(p -> p + 2));
 // 获取并计算（i = 0, p 为 i 的当前值, x 为参数1, 结果 i = 10, 返回 0）
 // 其中函数中的操作能保证原子，但函数需要无副作用
@@ -286,7 +310,7 @@ System.out.println(i.accumulateAndGet(-10, (p, x) -> p + x));
  /**
      * 对代码进行封装
      * @param a
-     * IntUnaryOperator:操作参数
+     * IntUnaryOperator:操作参数，也即是对传进来的值做的操作
      */
     public static void updateAndGet(AtomicInteger a, IntUnaryOperator i){
         while (true){
@@ -303,13 +327,87 @@ System.out.println(i.accumulateAndGet(-10, (p, x) -> p + x));
     }
 ~~~
 
-### 原子引用
+**IntUnaryOperator接口**
+
+~~~ java
+@FunctionalInterface
+public interface IntUnaryOperator {
+
+    /**
+     * Applies this operator to the given operand.
+     *
+     * @param operand the operand
+     * @return the operator result
+     */
+    int applyAsInt(int operand);
+
+    /**
+     * Returns a composed operator that first applies the {@code before}
+     * operator to its input, and then applies this operator to the result.
+     * If evaluation of either operator throws an exception, it is relayed to
+     * the caller of the composed operator.
+     *
+     * @param before the operator to apply before this operator is applied
+     * @return a composed operator that first applies the {@code before}
+     * operator and then applies this operator
+     * @throws NullPointerException if before is null
+     *
+     * @see #andThen(IntUnaryOperator)
+     */
+    default IntUnaryOperator compose(IntUnaryOperator before) {
+        Objects.requireNonNull(before);
+        return (int v) -> applyAsInt(before.applyAsInt(v));
+    }
+
+    /**
+     * Returns a composed operator that first applies this operator to
+     * its input, and then applies the {@code after} operator to the result.
+     * If evaluation of either operator throws an exception, it is relayed to
+     * the caller of the composed operator.
+     *
+     * @param after the operator to apply after this operator is applied
+     * @return a composed operator that first applies this operator and then
+     * applies the {@code after} operator
+     * @throws NullPointerException if after is null
+     *
+     * @see #compose(IntUnaryOperator)
+     */
+    default IntUnaryOperator andThen(IntUnaryOperator after) {
+        Objects.requireNonNull(after);
+        return (int t) -> after.applyAsInt(applyAsInt(t));
+    }
+
+    /**
+     * Returns a unary operator that always returns its input argument.
+     *
+     * @return a unary operator that always returns its input argument
+     */
+    static IntUnaryOperator identity() {
+        return t -> t;
+    }
+}
+~~~
+
+#### 原子引用
+
+##### AtomicReference
 
 为什么需要原子引用类型？
 
 - AtomicReference
 - AtomicMarkableReference
 - AtomicStampedReference
+
+**AtomicReference**
+
+~~~ java
+public class AtomicReference<V> implements java.io.Serializable {}
+//属性信息
+ 		private static final long serialVersionUID = -1848883965231344442L;
+    private static final Unsafe unsafe = Unsafe.getUnsafe();
+    private static final long valueOffset
+    private volatile V value;
+~~~
 
 **代码说明**
 
@@ -349,6 +447,7 @@ public interface DecimalAccount {
 
 ~~~ java
 class DecimalAccountUnsafe implements DecimalAccount {
+  //共享变量没有被保护
     BigDecimal balance;
     public DecimalAccountUnsafe(BigDecimal balance) {
         this.balance = balance;
@@ -369,7 +468,7 @@ class DecimalAccountUnsafe implements DecimalAccount {
 
 ~~~ java
 class DecimalAccountSafeLock implements DecimalAccount {
-    private final Object lock = new Object();
+  private final Object lock = new Object();
     BigDecimal balance;
     public DecimalAccountSafeLock(BigDecimal balance) {
         this.balance = balance;
@@ -416,12 +515,11 @@ class BigdecimalAccountCas implements DecimalAccount{
                 break;
             }
         }
-
     }
 }
 ~~~
 
-#### ABA问题
+##### ABA问题
 
 ~~~ java
  static AtomicReference<String> ref = new AtomicReference<>("A");
@@ -452,9 +550,9 @@ class BigdecimalAccountCas implements DecimalAccount{
 11:29:53.880 c.Test36 [main] - change A->C true
 ~~~
 
-- 主线程仅能判断出共享变量的值与最初值 A 是否相同，不能感知到这种从 A 改为 B 又 改回 A 的情况，如果主线程希望：只要有其它线程【动过了】共享变量，那么自己的 cas 就算失败，这时，仅比较值是不够的，需要再加一个版本号
+- 主线程仅能判断出共享变量的值与最初值 A 是否相同，不能感知到这种从 A 改为 B 又 改回 A 的情况，如果主线程希望：只要有其它线程【动过了】共享变量，那么自己的 cas 就算失败，这时，仅比较值是不够的，需要再加一个版本号。使用版本号来区分是否有其他线程对共享变量进行了修改。
 
-#### **AtomicStampedReference解决**
+##### **AtomicStampedReference解决**
 
 ~~~ java
 public class ABAdemo {
@@ -500,7 +598,7 @@ public class ABAdemo {
 
 ![1609141695831](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/28/154817-461459.png)
 
-#### **AtomicMarkableReference**
+##### **AtomicMarkableReference**
 
 ~~~ java
 public class AtomicMarkableReferenceDemo {
@@ -559,7 +657,7 @@ class Garbage{
 }
 ~~~
 
-### 原子数组
+#### 原子数组
 
 用来保护数组里面的元素
 
@@ -567,15 +665,206 @@ class Garbage{
 - AtomicLongArray
 - AtomicReferenceArray
 
+**AtomicIntegerArray**
 
+~~~ java
+public class AtomicIntegerArray implements java.io.Serializable{}
 
-### 字段更新器
+public class AtomicReferenceArray<E> implements java.io.Serializable {}
+~~~
 
-用来保护某一个对象中的属性或者说是成员变量。
+**案例**
 
-- AtomicReferenceFieldUpdater // 域 字段
-- AtomicIntegerFieldUpdater
-- AtomicLongFieldUpdater
+~~~ java
+public class Test40 {
+
+    public static void main(String[] args) {
+      demo(
+//              第一个参数
+              ()-> new int[10],
+//              第二个参数
+              (array)->array.length,
+//              第三个参数，表示对数据的操作
+              (array,index)->array[index]++,
+              array-> System.out.println(Arrays.toString(array))
+      );
+
+    }
+
+    /**
+     参数1，提供数组、可以是线程不安全数组或线程安全数组
+     参数2，获取数组长度的方法
+     参数3，自增方法，回传 array, index
+     参数4，打印数组的方法
+     */
+//    函数式接口
+// supplier 提供者 无中生有 ()->结果，没有参数，需要提供结果
+// function 函数 一个参数一个结果 (参数)->结果 , BiFunction (参数1,参数2)->结果
+// consumer 消费者 一个参数没结果 (参数)->void, BiConsumer (参数1,参数2)->
+    private static <T> void demo(
+            Supplier<T> arraySupplier,
+            Function<T, Integer> lengthFun,
+            BiConsumer<T, Integer> putConsumer,
+            Consumer<T> printConsumer ) {
+        List<Thread> ts = new ArrayList<>();
+//        获取Supplier接口提供的数组
+        T array = arraySupplier.get();
+        int length = lengthFun.apply(array);
+        for (int i = 0; i < length; i++) {
+            // 每个线程对数组作 10000 次操作
+            ts.add(new Thread(() -> {
+                for (int j = 0; j < 10000; j++) {
+                    putConsumer.accept(array, j%length);
+                }
+            }));
+        }
+        ts.forEach(t -> t.start()); // 启动所有线程
+        ts.forEach(t -> {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }); // 等所有线程结束
+        printConsumer.accept(array);
+    }
+}
+//结果，每一个值应该是10000，但是现在都没有10000
+[9803, 9830, 9803, 9799, 9803, 9812, 9805, 9816, 9813, 9797]
+~~~
+
+**使用原子数组**
+
+~~~ java
+public class Test40 {
+
+    public static void main(String[] args) {
+      demo(
+//              第一个参数
+              ()-> new int[10],
+//              第二个参数
+              (array)->array.length,
+//              第三个参数，表示对数据的操作
+              (array,index)->array[index]++,
+              array-> System.out.println(Arrays.toString(array))
+
+      );
+        demo(
+//              第一个参数
+                ()-> new AtomicIntegerArray(10),
+//              第二个参数
+                (array)->array.length(),
+//              第三个参数，表示对数据的操作
+                (array,index)->array.getAndIncrement(index),
+                array-> System.out.println(array)
+
+        );
+
+    }
+
+    /**
+     参数1，提供数组、可以是线程不安全数组或线程安全数组
+     参数2，获取数组长度的方法
+     参数3，自增方法，回传 array, index
+     参数4，打印数组的方法
+     */
+//    函数式接口
+// supplier 提供者 无中生有 ()->结果，没有参数，需要提供结果
+// function 函数 一个参数一个结果 (参数)->结果 , BiFunction (参数1,参数2)->结果
+// consumer 消费者 一个参数没结果 (参数)->void, BiConsumer (参数1,参数2)->
+    private static <T> void demo(
+            Supplier<T> arraySupplier,
+            Function<T, Integer> lengthFun,
+            BiConsumer<T, Integer> putConsumer,
+            Consumer<T> printConsumer ) {
+        List<Thread> ts = new ArrayList<>();
+//        获取Supplier接口提供的数组
+        T array = arraySupplier.get();
+        int length = lengthFun.apply(array);
+        for (int i = 0; i < length; i++) {
+            // 每个线程对数组作 10000 次操作
+            ts.add(new Thread(() -> {
+                for (int j = 0; j < 10000; j++) {
+                    putConsumer.accept(array, j%length);
+                }
+            }));
+        }
+        ts.forEach(t -> t.start()); // 启动所有线程
+        ts.forEach(t -> {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }); // 等所有线程结束
+        printConsumer.accept(array);
+    }
+}
+
+//结果
+[9090, 8966, 9058, 9066, 9823, 9824, 9837, 9815, 9817, 9838]
+[10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000]
+~~~
+
+**函数式接口**
+
+~~~ java
+//提供无参数的方法，返回需要的结果
+@FunctionalInterface
+public interface Supplier<T> {
+
+    /**
+     * Gets a result.
+     *
+     * @return a result
+     */
+    T get();
+}
+//提供一个参数，返回一个结果
+public interface Function<T, R> {
+
+    /**
+     * Applies this function to the given argument.
+     *
+     * @param t the function argument
+     * @return the function result
+     */
+    R apply(T t);
+}
+//两个参数，返回一个结果
+@FunctionalInterface
+public interface BiConsumer<T, U> {
+
+    /**
+     * Performs this operation on the given arguments.
+     *
+     * @param t the first input argument
+     * @param u the second input argument
+     */
+    void accept(T t, U u);
+
+}
+//一个参数没有结果
+@FunctionalInterface
+public interface Consumer<T> {
+
+    /**
+     * Performs this operation on the given argument.
+     *
+     * @param t the input argument
+     */
+    void accept(T t);
+
+}
+~~~
+
+#### 字段更新器
+
+用来保护某一个对象中的属性或者说是成员变量。保证多个线程访问成员变量时候，成员变量的线程安全性。
+
+- AtomicReferenceFieldUpdater // 域 字段，引用类型
+- AtomicIntegerFieldUpdater //整数类型
+- AtomicLongFieldUpdater //长整型类型
 
 利用字段更新器，可以针对对象的某个域（`Field`）进行原子操作，只能配合` volatile` 修饰的字段使用，否则会出现异常
 
@@ -597,7 +886,6 @@ public class FieldUpdateDemo {
 
 }
 
-
 class Student{
 //    cas操作必须结合volatile来保证共享变量的可见性
     volatile String name;//字符串引用类型
@@ -615,14 +903,35 @@ class Student{
 
 `jdk`中已经有了原子整数类，为什么需要原子累加器，还是效率问题，原子累加器的效率比较高。
 
+原子累加器就是对一个数做累加操作。
+
+![1620371101105](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/07/150502-883473.png)
+
 **代码说明**
 
 ~~~ java
- private static <T> void demo(Supplier<T> adderSupplier, Consumer<T> action) {
+public class Test41 {
+
+    public static void main(String[] args) {
+//        使用原子长整型类别
+        demo(
+                ()->new AtomicLong(0),
+                (adder)->adder.getAndIncrement()
+        );
+//        使用原子整数类
+        demo(
+                ()->new LongAdder(),
+                (adder)->adder.decrement()
+        );
+
+    }
+
+    private static <T> void demo(Supplier<T> adderSupplier, Consumer<T> action) {
+//        获取返回的结果
         T adder = adderSupplier.get();
         long start = System.nanoTime();
         List<Thread> ts = new ArrayList<>();
-        // 4 个线程，每人累加 50 万
+        // 40 个线程，每人累加 50 万
         for (int i = 0; i < 40; i++) {
             ts.add(new Thread(() -> {
                 for (int j = 0; j < 500000; j++) {
@@ -636,34 +945,31 @@ class Student{
                 t.join();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-                
+
             }
         });
         long end = System.nanoTime();
         System.out.println(adder + " cost:" + (end - start)/1000_000);
     }
-//比较操作
-for (int i = 0; i < 5; i++) {
- 	demo(() -> new LongAdder(), adder -> adder.increment());
-}
-for (int i = 0; i < 5; i++) {
- 	demo(() -> new AtomicLong(), adder -> adder.getAndIncrement());
+
 }
 
 ~~~
 
 - 性能提升的原因很简单，就是在有竞争时，设置多个累加单元，`Therad-0` 累加` Cell[0]`，而 `Thread-1 `累加`Cell[1]`... 最后将结果汇总。这样它们在累加时操作的不同的 `Cell `(共享)变量，因此减少了` CAS `重试失败，从而提高性能。
 
-### LongAdder源码解读
+#### LongAdder源码解读
 
-LongAdder 类有几个关键域
+- LongAdder 类有几个关键域
+
+- transient表示防止序列化
 
 ~~~ java
 // 累加单元数组, 懒惰初始化
 transient volatile Cell[] cells;
 // 基础值, 如果没有竞争, 则用 cas 累加这个域
 transient volatile long base;
-// 在 cells 创建或扩容时, 置为 1, 表示加锁
+// 在 cells 创建或扩容时, 置为 1, 表示加锁，设置为0表示没有加锁
 transient volatile int cellsBusy;
 //添加volatile保证共享变量内存的可见性，添加transient表示不可以进行序列化
 ~~~
@@ -717,17 +1023,59 @@ public class LockCas {
 }
 ~~~
 
+#### 原理之伪共享
+
+其中 Cell 即为累加单元
+
+~~~ java
+//下面的注解表示防止缓存行的伪共享
+@sun.misc.Contended
+static final class Cell {
+  //value保存累加的结果
+        volatile long value;
+        Cell(long x) { value = x; }
+  //cas累加操作
+        final boolean cas(long cmp, long val) {
+            return UNSAFE.compareAndSwapLong(this, valueOffset, cmp, val);
+        }
+
+        // Unsafe mechanics
+        private static final sun.misc.Unsafe UNSAFE;
+        private static final long valueOffset;
+    }
+~~~
+
+**缓存与内存的速度比较**
+
+![1620375800745](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620375800745.png)
+
+![1620375816073](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620375816073.png)
+
+因为 CPU 与 内存的速度差异很大，需要靠预读数据至缓存来提升效率。
+而缓存以缓存行为单位，每个缓存行对应着一块内存，一般是 64 byte（8 个 long）
+缓存的加入会造成数据副本的产生，即同一份数据会缓存在不同核心的缓存行中
+CPU 要保证数据的一致性，如果某个 CPU 核心更改了数据，其它 CPU 核心对应的整个缓存行必须失效
+
+![1620375846889](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620375846889.png)
+
+![1620375860808](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/07/162424-513670.png)
 
 
 
+源码不好理解
 
 ### UnSafe
 
 #### 概述
 
-Unsafe 对象提供了非常底层的，操作内存、线程的方法，Unsafe 对象不能直接调用，只能通过反射获得
+Unsafe 对象提供了非常底层的，操作内存、线程的方法，Unsafe 对象不能直接调用，只能通过**反射**获得
 
-**代码说明**
+~~~ java
+package sun.misc;
+public final class Unsafe {}
+~~~
+
+**获取unsafe对象**
 
 ~~~ java
 public class TestUnSafe {
@@ -746,9 +1094,154 @@ public class TestUnSafe {
 
 #### Unsafe CAS 操作
 
+~~~ java
+public class Test42 {
 
+    public static void main(String[] args) throws NoSuchFieldException, IllegalAccessException {
 
+//        使用更底层的unsafe对象对MyStudent对象进行修改
+        Field theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+        theUnsafe.setAccessible(true);
+        Unsafe unsafe = (Unsafe)theUnsafe.get(null);
+//        unsafe就是我们获取到的unsafe对象
+        MyStudent myStudent = new MyStudent();
 
+//        1 获取属性的偏移量，获取MyStudent类中属性id相对于MyStudent类的偏移地址
+        long id = unsafe.objectFieldOffset(MyStudent.class.getDeclaredField("id"));
+        long name = unsafe.objectFieldOffset(MyStudent.class.getDeclaredField("name"));
+//       2 对属性的取值进行操作
+        unsafe.compareAndSwapInt(myStudent,id,1,10);
+        unsafe.compareAndSwapObject(myStudent,name,null,"zhangsan");
+        System.out.println(myStudent.toString());
+    }
+}
+
+class MyStudent {
+    volatile int id;
+    volatile String name;
+
+    @Override
+    public String toString() {
+        return "MyStudent{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                '}';
+    }
+}
+~~~
+
+#### CAS自定义原子整数类
+
+使用自定义的 AtomicData 实现之前线程安全的原子整数 Account 实现
+
+~~~ java
+public class Test43 {
+
+    public static void main(String[] args) {
+
+        AtomicData atomicData = new AtomicData(10000);
+        MyAccount.demo(atomicData);
+    }
+}
+
+class  UnsafeAccessor
+{
+    private static Unsafe unsafe ;
+    static {
+        try {
+            Field theUnsafe = null;
+            theUnsafe = Unsafe.class.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            unsafe = (Unsafe)theUnsafe.get(null);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public static Unsafe getUnsafe(){
+        return unsafe;
+    }
+}
+class AtomicData implements MyAccount{
+    private volatile int data;
+    static final Unsafe unsafe;
+//    data的偏移量
+    static final long DATA_OFFSET;
+
+    static {
+        unsafe = UnsafeAccessor.getUnsafe();
+        try {
+            // data 属性在 DataContainer 对象中的偏移量，用于 Unsafe 直接访问该属性
+            DATA_OFFSET = unsafe.objectFieldOffset(AtomicData.class.getDeclaredField("data"));
+        } catch (NoSuchFieldException e) {
+            throw new Error(e);
+        }
+    }
+    public AtomicData(int data) {
+        this.data = data;
+    }
+    public void decrease(int amount) {
+        int oldValue;
+        while(true) {
+            // 获取共享变量旧值，可以在这一行加入断点，修改 data 调试来加深理解
+            oldValue = data;
+            // cas 尝试修改 data 为 旧值 + amount，如果期间旧值被别的线程改了，返回 false
+            if (unsafe.compareAndSwapInt(this, DATA_OFFSET, oldValue, oldValue - amount)) {
+                return;
+            }
+        }
+    }
+    public int getData() {
+        return data;
+    }
+
+    @Override
+    public Integer getBalance() {
+        return getData();
+    }
+
+    @Override
+    public void withdraw(Integer amount) {
+        decrease(amount);
+
+    }
+}
+interface MyAccount {
+    // 获取余额
+    Integer getBalance();
+    // 取款
+    void withdraw(Integer amount);
+    /**
+     * 方法内会启动 1000 个线程，每个线程做 -10 元 的操作
+     * 如果初始余额为 10000 那么正确的结果应当是 0
+     */
+    static void demo(MyAccount account) {
+        List<Thread> ts = new ArrayList<>();
+        long start = System.nanoTime();
+        for (int i = 0; i < 1000; i++) {
+            ts.add(new Thread(() -> {
+                account.withdraw(10);
+            }));
+        }
+        ts.forEach(Thread::start);
+        ts.forEach(t -> {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        long end = System.nanoTime();
+        System.out.println(account.getBalance()
+                + " cost: " + (end-start)/1000_000 + " ms");
+    }
+}
+~~~
+
+### 小结
+
+![1620377818218](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/07/165704-238281.png)
 
 
 
@@ -787,6 +1280,7 @@ public class Test1 {
         for (int i = 0; i < 10; i++) {
             new Thread(() -> {
                 try {
+                  //加锁一般添加在共享变量的上面
                    synchronized (sdf){
                        System.out.println(sdf.parse("1951-04-21"));
                    }
@@ -836,7 +1330,6 @@ public final class String
 
 }
 
-
 //有参数的构造方法，我们可以看到，输入的字符串被赋值给String类中的value数组
  public String(String original) {
         this.value = original.value;
@@ -853,8 +1346,8 @@ public String(char value[]) {
 
 发现该类、类中所有属性都是 final 的
 
-- 属性用 final 修饰保证了该属性是只读的，不能修改
-- 类用 final 修饰保证了该类中的方法不能被覆盖，防止子类无意间破坏不可变性
+- 属性用 final 修饰保证了该属性是**只读的，不能修改**
+- 类用 final 修饰保证了该类中的方法**不能被覆盖，防止子类无意间破坏不可变性**
 
 #### 保护性拷贝
 
@@ -902,7 +1395,9 @@ public String(char value[], int offset, int count) {
 
 ##### 介绍
 
-定义 英文名称：Flyweight pattern. 当需要重用数量有限的同一类对象时
+定义 英文名称：Flyweight pattern.
+
+ **当需要重用数量有限的同一类对象时，可以使用享元模式**
 
 > wikipedia： A flyweight is an object that minimizes memory usage by sharing as much data as
 > possible with other similar objects
@@ -925,6 +1420,18 @@ public static Long valueOf(long l) {
             return LongCache.cache[(int)l + offset];
         }
         return new Long(l);
+    }
+
+//缓存空间，其实就是一个数组，这样做可以避免对象的重复创建
+private static class LongCache {
+        private LongCache(){}
+
+        static final Long cache[] = new Long[-(-128) + 127 + 1];
+
+        static {
+            for(int i = 0; i < cache.length; i++)
+                cache[i] = new Long(i - 128);
+        }
     }
 ~~~
 
@@ -958,7 +1465,11 @@ private static class LongCache {
 
 String 常量池，BigDecimal BigInteger等都是线程安全的类，单个方法运行线程安全，方法都是原子的操作，但是注意这些原子操作的组合可能并不是线程安全的。
 
-### 自定义数据库连接池
+后面两个类都是继承自Number类
+
+![1620531814188](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/09/114338-792369.png)
+
+#### 自定义数据库连接池
 
 例如：一个线上商城应用，QPS 达到数千，如果每次都重新创建和关闭数据库连接，性能会受到极大影响。 这时预先创建好一批连接，放入连接池。一次请求到达后，从连接池获取连接，使用完毕后再还回连接池，这样既节约了连接的创建和关闭时间，也实现了连接的重用，不至于让庞大的连接数压垮数据库。
 
@@ -984,8 +1495,6 @@ public class PoolConnectionDemo {
     }
 
 }
-
-
 
 class Pool{
 //    定义连接池的大小
@@ -1373,8 +1882,9 @@ public class TestFinal {
 10: return
 ~~~
 
-- 如果一个变量被声明为final变量，那么会在赋值之后添加一个写屏障，写屏障可以保证两个问题，写屏障之前的语句不会被重排序到写屏障之后，写屏障之前的所有赋值或者修改操作，在写屏障之后都会被同步到主存中，也就是对其他线程可见。
+- 如果一个变量被声明为final变量，那么会在赋值之后添加一个写屏障，**写屏障可以保证两个问题，写屏障之前的语句不会被重排序到写屏障之后，写屏障之前的所有赋值或者修改操作，在写屏障之后都会被同步到主存中，也就是对其他线程可见。**
 - 给变量添加final关键字就保证了其他线程只能看到final当前的值，保证对其他的线程可见。
+- 如果一个变量没有添加final关键字，那么会有两步操作，**第一步是分配空间，第二部是对变量进行赋值**
 
 #### 获取final变量的原理
 
@@ -1391,6 +1901,8 @@ public class TestFinal {
 
 class UseFinal{
     public void test(){
+     // 获取使用final修饰的变量，相当于其他类中的final变量赋值到了一份到其他线程的栈中，如果其他类中的变量没有使用final修饰，那么会去其他类的变量表中获取变量的值，使用的是getstatic指令，从堆内存中读取
+      使用final优化的原理就是把其他类中final修饰的变量赋值了一份到其他方法的方法栈中，如果没有添加final关键字，相当于去其他类的堆内存中获取
         System.out.println(TestFinal.A);
         System.out.println(TestFinal.B);
 
@@ -1402,34 +1914,306 @@ class UseFinal{
 
 对于final修饰的变量，如果数值较小，会赋值一份到其他方法的栈中，如果数值较大，会赋值一份到其他类的常量池中，相当于做的一种优化操作，如果不添加final，那么获取静态变量使用getstatic指令，相当于去共享内存中获取，比栈内存中的效率低。
 
+### 小结
+
+![1620534003752](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/09/122006-305362.png)
+
 ## 线程池
 
 ### 自定义线程池
 
 ~~~ java
+public class ThreadPoolDemo {
+    public static void main(String[] args) {
+//        创建线程池对象
+        ThreadPool threadPool=new ThreadPool(2,1000,TimeUnit.MICROSECONDS,10,(queue,task)->{
 
+//            1 死等
+//            queue.put(task);
+//                2 带超时的等待
+            queue.Offer(task,500,TimeUnit.MICROSECONDS);
+//                3 放弃执行任务
+            System.out.println("什么都不做，抛弃任务");
+////                4 让调用者抛出异常,某个任务抛出异常，其后面的任务都不会执行
+            throw new RuntimeException("任务执行失败"+task);
+//                5 让调用者自己执行任务
+//            task.run();//实际是主线程执行的任务
+        });
+        for (int i = 0; i < 15; i++) {
+            int j=i;
+            threadPool.execute(()->{
+                try {
+                    Thread.sleep(1000l);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println("j= "+j);
+            });
+        }
+    }
+}
+
+interface RejectPolicy<T>{
+    public void reject(BlockingPool<T> blockingPool,T task);
+}
+
+//定义线程池
+class ThreadPool{
+//    定义任务队列
+    private BlockingPool<Runnable> taskqueue;
+
+//    定义线程的集合,线程共享，所以要保证安全性
+    private HashSet<Workers> workers=new HashSet<>();
+
+//    定义核心线程数
+    private int coreSize;
+
+//    定义超时时间，也就是线程等够一个时间，没有任务的话就退出
+    private long timeout;
+
+//    定义超时时间单位
+    private TimeUnit unit;
+
+    private RejectPolicy<Runnable> rejectPolicy;
+
+    public ThreadPool(int coreSize, long timeout, TimeUnit unit,int queueCapcity,RejectPolicy rejectPolicy) {
+        this.coreSize = coreSize;
+        this.timeout = timeout;
+        this.unit = unit;
+        this.taskqueue=new BlockingPool<>(queueCapcity);
+        this.rejectPolicy=rejectPolicy;
+    }
+
+    public void execute(Runnable task){
+//        如果任务数量超过coreSize大小，就进入阻塞队列，否则就开始执行
+        synchronized (workers){
+            if(workers.size() < coreSize){
+                Workers workers1=new Workers(task);
+                System.out.println("新增workers  "+workers1+"  "+task);
+//            把创建的workers添加到hashset的集合中去
+                workers.add(workers1);
+                workers1.start();
+            }else {
+//            添加到任务队列
+                System.out.println("加入任务队列  "+task);
+//                taskqueue.put(task);
+//                队列满了如何做：
+//                1 死等
+//                2 带超时的等待
+//                3 放弃执行任务
+//                4 让调用者抛出异常
+//                5 让调用者自己执行任务
+                taskqueue.tryPut(rejectPolicy,task);
+            }
+        }
+    }
+
+    //    对线程进行包装
+    class Workers extends Thread{
+        private Runnable task;
+        public Workers(Runnable task){
+            this.task=task;
+        }
+
+        @Override
+        public void run() {
+//            1 当task不是空，也就是有任务，那么就执行任务
+//            2，查看任务队列是否有任务，如果有任务，取出任务开始执行
+//            第二个条件表示判断任务队列是否是空，如果不空就取出任务开始执行
+//            while (task != null || (task=taskqueue.take())!= null){
+            while (task != null || (task=taskqueue.pool(timeout,unit))!= null){
+//                如果任务不是空，那么就一直执行
+                System.out.println("正在执行任务对  :"+task);
+               try {
+                   task.run();
+               }catch (Exception e){
+                   e.printStackTrace();
+               }finally {
+                   task=null;
+               }
+            }
+//            移除当前对象，表示执行完毕
+            synchronized (workers){
+                System.out.println("移除任务对象  ："+task);
+                workers.remove(this);
+            }
+        }
+    }
+
+}
+
+class BlockingPool<T>{
+//    定义一个双向链表的阻塞队列
+    private Deque <T>queue=new ArrayDeque();
+
+//    需要添加一把锁，因为多个线程访问
+    private ReentrantLock lock=new ReentrantLock();
+
+//    生产者的条件变量
+    private Condition fullWait=lock.newCondition();
+
+//    消费者条件变量
+    private Condition emptyWait=lock.newCondition();
+//    线程池的容量
+    private int capicity;
+
+    public BlockingPool(int capicity) {
+        this.capicity = capicity;
+    }
+
+    /**
+     * 带超时的阻塞获取
+     * @param timeOut 超时时间
+     * @param timeUnit 时间单位 方便做时间转换的类
+     * @return
+     */
+    public T pool(long timeOut, TimeUnit timeUnit){
+
+        T t=null;
+        lock.lock();//加锁
+        try {
+//            将时间转换为以纳秒为单位，这里存在虚假唤醒问题，也就是这一次没有等够timeOut时间，但是下一次需
+//            要从头开始等待，但是awaitNanos返回的是上一次等待的时间和总的需要等待时间的差值，也就是需要等待的时间
+            long l = timeUnit.toNanos(timeOut);
+            while (queue.isEmpty()){
+                if(l < 0)
+//                    剩余时间小于0，就是没有等到
+                    return null;
+               l= emptyWait.awaitNanos(l);
+            }
+            t = queue.removeFirst();
+//            唤醒添加元素的队列中某一个元素
+            fullWait.signal();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+        return t;
+    }
+
+//    阻塞获取
+    public T take(){
+        T t=null;
+        lock.lock();//加锁
+        try {
+            while (queue.isEmpty()){
+                emptyWait.await();
+            }
+            t = queue.removeFirst();
+//            唤醒添加元素的队列中某一个元素
+            fullWait.signal();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+        return t;
+    }
+
+//    阻塞添加
+    public void put(T t){
+        lock.lock();
+        try{
+            while (queue.size() == capicity){
+//                添加到另外一个条件变量
+                System.out.println("等待加入任务队列  "+t);
+                fullWait.wait();
+            }
+            System.out.println("加入任务队列  "+t);
+            queue.addLast(t);
+//            唤醒一个线程
+            emptyWait.signal();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+    }
+//带超时的阻塞添加
+    public boolean Offer(T task,long timeout,TimeUnit unit){
+        lock.lock();
+        try{
+            long nanos=unit.toNanos(timeout);
+            while (queue.size() == capicity){
+//                添加到另外一个条件变量
+                System.out.println("等待加入任务队列  "+task);
+                if(nanos < 0){
+                    return false;
+                }
+                nanos=fullWait.awaitNanos(nanos);
+            }
+            System.out.println("加入任务队列  "+task);
+            queue.addLast(task);
+//            唤醒一个线程
+            emptyWait.signal();
+            return true;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            lock.unlock();
+        }
+        return false;
+    }
+
+    //    获取大小
+    public int size()
+    {
+        lock.lock();
+        try
+        {
+            return queue.size();
+        }finally {
+            lock.unlock();
+        }
+    }
+
+    public void tryPut(RejectPolicy rejectPolicy,T task){
+        lock.lock();
+        try {
+            if(queue.size() == capicity){
+//                这里使用的是策略模式
+                rejectPolicy.reject(this,task);
+            }else {
+                System.out.println("加入任务队列  "+task);
+                queue.addLast(task);
+//            唤醒一个线程
+                emptyWait.signal();
+            }
+        }finally {
+            lock.unlock();
+        }
+    }
+}
 ~~~
-
-
-
-
 
 ### ThreadPoolExecutor线程池
 
+ThreadPoolExecutor线程池是jdk自带的线程池。
+
 **类图**
 
-![1609476719311](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1609476719311.png)
+![1620538602660](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/09/133646-841285.png)
 
 - ExecutorService线程池最基本的接口，包括提交任务，关闭线程池等
 - ScheduledExecutorService:扩展接口，在基础接口放入功能上增加任务调度的功能。
 - ThreadPoolExecutor:线程池的最基本实现
 - SchedualThreadPoolExecutor:带有任务调度的最基础实现
 
+**Executor**
+
+~~~ java
+public interface Executor {
+//执行线程
+    void execute(Runnable command);
+}
+~~~
+
 #### 线程池的状态
 
 ThreadPoolExecutor 使用 int 的高 3 位来表示线程池状态，低 29 位表示线程数量
 
-![1609477104864](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1609477104864.png)
+![1609477104864](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/07/152457-620669.png)
 
 从数字上比较，TERMINATED > TIDYING > STOP > SHUTDOWN > RUNNING（最高位代表符号位）
 
@@ -1443,7 +2227,7 @@ ctlOf(targetState, workerCountOf(c))//表示合并线程状态和线程数量为
 private static int ctlOf(int rs, int wc) { return rs | wc; }
 ~~~
 
-**构造方法**
+#### 构造方法
 
 ~~~ java
 public ThreadPoolExecutor(int corePoolSize,
@@ -1463,7 +2247,12 @@ public ThreadPoolExecutor(int corePoolSize,
 - threadFactory 线程工厂 - 可以为线程创建时起个好名字
 - handler 拒绝策略
 
-救济线程是针对突发量大，线程池中线程数量不足的情况，如果线程池中线程不够，阻塞队列也蛮了，那么就会创建救济线程，救济线程最大的特点是有生存时间，当救济线程也不够的话，就会执行拒绝策略。
+jdk中的线程分为核心线程和救济线程，救济线程是针对突发量大，线程池中线程数量不足的情况，如果线程池中线程不够，阻塞队列也蛮了，那么就会创建救济线程，救济线程最大的特点是有生存时间，当救济线程也不够的话，就会执行拒绝策略。
+
+- 最大线程个数=救济线程数+核心线程数
+- 生存时间是针对救济线程来说的。
+- 时间单位也是针对救济线程来说的。
+- 当核心线程用完之后，阻塞队列也满的情况下，如果有新的线程到来，那么会看是否还有救济线程，救济线程=最大线程数-核心线程数，如果有救济线程，就创建救济线程执行任务，否则就执行拒绝策略。
 
 **工作方式**
 
@@ -1474,7 +2263,7 @@ public ThreadPoolExecutor(int corePoolSize,
 - 当线程数达到 corePoolSize 并没有线程空闲，这时再加入任务，新加的任务会被加入workQueue 队列排
   队，直到有空闲的线程。
 
-- 如果队列选择了有界队列，那么任务超过了队列大小时，会创建 maximumPoolSize - corePoolSize 数目的线程来救急。（也就是救济线程），如果选择的队列是无界的，那么此时就没有什么救济线程。
+- **如果队列选择了有界队列**，那么任务超过了队列大小时，会创建 maximumPoolSize - corePoolSize 数目的线程来救急。（也就是救济线程），如果选择的队列是无界的，那么此时就没有什么救济线程。
 
 - 如果线程到达 maximumPoolSize 仍然有新任务这时会执行拒绝策略。拒绝策略 jdk 提供了 4 种实现，其它
   著名框架也提供了实现
@@ -1483,6 +2272,8 @@ public ThreadPoolExecutor(int corePoolSize,
   - CallerRunsPolicy 让调用者运行任务
   - DiscardPolicy 放弃本次任务
   - DiscardOldestPolicy 放弃队列中最早的任务，本任务取而代之
+
+  ![1609478329567](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202101/01/131851-399649.png)
 
   上面是jdk提供的实现，下面是框架的实现。
 
@@ -1495,16 +2286,22 @@ public ThreadPoolExecutor(int corePoolSize,
 - 当高峰过去后，超过corePoolSize 的救急线程如果一段时间没有任务做，需要结束节省资源，这个时间由
   keepAliveTime 和 unit 来控制。
 
-![1609478329567](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202101/01/131851-399649.png)
-
 根据这个构造方法，JDK Executors 类中提供了众多工厂方法来创建各种用途的线程池，因为普通的构造方法提供的参数太多，所以jdk提供一个工具类来使用。
 
-#### newFixedThreadPool（固定线程数）
+~~~ java
+//工具类方法
+public class Executors {}
+~~~
+
+#### Executors工具
+
+##### newFixedThreadPool（固定线程数）
 
 ~~~ java
 public static ExecutorService newFixedThreadPool(int nThreads) {
         return new ThreadPoolExecutor(nThreads, nThreads,//核心线程数和最大线程数被设置为nThreads,表示救济线程数设置为0，救济线程=最大线程数-核心线程数，可以看到对返回的对象没有进行包装操作
                 0L, TimeUnit.MILLISECONDS,
+                //阻塞队列的实现 LinkedBlockingQueue
                 new LinkedBlockingQueue<Runnable>());
     }
 ~~~
@@ -1556,7 +2353,7 @@ pool-1-thread-1  3
 - 固定大小的线程池中核心线程是固定的，所以线程执行完毕后不会主动结束自己
 - 线程池中的线程都是非守护线程，也就是不会随着主线程的结束而结束
 
-#### newCachedThreadPool（带缓冲功能）
+##### newCachedThreadPool（带缓冲功能）
 
 ~~~ java
  public static ExecutorService newCachedThreadPool() {
@@ -1564,6 +2361,7 @@ pool-1-thread-1  3
                 60L, TimeUnit.SECONDS,
                 new SynchronousQueue<Runnable>());
     }
+//创建出来的全部是救济线程
 ~~~
 
 **特点**
@@ -1625,7 +2423,7 @@ t1  putted...2
 > - 整个线程池表现为线程数会根据任务量不断增长，没有上限，当任务执行完毕，空闲 1分钟后释放线
 >   程。 适合任务数比较密集，但每个任务执行时间较短的情况
 
-#### newSingleThreadExecutor（单线程执行器）
+##### newSingleThreadExecutor（单线程执行器）
 
 ~~~ java
 public static ExecutorService newSingleThreadExecutor() {
@@ -1638,7 +2436,7 @@ public static ExecutorService newSingleThreadExecutor() {
 
 **使用场景：**
 
-- 希望多个任务排队执行。线程数固定为 1，任务数多于 1 时，会放入无界队列排队。任务执行完毕，这唯一的线程也不会被释放。
+- 希望多个任务排队执行，也就是串行执行时候。线程数固定为 1，任务数多于 1 时，会放入无界队列排队。任务执行完毕，这唯一的线程也不会被释放。
 
 **区别**
 
@@ -1672,8 +2470,8 @@ public class TestSinglePool {
 #### 提交任务
 
 ~~~ java
- // 执行任务
-    void execute(Runnable command);
+// 执行任务
+ void execute(Runnable command);
 // 提交任务 task，用返回值 Future 获得任务执行结果,Callable多一个返回任务的结果
     <T> Future<T> submit(Callable<T> task);
 //案例
@@ -1699,7 +2497,7 @@ public class TestSubmit {
 // 提交 tasks 中所有任务，提交的任务是一个集合
     <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
             throws InterruptedException;
-// 提交 tasks 中所有任务，带超时时间
+// 提交 tasks 中所有任务，，一定时间内任务没有完成的话就取消任务
     <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks,
                                   long timeout, TimeUnit unit)
             throws InterruptedException;
@@ -1722,6 +2520,7 @@ public class TestSubmit {
         List<Future<Integer>> futures = executorService.invokeAll(Arrays.asList(
 //                集合里面有多个Callable任务，
 //                Callable接口有一个抽象方法
+          //集合中存储的是任务队列
                 () -> {
                     System.out.println("begin in.... ");
                     Thread.sleep(2);
@@ -1737,7 +2536,6 @@ public class TestSubmit {
                     Thread.sleep(4);
                     return 3;
                 }
-
         ));
         futures.forEach(f->{
             try {
@@ -1748,10 +2546,8 @@ public class TestSubmit {
                 e.printStackTrace();
             }
         });
-
-
     }
-
+//带超时时间
 public class TestSubmit {
     public static void main(String[] args) throws ExecutionException, InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -1774,14 +2570,15 @@ public class TestSubmit {
                     Thread.sleep(4);
                     return 3;
                 }
-
         ));
         System.out.println(futures);
-
     }
-
 }
 ~~~
+
+**Feature接口**
+
+![1620542832858](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/09/144715-257198.png)
 
 #### 关闭线程池
 
@@ -1866,6 +2663,53 @@ boolean isTerminated();
 boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException;
 ~~~
 
+**案例**
+
+~~~ java
+public class Test45 {
+
+    public static void main(String[] args) {
+
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        Future<Integer> res=pool.submit(()-> {
+
+                System.out.println("task 1 running ");
+                Thread.sleep(1);
+                System.out.println("task 1 finnshed");
+                return 1;
+        });
+
+        Future<Integer> res1 = pool.submit(() -> {
+
+                System.out.println("task 2 running ");
+                Thread.sleep(1);
+                System.out.println("task 2 finnshed");
+                return 2;
+        });
+
+        Future<Integer> res2 = pool.submit(() -> {
+
+            System.out.println("task 3 running ");
+            Thread.sleep(1);
+            System.out.println("task 3 finnshed");
+            return 3;
+        });
+
+        System.out.println("shutdown");
+        pool.shutdown();
+    }
+}
+
+//可以发现，shotdown并不会取消正在执行的任务，也不会影响提交到队列中的任务，但是不能在shotdown后面在提交任务，shotdown也不会阻塞主线程其他的代码执行
+task 1 running 
+task 2 running 
+shutdown
+task 1 finnshed
+task 2 finnshed
+task 3 running 
+task 3 finnshed
+~~~
+
 ### 异步模式之工作线程
 
 #### 定义
@@ -1876,13 +2720,13 @@ boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedExceptio
 
 例如，海底捞的服务员（线程），轮流处理每位客人的点餐（任务），如果为每位客人都配一名专属的服务员，那么成本就太高了（对比另一种多线程设计模式：Thread-Per-Message）
 
-**注意，不同任务类型应该使用不同的线程池，这样能够避免饥饿，并能提升效率**
+**注意，不同任务类型应该使用不同的线程池，这样能够避免饥饿，并能提升效率**，点餐和做菜采用不同的线程池
 
 例如，如果一个餐馆的工人既要招呼客人（任务类型A），又要到后厨做菜（任务类型B）显然效率不咋地，分成服务员（线程池A）与厨师（线程池B）更为合理，当然你能想到更细致的分工
 
 #### 饥饿
 
-固定大小线程池会有饥饿现象
+固定大小线程池会有饥饿现象，是因为线程数量的不足导致饥饿。
 
 - 两个工人是同一个线程池中的两个线程
 - 他们要做的事情是：为客人点餐和到后厨做菜，这是两个阶段的工作
@@ -1905,8 +2749,10 @@ public class TestDeadLock {
 
     public static void main(String[] args) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
+      //外面线程是负责点餐的线程
         executorService.execute(() -> {
             log.debug("处理点餐...");
+          //里面线程是负责做菜的线程
             Future<String> f = executorService.submit(() -> {
                 log.debug("做菜");
                 return cooking();
@@ -1917,6 +2763,7 @@ public class TestDeadLock {
                 e.printStackTrace();
             }
         });
+      //单独执行上面一段程序可以成功，但是上下的程序员一起执行就无法执行，因为总共需要4个线程，而线程池中只有2个线程
         executorService.execute(() -> {
             log.debug("处理点餐...");
             Future<String> f = executorService.submit(() -> {
@@ -1998,15 +2845,11 @@ CPU 不总是处于繁忙状态，例如，当你执行业务计算时，这时�
 - 例如 4 核 CPU 计算时间是 10% ，其它等待时间是 90%，期望 cpu 被 100% 利用，套用公式
   4 * 100% * 100% / 10% = 40
 
-#### 自定义线程池
-
-
-
-
-
 ### 任务调度线程池（延时执行任务）
 
 在『任务调度线程池』功能加入之前，可以使用 java.util.Timer 来实现定时功能，Timer 的优点在于简单易用，但由于所有任务都是由同一个线程来调度，因此所有任务都是串行执行的，同一时间只能有一个任务在执行，前一个任务的延迟或异常都将会影响到之后的任务。
+
+####  使用Timer类
 
 **代码说明**
 
@@ -2028,11 +2871,13 @@ public static void main(String[] args) {
             }
         };
         // 使用 timer 添加两个任务，希望它们都在 1s 后执行
-        // 但由于 timer 内只有一个线程来顺序执行队列中的任务，因此『任务1』的延时，影响了『任务2』的执行
+        // 但由于 timer 内只有一个线程来顺序执行队列中的任务，因此『任务1』的延时，影响了『任务2』的执行，也就是如果任务一的执行时间较长，那么任务二的执行时间也会推迟，如果任务一发生异常，也会导致任务二不执行
         timer.schedule(task1, 1000);
         timer.schedule(task2, 1000);
     }
 ~~~
+
+#### ScheduledExecutorService 
 
 使用 ScheduledExecutorService 改写：
 
@@ -2040,10 +2885,12 @@ public static void main(String[] args) {
 public class TestTimer {
 
     public static void main(String[] args) {
+        //创建一个带有调度功能的线程池
         ScheduledExecutorService service = Executors.newScheduledThreadPool(2);
 //        第一个参数代表执行的任务，第二个是延迟的时间
         service.schedule(()->{
             try {
+//                延时2秒在执行
                 Thread.sleep(2);
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -2051,9 +2898,11 @@ public class TestTimer {
             System.out.println(Thread.currentThread().getName()+"  task 1");
         },1, TimeUnit.SECONDS);
 
+        //第一个参数是延时的任务，第二个是延时的时间
         service.schedule(()->{
             System.out.println(Thread.currentThread().getName()+"  task 2");
         },1, TimeUnit.SECONDS);
+//        上面两个任务几乎是同时执行的，第一个任务虽然延时2秒，但是并不会影响第二个任务的执行
     }
 }
 //两个线程几乎是同时执行的，也就是说不会相互影响，虽然第一个线程睡了2秒，但是并不会影响第二个线程的执行
@@ -2061,7 +2910,9 @@ public class TestTimer {
 //即使第一个线程执行过程中出现异常，第二个任务还是可以正常执行，但是对于Timer就不行，第二个任务不能执行
 ~~~
 
-**定时执行任务**
+#### 定时执行任务
+
+每隔一段时间，执行一次任务。
 
 scheduleAtFixedRate 例子：
 
@@ -2102,7 +2953,7 @@ pool.scheduleAtFixedRate(() -> {
 21:44:37.362 c.TestTimer [pool-1-thread-1] - running...
 ~~~
 
-scheduleWithFixedDelay 例子：
+#### scheduleWithFixedDelay
 
 ~~~ java
 public class TestTimer {
@@ -2130,7 +2981,7 @@ public class TestTimer {
 
 > 评价 整个线程池表现为：线程数固定，任务数多于线程数时，会放入无界队列排队。任务执行完毕，这些线程也不会被释放。用来执行延迟或反复执行的任务
 
-**正确处理异常信息**
+#### 正确处理异常信息
 
 ~~~ java
 //主动铺货异常
@@ -2196,24 +3047,31 @@ public class TestTimer {
 - 所谓的任务拆分，是将一个大任务拆分为算法上相同的小任务，直至不能拆分可以直接求解。跟递归相关的一些计算，如归并排序、斐波那契数列、都可以用分治思想进行求解
 - Fork/Join 在分治的基础上加入了多线程，可以把每个任务的分解和合并交给不同的线程来完成，进一步提升了运算效率
 - **Fork/Join 默认会创建与 cpu 核心数大小相同的线程池**
+- 适合任务可以拆分的计算，适合cpu密集型的任务。
+
+**继承关系**
+
+![1620711317062](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/11/133520-568558.png)
+**RecursiveTask继承关系**
+
+![1620711444803](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/11/133727-247727.png)
 
 #### 使用
 
 提交给 Fork/Join 线程池的任务需要继承 RecursiveTask（有返回值）或 RecursiveAction（没有返回值），例如下面定义了一个对 1~n 之间的整数求和的任务
 
 ~~~ java
-public class TestForkJoin {
-    public static void main(String[] args) {
-//        无参构造，那么线程数等于cpu的核心数
-        ForkJoinPool pool = new ForkJoinPool(4);
+public class FolkJoinTest {
 
-//        调用方法执行任务
-        System.out.println(pool.invoke(new MyTask(5)));
+    public static void main(String[] args) {
+
+        ForkJoinPool forkJoinPool = new ForkJoinPool(4);
+        Integer invoke = forkJoinPool.invoke(new MyTask(6));
+        System.out.println(invoke);
     }
 }
 
-
-class MyTask extends RecursiveTask{
+class MyTask extends RecursiveTask<Integer>{
 
     private int n;
 
@@ -2223,19 +3081,24 @@ class MyTask extends RecursiveTask{
 
     @Override
     protected Integer compute() {
-//        把计算任务拆分开计算，类似于递归计算
-       
-        if(n == 1)
+
+//        此方法是计算的逻辑，做任务的拆分计算
+
+//        终止条件
+        if(n == 1){
             return 1;
-        //拆分任务
+        }
+//        如果n不等于1，那么就创建一个新的任务
         MyTask myTask = new MyTask(n - 1);
-        myTask.fork();//让一个线程去执行任务
-
-        int result=n+(Integer) myTask.join();//获取结果
-
-        return result;
+//        启动一个新的线程执行我们的任务
+        ForkJoinTask<Integer> fork = myTask.fork();
+//        获取任务的结果
+        Integer res = n+fork.join();
+//        最终返回任务的执行结果
+        return res;
     }
 }
+//因为我们设置线程池的大小是4，所以有四个线程参与计算
 [ForkJoinPool-1-worker-0] - fork() 2 + {1}
 [ForkJoinPool-1-worker-1] - fork() 5 + {4}
 [ForkJoinPool-1-worker-0] - join() 1
@@ -2252,7 +3115,9 @@ class MyTask extends RecursiveTask{
 
 ![1609730937838](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202101/04/112859-423215.png)
 
-**改进**
+#### 改进
+
+上面的拆分任务多个任务之间具有依赖性，浪费资源。
 
 ~~~ java
 class AddTask3 extends RecursiveTask<Integer> {
@@ -2314,36 +3179,108 @@ public static void main(String[] args) {
 
 ![1609731352077](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202101/04/113553-107330.png)
 
-## JUC
+## 并发工具JUC
+
+`JUC—java util concurrent`
 
 ###  AQS 原理
 
 #### 概述
 
-全称是 AbstractQueuedSynchronizer，是**阻塞式锁**和相关的同步器工具的框架，也就是其他的同步器框架都是继承与此框架的，调用父类中的方法。（CAS是一种乐观锁)，基于模板的方法实现的。
+- 全称是 AbstractQueuedSynchronizer(抽象队列同步器)，是**阻塞式锁**和相关的同步器工具的框架，也就是其他的同步器框架都是继承与此框架的，调用父类中的方法。（CAS是一种乐观锁)，基于模板的方法实现的。AQS是一种阻塞式的锁，类似于我们的synchronized锁。
+
+- 什么是队列同步器？
+
+  队列同步器（AbstractQueuedSynchronizer），是用来构建锁或者其他同步组件的基础框架，他使用一个int类型的成员变量表示同步状态，通过内置的fifo队列完成资源获取线程的排队工作，同步器的主要使用方式是继承，子类通过继承的方法实现抽象方法来管理同步状态。同步器既可以支持独占式的获取同步状态，也可以支持共享式的获取同步状态，同步器面向的是锁的实现者。
+
+**类图继承关系**
+
+![1614075954630](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/23/182557-47954.png)
+
+同步器的实现是基于模板设计模式
+
+**源码**
+
+~~~ java
+public abstract class AbstractOwnableSynchronizer
+    implements java.io.Serializable {
+
+    /** Use serial ID even though all fields transient. */
+    private static final long serialVersionUID = 3737899427754241961L;
+
+    /**
+     * Empty constructor for use by subclasses.
+     */
+    protected AbstractOwnableSynchronizer() { }
+
+    /**
+     * The current owner of exclusive mode synchronization.
+     */
+    private transient Thread exclusiveOwnerThread;
+
+    /**
+     * Sets the thread that currently owns exclusive access.
+     * A {@code null} argument indicates that no thread owns access.
+     * This method does not otherwise impose any synchronization or
+     * {@code volatile} field accesses.
+     * @param thread the owner thread
+     */
+    protected final void setExclusiveOwnerThread(Thread thread) {
+        exclusiveOwnerThread = thread;
+    }
+
+    /**
+     * Returns the thread last set by {@code setExclusiveOwnerThread},
+     * or {@code null} if never set.  This method does not otherwise
+     * impose any synchronization or {@code volatile} field accesses.
+     * @return the owner thread
+     */
+    protected final Thread getExclusiveOwnerThread() {
+        return exclusiveOwnerThread;
+    }
+}
+~~~
 
 **特点**
 
-- 用 state （整数值）属性来表示资源的状态（分独占模式和共享模式），子类需要定义如何维护这个状态，控制如何获取锁和释放锁
+- 用 state （整数值）属性来表示资源的状态（**分独占模式和共享模式**），子类需要定义如何维护这个状态，控制如何获取锁和释放锁
+
+  ~~~ java
+  private volatile int state;
+  ~~~
+
   - getState - 获取 state 状态
   - setState - 设置 state 状态
   - compareAndSetState - cas 机制设置 state 状态（防止多个线程同时修改状态）
   - 独占模式是只有一个线程能够访问资源，而共享模式可以允许多个线程访问资源
-- **提供了基于 FIFO 的等待队列，类似于 Monitor 的 EntryList**
-- 条件变量来实现等待、唤醒机制，支持多个条件变量，类似于 Monitor 的 WaitSet
 
-**如何使用**
+- **提供了基于 FIFO 的等待队列，类似于 Monitor 的 EntryList**
+
+- **条件变量来实现等待、唤醒机制，支持多个条件变量，类似于 Monitor 的 WaitSet**
+
+#### 如何使用
 
 ~~~ java
 //子类主要实现这样一些方法（默认抛出 UnsupportedOperationException）
-tryAcquire
-tryRelease
-tryAcquireShared
-tryReleaseShared
-isHeldExclusively
+protected boolean tryAcquire(int arg) {
+        throw new UnsupportedOperationException();
+    }
+protected boolean tryRelease(int arg) {
+        throw new UnsupportedOperationException();
+    }
+protected int tryAcquireShared(int arg) {
+        throw new UnsupportedOperationException();
+    }
+protected boolean tryReleaseShared(int arg) {
+        throw new UnsupportedOperationException();
+    }
+protected boolean isHeldExclusively() {
+        throw new UnsupportedOperationException();
+    }
+//上面方法默认都是抛出异常，可以对其进行覆盖操作
 ~~~
 
-**获取锁**
+##### **获取锁**
 
 ~~~java
 // 如果获取锁失败
@@ -2353,7 +3290,7 @@ if (!tryAcquire(arg)) {
 //只会尝试一次获取锁，获取锁成功的话就可以修改状态标记
 ~~~
 
-**释放锁**
+##### **释放锁**
 
 ~~~ java
 // 如果释放锁成功
@@ -2362,9 +3299,11 @@ if (tryRelease(arg)) {//返回true表示释放锁成功
 }
 ~~~
 
+> 主要是通过继承阻塞队列来重用父类的功能。
+
 #### 实现不可重入锁
 
-**自定义同步器**
+##### 自定义同步器
 
 ~~~ java
  //    实现同步器类 独占锁，需要实现以下方法
@@ -2414,7 +3353,7 @@ if (tryRelease(arg)) {//返回true表示释放锁成功
 
 ~~~
 
-**自定义锁**
+##### 实现自定义锁
 
 - 有了自定义同步器，很容易复用 AQS ，实现一个功能完备的自定义锁
 
@@ -2511,7 +3450,7 @@ class MyLock implements Lock {
 }
 ~~~
 
-## LOCK接口
+### LOCK接口
 
 Lock接口提供了synchronized关键字所不具备的特征如下：
 
@@ -2529,65 +3468,19 @@ public interface Lock
 
 ![1614075116624](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/23/181159-489544.png)
 
+**继承关系**
+
+![1620714935346](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/11/143537-848634.png)
+
 > LOck接口的实现都是通过聚合一个同步器的子类来完成线程的访问控制
 
 **Lock接口的实现子类**
 
 ![1614075272189](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/23/181434-121988.png)
 
-### 队列同步器
+**locks包类图结构**
 
-1. 什么是队列同步器？
-
-队列同步器（AbstractQueuedSynchronizer），是用来构建锁或者其他同步组件的基础框架，他使用一个int类型的成员变量表示同步状态，通过内置的fifo队列完成资源获取线程的排队工作，同步器的主要使用方式是继承，子类通过继承的方法实现抽象方法来管理同步状态。同步器既可以支持独占式的获取同步状态，也可以支持共享式的获取同步状态，同步器面向的是锁的实现者。
-
-同步器的实现是基于模板设计模式
-
-2. 队列同步器类图
-
-![1614075954630](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/23/182557-47954.png)
-
-**源码解读**
-
-~~~ java
-public abstract class AbstractOwnableSynchronizer
-    implements java.io.Serializable {
-
-    /** Use serial ID even though all fields transient. */
-    private static final long serialVersionUID = 3737899427754241961L;
-
-    /**
-     * Empty constructor for use by subclasses.
-     */
-    protected AbstractOwnableSynchronizer() { }
-
-    /**
-     * The current owner of exclusive mode synchronization.
-     */
-    private transient Thread exclusiveOwnerThread;
-
-    /**
-     * Sets the thread that currently owns exclusive access.
-     * A {@code null} argument indicates that no thread owns access.
-     * This method does not otherwise impose any synchronization or
-     * {@code volatile} field accesses.
-     * @param thread the owner thread
-     */
-    protected final void setExclusiveOwnerThread(Thread thread) {
-        exclusiveOwnerThread = thread;
-    }
-
-    /**
-     * Returns the thread last set by {@code setExclusiveOwnerThread},
-     * or {@code null} if never set.  This method does not otherwise
-     * impose any synchronization or {@code volatile} field accesses.
-     * @return the owner thread
-     */
-    protected final Thread getExclusiveOwnerThread() {
-        return exclusiveOwnerThread;
-    }
-}
-~~~
+![1620800927205](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/12/142851-698770.png)
 
 ## ReentrantLock 原理(重入锁)
 
@@ -2605,9 +3498,22 @@ public abstract class AbstractOwnableSynchronizer
 
 ~~~ java
 public ReentrantLock() {
+  //默认是非公平的实现
  sync = new NonfairSync();
 }
 //NonfairSync 继承自 AQS
+public void lock() {
+  //在这里调用的是队列同步器的加锁实现，并且调用的是非公平的实现
+        sync.lock();
+    }
+//非公平中加锁的实现
+final void lock() {
+  //使用的是cas方法加锁
+            if (compareAndSetState(0, 1))
+                setExclusiveOwnerThread(Thread.currentThread());
+            else
+                acquire(1);
+        }
 ~~~
 
 **加锁的过程**
@@ -2634,9 +3540,10 @@ final void lock() {
             else
                 acquire(1);
         }
-//也即是进入else语句块
+//也就是进入else语句块
 public final void acquire(int arg) {
         if (!tryAcquire(arg) &&//进行尝试加锁
+            //如果加锁没有成功，尝试创建节点对象加入阻塞队列
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
             selfInterrupt();
     }
@@ -2652,6 +3559,7 @@ Thread-1 执行了
   - 图中黄色三角表示该 Node 的 waitStatus 状态，其中 0 为默认正常状态
   - Node 的创建是懒惰的
   - 其中第一个 Node 称为 Dummy（哑元）或哨兵，用来占位，并不关联线程
+  - 把当前没有获取锁的线程关联到node对象上，然后添加到队列中等待锁。
 
 ![1610152307914](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/09/083150-51836.png)
 
@@ -2659,9 +3567,9 @@ Thread-1 执行了
 
 -  acquireQueued 会在一个死循环中不断尝试获得锁，失败后进入 park 阻塞
 -  如果自己是紧邻着 head（排第二位），那么再次 tryAcquire 尝试获取锁，当然这时 state 仍为 1，失败
-- . 进入 shouldParkAfterFailedAcquire 逻辑，将前驱 node，即 head 的 waitStatus 改为 -1，这次返回 false
+- 进入 shouldParkAfterFailedAcquire 逻辑，将前驱 node，即 head 的 waitStatus 改为 -1，这次返回 false
 
-**孕源码解读**
+**源码解读**
 
 ~~~ java
 public final void acquire(int arg) {
@@ -2693,7 +3601,7 @@ final boolean acquireQueued(final Node node, int arg) {
     }
 ~~~
 
-![1610152514504](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610152514504.png)
+![1610152514504](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/113411-491780.png)
 
 -  shouldParkAfterFailedAcquire 执行完毕回到 acquireQueued ，再次 tryAcquire 尝试获取锁，当然这时
   state 仍为 1，失败
@@ -2713,6 +3621,10 @@ Thread-0 释放锁，进入 tryRelease 流程，如果成功
 - state = 0
 
 ~~~ java
+ public void unlock() {
+        sync.release(1);
+    }
+//队列同步器的释放锁方法
 public final boolean release(int arg) {
         if (tryRelease(arg)) {
             Node h = head;
@@ -2722,6 +3634,20 @@ public final boolean release(int arg) {
         }
         return false;
     }
+//释放锁的逻辑
+protected final boolean tryRelease(int releases) {
+            int c = getState() - releases;
+            if (Thread.currentThread() != getExclusiveOwnerThread())
+                throw new IllegalMonitorStateException();
+            boolean free = false;
+            if (c == 0) {
+                free = true;
+                setExclusiveOwnerThread(null);
+            }
+            setState(c);
+            return free;
+        }
+
 ~~~
 
 ![1610153287637](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/09/084814-366420.png)
@@ -2730,7 +3656,7 @@ public final boolean release(int arg) {
 - 找到队列中离 head 最近的一个 Node（没取消的），unpark 恢复其运行，本例中即为 Thread-1
 - 回到 Thread-1 的 acquireQueued 流程
 
-![1610153399056](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610153399056.png)
+![1610153399056](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/113736-100562.png)
 
 如果加锁成功（没有竞争），会设置
 
@@ -2740,7 +3666,7 @@ public final boolean release(int arg) {
 
 如果这时候有其它线程来竞争（非公平的体现），例如这时有 Thread-4 来了
 
-![1610153543523](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610153543523.png)
+![1610153543523](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/113755-809093.png)
 
 如果不巧又被 Thread-4 占了先
 
@@ -2755,7 +3681,6 @@ public final boolean release(int arg) {
             private static final long serialVersionUID = 7316153563782823691L;
 
             // 加锁实现
-            
             final void lock() {
                 // 首先用 cas 尝试（仅尝试一次）将 state 从 0 改为 1, 如果成功表示获得了独占锁
                 if (compareAndSetState(0, 1))
@@ -2995,8 +3920,11 @@ public final boolean release(int arg) {
             // Sync 继承过来的方法, 方便阅读, 放在此处
             final boolean nonfairTryAcquire(int acquires) {
                 final Thread current = Thread.currentThread();
+              //获取当前锁的状态
                 int c = getState();
+              //第一次获取锁的状态
                 if (c == 0) {
+                  //如果锁空闲，那么使用cas方法进行加锁操作
                     if (compareAndSetState(0, acquires)) {
                         setExclusiveOwnerThread(current);
                         return true;
@@ -3004,7 +3932,7 @@ public final boolean release(int arg) {
                 }
                 // 如果已经获得了锁, 线程还是当前线程, 表示发生了锁重入
                 else if (current == getExclusiveOwnerThread()) {
-                    // state++
+                    // state++，acquires为1
                     int nextc = c + acquires;
                     if (nextc < 0) // overflow
                         throw new Error("Maximum lock count exceeded");
@@ -3016,7 +3944,7 @@ public final boolean release(int arg) {
 
             // Sync 继承过来的方法, 方便阅读, 放在此处
             protected final boolean tryRelease(int releases) {
-                // state--
+                // state--，这里release的值一般是1，因为是重入锁，所以每次释放，都会-1
                 int c = getState() - releases;
                 if (Thread.currentThread() != getExclusiveOwnerThread())
                     throw new IllegalMonitorStateException();
@@ -3026,7 +3954,7 @@ public final boolean release(int arg) {
                     free = true;
                     setExclusiveOwnerThread(null);
                 }
-                
+                //否则怒释放锁，仅仅是让锁的计数器-1
                 setState(c);
                 return free;
             }
@@ -3047,13 +3975,14 @@ public final boolean release(int arg) {
             private final boolean parkAndCheckInterrupt() {
                 // 如果打断标记已经是 true, 则 park 会失效
                 LockSupport.park(this);
-                // interrupted 会清除打断标记
+                // interrupted 会清除打断标记，返回是否被打断过
                 return Thread.interrupted();
             }
 
             final boolean acquireQueued(final Node node, int arg) {
                 boolean failed = true;
                 try {
+                  //默认打断表示为false
                     boolean interrupted = false;
                     for (;;) {
                         final Node p = node.predecessor();
@@ -3062,6 +3991,7 @@ public final boolean release(int arg) {
                             p.next = null;
                             failed = false;
                             // 还是需要获得锁后, 才能返回打断状态
+                          /
                             return interrupted;
                         }
                         if (
@@ -3198,6 +4128,24 @@ static final class NonfairSync extends Sync {
 
 每个条件变量其实就对应着一个等待队列，其实现类是 ConditionObject
 
+condition接口提供了一组监视器方法，可以和Lock配合实现等待通知模式，condition对象是由Lock对象创建出来的，也就是说condition对象依赖于kock对象。
+
+object也是一个对象监视器，一个对象拥有一个同步队列和等待队列
+
+并发包中的lock拥有一个同步队列和多个等待队列
+
+condition的实现是同步器的内部类
+
+下面我们可以看到，实现在同步器类中，因此每一个conditoin对象都可以访问同步器提供的方法，相当于condition对象都拥有所属同步器的引用。
+
+**Condition拥有的方法**
+
+![1621223132698](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/114534-658958.png)
+
+**继承关系**
+
+![1614081190784](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/23/195314-244438.png)
+
 #### await 流程
 
 - 开始 Thread-0 持有锁，调用 await，进入 ConditionObject 的 addConditionWaiter 流程
@@ -3263,7 +4211,7 @@ final boolean transferForSignal(Node node) {
 
 进入 ConditionObject 的 doSignal 流程，取得等待队列中第一个 Node，即 Thread-0 所在 Node
 
-![1610156397464](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610156397464.png)
+![1610156397464](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/11/152239-523521.png)
 
 执行 transferForSignal 流程，将该 Node 加入 AQS 队列尾部，将 Thread-0 的 waitStatus 改为 0，Thread-3 的
 waitStatus 改为 -1
@@ -3504,7 +4452,7 @@ public class ConditionObject implements Condition, java.io.Serializable {
 
 ## 读写锁
 
-ReentrantLock是一个排它锁，同一时刻只允许一个线程访问，而读写锁同一时刻允许多个线程访问，但是在写线程访问的时候，所有的其他读线程和写线程全部被阻塞，读写锁维护了一对锁，读锁和写锁。
+ReentrantLock是一个排它锁，同一时刻只允许一个线程访问，而读写锁同一时刻允许多个线程访问，但是在写线程访问的时候，所有的其他读线程和写线程全部被阻塞，读写锁维护了一对锁**，读锁和写锁。也叫做读写分离**。
 
 ###  ReentrantReadWriteLock
 
@@ -3518,16 +4466,22 @@ public class ReentrantReadWriteLock
 - 公平性选择
 - 重进入，读线程获取读锁后，可以再次获取读锁，写线程获取写锁后，可以再次获取写锁，同时也可以获取读锁。
 - 锁降级
+- 读写互斥，写写互斥，读读并发。
 
 当读操作远远高于写操作时，这时候使用 读写锁 让 读-读 可以并发，提高性能。 类似于数据库中的 select ...
 from ... lock in share mode
 
-提供一个 数据容器类 内部分别使用读锁保护数据的 read() 方法，写锁保护数据的 write() 方法
+提供一个 数据容器类，内部分别使用读锁保护数据的 read() 方法，写锁保护数据的 write() 方法
+
+**继承结构**
+
+![1620793807580](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/12/123011-955753.png)
 
 **多个线程读操作**
 
 ~~~ java
-public class Test {
+public class Test50 {
+
     public static void main(String[] args) {
         DataContainer data=new DataContainer();
 
@@ -3539,13 +4493,17 @@ public class Test {
             data.read();
         },"t2").start();
     }
-}
+
+    }
+
 class DataContainer{
     private Object data;
 
-//    创建一个读写锁
+    //    创建一个读写锁
     private ReentrantReadWriteLock reentrantReadWriteLock=new ReentrantReadWriteLock();
+//    获取读锁
     private ReentrantReadWriteLock.ReadLock r=reentrantReadWriteLock.readLock();
+//    获取写锁
     private ReentrantReadWriteLock.WriteLock w=reentrantReadWriteLock.writeLock();
 
     public Object read(){
@@ -3554,7 +4512,7 @@ class DataContainer{
         try {
             System.out.println(Thread.currentThread().getName()+"  读取数据.....");
             Thread.sleep(5);
-          return data;
+            return data;
         } catch (InterruptedException e) {
             e.printStackTrace();
         } finally {
@@ -3565,13 +4523,13 @@ class DataContainer{
     }
     public void write(){
         System.out.println(Thread.currentThread().getName()+"  获取写锁");
-       w.lock();
-       try{
-           System.out.println(Thread.currentThread().getName()+"  写入操作....");
-       }finally {
-           System.out.println(Thread.currentThread().getName()+"  释放写锁");
-           w.unlock();
-       }
+        w.lock();
+        try{
+            System.out.println(Thread.currentThread().getName()+"  写入操作....");
+        }finally {
+            System.out.println(Thread.currentThread().getName()+"  释放写锁");
+            w.unlock();
+        }
     }
 }
 ~~~
@@ -3594,7 +4552,6 @@ public class Test {
 
     }
 }
-
 
 class DataContainer{
     private Object data;
@@ -3637,9 +4594,9 @@ class DataContainer{
 
 > 多个线程读可以并发操作，有读有写是互斥操作。
 
-**注意事项**
+### **注意事项**
 
-- 读锁不支持条件变量
+- **读锁不支持条件变量**
 - 重入时升级不支持：即持有读锁的情况下去获取写锁，会导致获取写锁永久等待
 
 ~~~ java
@@ -3664,15 +4621,19 @@ class CachedData {
     Object data;
     // 是否有效，如果失效，需要重新计算 data
     volatile boolean cacheValid;
+  //获取读写锁
     final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
     void processCachedData() {
+      //首先添加读锁
         rwl.readLock().lock();
+      //判断缓存数据是否时效，如果时效，那么重新获取写锁，修改数据
         if (!cacheValid) {
             // 获取写锁前必须释放读锁
             rwl.readLock().unlock();
             rwl.writeLock().lock();
             try {
                 // 判断是否有其它线程已经获取了写锁、更新了缓存, 避免重复更新
+              //这里使用了双重检查
                 if (!cacheValid) {
                     data = ...
                     cacheValid = true;
@@ -3700,30 +4661,306 @@ class CachedData {
 
 读写锁用的是同一个 Sycn 同步器，因此等待队列、state 等也是同一个
 
+**t1 w.lockt2 r.lock**
+
+1. t1 成功上锁，流程与 ReentrantLock 加锁相比没有特殊之处，**不同是写锁状态占了 state 的低 16 位，而读锁使用的是 state 的高 16 位**
+
+![1610163372436](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/12/122846-445249.png)
+
 ~~~ java
-t1 w.lock，t2 r.lock
+//写锁的加锁方法，调用的是同步器的加锁方法
+public void lock() {
+            sync.acquire(1);
+}
+
+//使用的是队列同步器的加锁
+//aqs中的acquire()方法
+public final void acquire(int arg) {
+        if (!tryAcquire(arg) && acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+            selfInterrupt();
+    }
+
+//子类中尝试重写获取锁的方法
+protected final boolean tryAcquire(int acquires) {
+            Thread current = Thread.currentThread();
+            int c = getState();
+  //w表示的是写锁的部分
+            int w = exclusiveCount(c);
+  //c不是0，可能加了读锁，也可能是写锁
+            if (c != 0) {
+                // (Note: if c != 0 and w == 0 then shared count != 0)
+              //如果w==0，表示其他线程添加的是读锁，否则就是添加了写锁，那么就判断当前加写锁的线程是否和上次的线程是一个线程
+              //下面表示添加的是读锁，后半部分表示添加的写锁是否是自己添加的是，是否发生了重入
+                if (w == 0 || current != getExclusiveOwnerThread())
+                    return false;
+              //判断写锁的重入次数是否超过最大值
+                if (w + exclusiveCount(acquires) > MAX_COUNT)
+                    throw new Error("Maximum lock count exceeded");
+                // Reentrant acquire
+              //锁重入。写锁+1 
+                setState(c + acquires);
+                return true;
+            }
+  //也就是c==0
+  //首先判断写锁是否应该阻塞，第二个条件是使用cas设置加锁
+            if (writerShouldBlock() ||
+                !compareAndSetState(c, c + acquires))
+                return false;
+  //设置owner为当前的额线程
+            setExclusiveOwnerThread(current);
+            return true;
+        }
 ~~~
 
-t1 成功上锁，流程与 ReentrantLock 加锁相比没有特殊之处，不同是写锁状态占了 state 的低 16 位，而读锁
-使用的是 state 的高 16 位
+2. t2 执行 r.lock，这时进入读锁的 sync.acquireShared(1) 流程，首先会进入 tryAcquireShared 流程。如果有写锁占据，那么 tryAcquireShared 返回 -1 表示失败
 
-![1610163372436](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610163372436.png)
+> tryAcquireShared 返回值表示
+> -1 表示失败
+>
+> 0 表示成功，但后继节点不会继续唤醒
+> 正数表示成功，而且数值是还有几个后继节点需要唤醒，读写锁返回 1
 
+![1620795446425](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620795446425.png)
 
+~~~ java
+//读锁加锁的过程
+public void lock() {
+            sync.acquireShared(1);
+        }
+//尝试去获取读锁
+public final void acquireShared(int arg) {
+        if (tryAcquireShared(arg) < 0)
+          //如果返回-1，就会进入下面的方法
+            doAcquireShared(arg);
+    }
 
+//子类的实现
+protected final int tryAcquireShared(int unused) {
+          
+            Thread current = Thread.currentThread();
+            int c = getState();
+  //判断写锁部分是否为0，并且判断添加写锁的是否是当前线程，如果不是就返回-1
+            if (exclusiveCount(c) != 0 &&
+                getExclusiveOwnerThread() != current)
+                return -1;//这里返回表示失败
+            int r = sharedCount(c);
+            if (!readerShouldBlock() &&
+                r < MAX_COUNT &&
+                compareAndSetState(c, c + SHARED_UNIT)) {
+                if (r == 0) {
+                    firstReader = current;
+                    firstReaderHoldCount = 1;
+                } else if (firstReader == current) {
+                    firstReaderHoldCount++;
+                } else {
+                    HoldCounter rh = cachedHoldCounter;
+                    if (rh == null || rh.tid != getThreadId(current))
+                        cachedHoldCounter = rh = readHolds.get();
+                    else if (rh.count == 0)
+                        readHolds.set(rh);
+                    rh.count++;
+                }
+                return 1;
+            }
+            return fullTryAcquireShared(current);
+        }
+~~~
 
+3. 这时会进入 sync.doAcquireShared(1) 流程，首先也是调用 addWaiter 添加节点，不同之处在于节点被设置为Node.SHARED 模式而非 Node.EXCLUSIVE 模式，注意此时 t2 仍处于活跃状态
 
+![1620795943701](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/12/130546-265706.png)
 
+~~~ java
+private void doAcquireShared(int arg) {
+  //加入一个共享的线程节点
+  //向阻塞队列中添加一个节点之后，线程还处于活跃状态，因为下面自旋操作还没有被执行
+        final Node node = addWaiter(Node.SHARED);
+        boolean failed = true;
+        try {
+            boolean interrupted = false;
+            for (;;) {
+              //找插入节点的前驱节点
+                final Node p = node.predecessor();
+                if (p == head) {
+                  //如果前驱节点是头结点，那么他就有资格再次去争抢锁，所以下面方法再次去尝试获取锁
+                  //返回-1表示失败，返回+1表示成功
+                    int r = tryAcquireShared(arg);
+                  //如果换没有获取到锁，也就是返回-1，那么不会执行下面的if语句
+                    if (r >= 0) {
+                        setHeadAndPropagate(node, r);
+                        p.next = null; // help GC
+                        if (interrupted)
+                            selfInterrupt();
+                        failed = false;
+                        return;
+                    }
+                }
+              //是否应该阻塞线程，如果返回false的话，那么就会再一次执行循环操作，也就是自旋操作
+              //尝试获取锁，在这里会自旋3次然后会park()当前线程，阻塞
+                if (shouldParkAfterFailedAcquire(p, node) &&
+                    //阻塞当前线程
+                    parkAndCheckInterrupt())
+                    interrupted = true;
+            }
+        } finally {
+            if (failed)
+                cancelAcquire(node);
+        }
+    }
+~~~
 
+4. t2 会看看自己的节点是不是老二，如果是，还会再次调用 tryAcquireShared(1) 来尝试获取锁
+5. 如果没有成功，在 doAcquireShared 内 for (;;) 循环一次，把前驱节点的 waitStatus 改为 -1，再 for (;;) 循环一次尝试 tryAcquireShared(1) 如果还不成功，那么在 parkAndCheckInterrupt() 处 park
 
+**t3 r.lock，t4 w.lock**
 
+这种状态下，假设又有 t3 加读锁和 t4 加写锁，这期间 t1 仍然持有锁，就变成了下面的样子
 
+因为t2,t3添加的是读锁，所以状态是shared状态，而t4是写锁，所以是独占状态。
 
+并且t2,t3的waitstate是-1，表示有职责唤醒其后继的节点。
 
+![1620796362473](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/12/131308-89689.png)
 
+**t1 w.unlock**
 
+这时会走到写锁的 sync.release(1) 流程，调用 sync.tryRelease(1) 成功，变成下面的样子
 
+![1620867220119](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/13/085342-301400.png)
 
+~~~ java
+public void unlock() {
+            sync.release(1);
+        }
+
+ public final boolean release(int arg) {
+        if (tryRelease(arg)) {
+            Node h = head;
+          //判断头结点是否是空和waitstate是否为0 此时为-1
+            if (h != null && h.waitStatus != 0)
+              //唤醒其后继节点
+                unparkSuccessor(h);
+            return true;
+        }
+        return false;
+    }
+
+   protected final boolean tryRelease(int releases) {
+            if (!isHeldExclusively())
+                throw new IllegalMonitorStateException();
+     //因为是重入锁，所以需要-1
+            int nextc = getState() - releases;
+     //判断锁的重入次数是否是0
+            boolean free = exclusiveCount(nextc) == 0;
+            if (free)
+                setExclusiveOwnerThread(null);
+            setState(nextc);
+            return free;
+        }
+~~~
+
+接下来执行唤醒流程 sync.unparkSuccessor，即让老二恢复运行，这时 t2 在 doAcquireShared 内
+parkAndCheckInterrupt() 处恢复运行
+
+这回再来一次 for (;;) 执行 tryAcquireShared 成功则让读锁计数加一
+
+![1620867701072](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/13/090143-818838.png)
+
+这时 t2 已经恢复运行，接下来 t2 调用 setHeadAndPropagate(node, 1)，它原本所在节点被置为头节点
+
+![1620868029551](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620868029551.png)
+
+事情还没完，在 setHeadAndPropagate 方法内还会检查下一个节点是否是 shared，如果是则调用
+doReleaseShared() 将 head 的状态从 -1 改为 0 并唤醒老二，这时 t3 在 doAcquireShared 内
+parkAndCheckInterrupt() 处恢复运行
+
+![1620868071976](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/13/090802-621575.png)
+
+这回再来一次 for (;;) 执行 tryAcquireShared 成功则让读锁计数加一
+
+![1620868103949](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/125226-269240.png)
+
+这时 t3 已经恢复运行，接下来 t3 调用 setHeadAndPropagate(node, 1)，它原本所在节点被置为头节点
+
+![1620868132814](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620868132814.png)
+
+下一个节点不是 shared 了，因此不会继续唤醒 t4 所在节点
+
+**t2 r.unlock，t3 r.unlock**
+
+t2 进入 sync.releaseShared(1) 中，调用 tryReleaseShared(1) 让计数减一，但由于计数还不为零
+
+![1621227965223](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621227965223.png)
+
+t3 进入 sync.releaseShared(1) 中，调用 tryReleaseShared(1) 让计数减一，这回计数为零了，进入
+doReleaseShared() 将头节点从 -1 改为 0 并唤醒老二，即
+
+![1621228011863](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/130709-806611.png)
+
+之后 t4 在 acquireQueued 中 parkAndCheckInterrupt 处恢复运行，再次 for (;;) 这次自己是老二，并且没有其他
+竞争，tryAcquire(1) 成功，修改头结点，流程结束
+
+![1621228041588](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/130744-97131.png)
+
+**源码**
+
+~~~ java
+static final class NonfairSync extends Sync {
+ 
+ // ReadLock 方法, 方便阅读, 放在此处
+ public void unlock() {
+ sync.releaseShared(1);
+ }
+ 
+ // AQS 继承过来的方法, 方便阅读, 放在此处
+ public final boolean releaseShared(int arg) {
+ if (tryReleaseShared(arg)) {
+ doReleaseShared();
+ return true;
+ }
+ return false;
+ }
+ 
+ // Sync 继承过来的方法, 方便阅读, 放在此处
+ protected final boolean tryReleaseShared(int unused) {
+ // ... 省略不重要的代码
+ for (;;) {
+ int c = getState();
+ int nextc = c - SHARED_UNIT;
+ if (compareAndSetState(c, nextc)) {
+ // 读锁的计数不会影响其它获取读锁线程, 但会影响其它获取写锁线程
+ // 计数为 0 才是真正释放
+ return nextc == 0;
+ }
+}
+ }
+ 
+ // AQS 继承过来的方法, 方便阅读, 放在此处
+ private void doReleaseShared() {
+ // 如果 head.waitStatus == Node.SIGNAL ==> 0 成功, 下一个节点 unpark
+ // 如果 head.waitStatus == 0 ==> Node.PROPAGATE
+ for (;;) {
+ Node h = head;
+ if (h != null && h != tail) {
+ int ws = h.waitStatus;
+ // 如果有其它线程也在释放读锁，那么需要将 waitStatus 先改为 0
+ // 防止 unparkSuccessor 被多次执行
+ if (ws == Node.SIGNAL) {
+ if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+ continue; // loop to recheck cases
+ unparkSuccessor(h);
+ }
+ // 如果已经是 0 了，改为 -3，用来解决传播性，见后文信号量 bug 分析
+ else if (ws == 0 &&
+ !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+ continue; // loop on failed CAS
+ }
+ if (h == head) // loop if head changed
+ break;
+ }
+ } 
+}
+~~~
 
 ###  StampedLock(读锁)
 
@@ -3731,7 +4968,9 @@ t1 成功上锁，流程与 ReentrantLock 加锁相比没有特殊之处，不�
 **加解读锁**
 
 ~~~ java
+//加锁返回的是一个时间戳
 long stamp = lock.readLock();
+//解锁时候必须割据获取锁时候的时间戳进行解锁
 lock.unlockRead(stamp);
 ~~~
 
@@ -3739,6 +4978,7 @@ lock.unlockRead(stamp);
 
 ~~~ java
 long stamp = lock.writeLock();
+//根据时间戳进行解锁
 lock.unlockWrite(stamp);
 ~~~
 
@@ -3746,9 +4986,9 @@ lock.unlockWrite(stamp);
 过，表示这期间确实没有写操作，数据可以安全使用，如果校验没通过，需要重新获取读锁，保证数据安全。
 
 ~~~ java
-long stamp = lock.tryOptimisticRead();//底层实现不会真的加锁
+long stamp = lock.tryOptimisticRead();//底层实现不会真的加锁，返回一个时间戳
 // 验戳
-if(!lock.validate(stamp)){
+if(!lock.validate(stamp)){//验证读锁
  // 锁升级
 }
 ~~~
@@ -3758,19 +4998,22 @@ if(!lock.validate(stamp)){
 ~~~ java
 class DataContainerStamped {
     private int data;
+  //读写锁
     private final StampedLock lock = new StampedLock();
     public DataContainerStamped(int data) {
         this.data = data;
     }
     public int read(int readTime) {
+      //加写锁
         long stamp = lock.tryOptimisticRead();
         log.debug("optimistic read locking...{}", stamp);
         sleep(readTime);
+      //验证时间戳，如果验证通过，那么可以直接返回数据
         if (lock.validate(stamp)) {
             log.debug("read finish...{}, data:{}", stamp, data);
             return data;
         }
-        // 锁升级 - 读锁
+        // 锁升级 - 读锁，验证失败，锁升级，升级为读锁，从乐观读锁到读锁的升级
         log.debug("updating to read lock... {}", stamp);
         try {
             stamp = lock.readLock();
@@ -3784,6 +5027,7 @@ class DataContainerStamped {
         }
     }
     public void write(int newData) {
+      //加写锁
         long stamp = lock.writeLock();
         log.debug("write lock {}", stamp);
         try {
@@ -3810,7 +5054,7 @@ class DataContainerStamped {
             dataContainer.read(0);
         }, "t2").start();
     }
-//从输出结果看，实际上是没有加锁的
+//从输出结果看，实际上是没有加锁的，乐观读锁，实际上就是没有真正的加锁
 15:58:50.217 c.DataContainerStamped [t1] - optimistic read locking...256
 15:58:50.717 c.DataContainerStamped [t2] - optimistic read locking...256
 15:58:50.717 c.DataContainerStamped [t2] - read finish...256, data:1
@@ -3822,6 +5066,7 @@ class DataContainerStamped {
 ~~~ java
  public static void main(String[] args) {
         DataContainerStamped dataContainer = new DataContainerStamped(1);
+
         new Thread(() -> {
             dataContainer.read(1);
         }, "t1").start();
@@ -3845,27 +5090,21 @@ class DataContainerStamped {
 
 ## LockSupport
 
-locksupport定义了一组公共的静态方法，这些方法用来对线程进行操作。、
+locksupport定义了一组公共的静态方法，这些方法用来对线程进行操作。
 
-## Condition接口
-
-![1614080480842](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614080480842.png)
-
-condition接口提供了一组监视器方法，可以和Lock配合实现等待通知模式，condition对象是由Lock对象创建出来的，也就是说condition对象依赖于kock对象。
-
-object也是一个对象监视器，一个对象拥有一个同步队列和等待队列
-
-并发包中的lock拥有一个同步队列和多个等待队列
-
-condition的实现是同步器的内部类
-
-下面我们可以看到，实现在同步器类中，因此每一个conditoin对象都可以访问同步器提供的方法，相当于condition对象都拥有所属同步器的引用。
-
-![1614081190784](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/23/195314-244438.png)
+![1621223544068](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/17/115226-481486.png)
 
 ## Semaphore
 
- 信号量，用来限制能同时访问共享资源的线程上限
+ **信号量，用来限制能同时访问共享资源的线程上限**，多个共享资源。
+
+**源码**
+
+~~~java
+public class Semaphore implements java.io.Serializable{}
+~~~
+
+**案例**
 
 ~~~ java
 public class SemaphoreTest {
@@ -3875,7 +5114,7 @@ public class SemaphoreTest {
 //        启动10个线程
         for (int i = 0; i <10 ; i++) {
             new Thread(()->{
-//                首先获取许可
+//                首先获取许可，许可数会-1
                 try {
                     semaphore.acquire();
                 } catch (InterruptedException e) {
@@ -3888,7 +5127,7 @@ public class SemaphoreTest {
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }finally {
-//                    释放锁
+//                    释放锁，许可会+1
                     semaphore.release();
                 }
             }).start();
@@ -3905,12 +5144,135 @@ Semaphore 有点像一个停车场，permits 就好像停车位数量，当线�
 
 刚开始，permits（state）为 3，这时 5 个线程来获取资源
 
+~~~ java
+//构造方法
+public Semaphore(int permits) {
+        sync = new NonfairSync(permits);
+    }
+//同步器类，调用的是父类的构造方法
+NonfairSync(int permits) {
+            super(permits);
+        }
+//父类的构造方法
+Sync(int permits) {
+            setState(permits);
+        }
+//可以看到，其实就是把3赋值给aqs的state变量
+protected final void setState(int newState) {
+        state = newState;
+    }
+
+~~~
+
 ![1610183072614](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/09/170437-561568.png)
 
 假设其中 Thread-1，Thread-2，Thread-4 cas 竞争成功，而 Thread-0 和 Thread-3 竞争失败，进入 AQS 队列
 park 阻塞
 
+~~~ java
+//获取锁的方法
+public void acquire(int permits) throws InterruptedException {
+        if (permits < 0) throw new IllegalArgumentException();
+        sync.acquireSharedInterruptibly(permits);
+    }
+//调用的是同步器的方法
+public final void acquireSharedInterruptibly(int arg)
+            throws InterruptedException {
+        if (Thread.interrupted())
+            throw new InterruptedException();
+  //这里是尝试获取锁，返回数小于0，说明获取锁失败
+        if (tryAcquireShared(arg) < 0)
+            doAcquireSharedInterruptibly(arg);
+    }
+protected int tryAcquireShared(int acquires) {
+            return nonfairTryAcquireShared(acquires);
+        }
+final int nonfairTryAcquireShared(int acquires) {
+            for (;;) {
+                int available = getState();
+              //剩余的资源数量
+                int remaining = available - acquires;
+                if (remaining < 0 ||
+                    compareAndSetState(available, remaining))
+                  //如果剩余资源个数小于0，那么就不会执行或运算后面的运算，会直接返回剩余的资源数量
+                  //也就是进入doAcquireSharedInterruptibly(arg);方法
+                    return remaining;
+            }
+        }
+private void doAcquireSharedInterruptibly(int arg)
+        throws InterruptedException {
+  //创建一个节点
+        final Node node = addWaiter(Node.SHARED);
+        boolean failed = true;
+        try {
+            for (;;) {
+              //找到头结点
+                final Node p = node.predecessor();
+                if (p == head) {
+                  //如果前驱是头结点，那么此时前驱节点的后继才有可能去竞争锁
+                    int r = tryAcquireShared(arg);
+                    if (r >= 0) {
+                        setHeadAndPropagate(node, r);
+                        p.next = null; // help GC
+                        failed = false;
+                        return;
+                    }
+                }
+              //如果上面资源少于0,那么线程会在这里阻塞
+                if (shouldParkAfterFailedAcquire(p, node) &&
+                    parkAndCheckInterrupt())
+                    throw new InterruptedException();
+            }
+        } finally {
+            if (failed)
+                cancelAcquire(node);
+        }
+    }
+~~~
+
 ![1610183118418](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1610183118418.png)
+
+#### 释放锁
+
+~~~ java
+ //调用释放锁的方法
+public void release() {
+        sync.releaseShared(1);
+    }
+public final boolean releaseShared(int arg) {
+  //尝试释放锁，如果成功，就返回true
+        if (tryReleaseShared(arg)) {
+            doReleaseShared();
+            return true;
+        }
+        return false;
+    }
+
+ private void doReleaseShared() {
+     
+        for (;;) {
+          //获取头结点
+            Node h = head;
+            if (h != null && h != tail) {
+              //获取头结点的状态
+                int ws = h.waitStatus;
+                if (ws == Node.SIGNAL) {//SIGNAL=-1
+                  //使用cas设置状态为0
+                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+                        continue;            // loop to recheck cases
+                  //下面方法会唤醒后继节点
+                    unparkSuccessor(h);
+                }
+                else if (ws == 0 &&
+                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+                    continue;                // loop on failed CAS
+            }
+            if (h == head)                   // loop if head changed
+                break;
+        }
+    }
+
+~~~
 
 这时 Thread-4 释放了 permits，状态如下
 
@@ -3921,7 +5283,7 @@ park 阻塞
 
 ![1610183190149](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/09/170736-801231.png)
 
-### 源码解读
+### Acquire原理
 
 ~~~ java
 static final class NonfairSync extends Sync {
@@ -4025,9 +5387,285 @@ static final class NonfairSync extends Sync {
 }
 ~~~
 
+## CountdownLatch
+
+用来进行线程同步协作，等待所有线程完成倒计时。
+其中构造参数用来初始化等待计数值，await() 用来等待计数归零，countDown() 用来让计数减一
+
+**源码**
+
+~~~ java
+public class CountDownLatch {}
+~~~
+
+**案例**
+
+~~~ java
+public class Test51 {
+
+    public static void main(String[] args) throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(3);
+
+        new Thread(() -> {
+            System.out.println(Thread.currentThread().getName()+"  begin...");
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            latch.countDown();
+            System.out.println(Thread.currentThread().getName()+latch.getCount());
+        }).start();
+
+        new Thread(() -> {
+            System.out.println(Thread.currentThread().getName()+"  begin...");
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            latch.countDown();
+            System.out.println(Thread.currentThread().getName()+latch.getCount());
+        }).start();
+
+        new Thread(() -> {
+            System.out.println(Thread.currentThread().getName()+"  begin...");
+            try {
+                Thread.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            latch.countDown();
+            System.out.println(Thread.currentThread().getName()+latch.getCount());
+        }).start();
+
+        System.out.println(Thread.currentThread().getName()+"  waiting...");
+        latch.await();
+        System.out.println(Thread.currentThread().getName()+"  wait end...");
+
+    }
+}
+
+~~~
+
+### 配合线程池
+
+~~~ java
+public class Test52 {
+
+    public static void main(String[] args) {
+        ExecutorService executorService = Executors.newFixedThreadPool(4);
+        CountDownLatch latch = new CountDownLatch(3);
+
+        executorService.submit(() -> {
+            System.out.println(Thread.currentThread().getName()+"  begin...");
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            latch.countDown();
+            System.out.println(Thread.currentThread().getName()+latch.getCount());
+        });
+        executorService.submit(() -> {
+            System.out.println(Thread.currentThread().getName()+"  begin...");
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            latch.countDown();
+            System.out.println(Thread.currentThread().getName()+latch.getCount());
+        });
+        executorService.submit(() -> {
+            System.out.println(Thread.currentThread().getName()+"  begin...");
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            latch.countDown();
+            System.out.println(Thread.currentThread().getName()+latch.getCount());
+        });
+        executorService.submit(() -> {
+//            最后一个任务等待前面的任务完成
+            try {
+                System.out.println(Thread.currentThread().getName()+"  waiting...");
+                latch.await();
+                System.out.println(Thread.currentThread().getName()+"  wait end...");
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+} 
+~~~
+
+### 模拟游戏加载
+
+~~~ java
+public class Test53 {
+
+    public static void main(String[] args) throws InterruptedException {
+
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        CountDownLatch countDownLatch = new CountDownLatch(10);
+        String []all = new String[10];
+//        添加随机睡眠时间
+        Random random = new Random();
+
+        for (int j = 0; j <10; j++) {
+            final int num=j;
+            executorService.submit(()->{
+                for (int i = 0; i <=100; i++) {
+                    try {
+                        Thread.sleep(random.nextInt(100));
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+//                    lambda只能引用局部的常量，不可以引用局部的变量
+                    all[num]=i+"%";
+//            "\r"表示覆盖掉上一次的结果
+                    System.out.print("\r"+Arrays.toString(all));
+
+                }
+                countDownLatch.countDown();
+            });
+        }
+
+//        等待所有的玩家都结束，就开始启动游戏
+        countDownLatch.await();
+        System.out.println("\n游戏加载结束");
+
+        executorService.shutdown();
+    }
+}
+~~~
+
+## CyclicBarrier
+
+循环栅栏，用来进行线程协作，等待线程满足某个计数。构造时设置『计数个数』，每个线程执
+行到某个需要“同步”的时刻调用 await() 方法进行等待，当等待的线程数满足『计数个数』时，继续执行
+
+**案例**
+
+~~~ java
+public class Test54 {
+
+    public static void main(String[] args) throws InterruptedException {
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        CountDownLatch countDownLatch = new CountDownLatch(2);
+
+        for (int i = 0; i <3; i++) {
+            executorService.submit(()->{
+                System.out.println(Thread.currentThread().getName()+"  start");
+                try {
+                    Thread.sleep(1000);
+                    countDownLatch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            },"t1");
+            executorService.submit(()->{
+                System.out.println(Thread.currentThread().getName()+"  start");
+                try {
+                    Thread.sleep(1000);
+                    countDownLatch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            },"t2");
+
+//            主线程在这里等待
+            countDownLatch.await();
+        }
+
+        executorService.shutdown();
+    }
+}
+
+~~~
+
+- 可以看到使用countDownLatch可以完成上面的 功能，多次循环定时任务。但是也存在问题，就是每循环一次，countDownLatch对象也会被创建一次。并且countDownLatch对象也不可以被重置。
+
+**下面使用CyclicBarrier进行改进**
+
+最大的好处是可以重新设置值。
+
+~~~ java
+public class Test55 {
+
+    public static void main(String[] args) {
 
 
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+//        第二个参数是定时任务
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(2,()->{
+            System.out.println("task is over");
+        });
 
+        for (int i = 0; i <3; i++) {
+            executorService.submit(()->{
+                System.out.println(Thread.currentThread().getName()+" starting...");
+                try {
+                    Thread.sleep(1000);
+//                下面方法每一次都会-1
+                    cyclicBarrier.await();
+                    System.out.println(Thread.currentThread().getName()+" ending...");
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+            });
+            executorService.submit(()->{
+                System.out.println(Thread.currentThread().getName()+" starting...");
+                try {
+                    Thread.sleep(3000);
+//                下面方法每一次都会-1
+                    cyclicBarrier.await();
+                    System.out.println(Thread.currentThread().getName()+" ending...");
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+    }
+}
+//上面设置的线程个数和任务的个数不一致，运行下面结果发现第一次运行启动很多个任务，如果这样的话，每一个任务运行时间是不一样的，可能多个运行时间短的线程先把计数器减为0，
+pool-1-thread-1 starting...
+pool-1-thread-2 starting...
+pool-1-thread-3 starting...
+pool-1-thread-4 starting...
+pool-1-thread-5 starting...
+task is over
+pool-1-thread-3 ending...
+pool-1-thread-5 ending...
+pool-1-thread-3 starting...
+task is over
+pool-1-thread-4 ending...
+pool-1-thread-1 ending...
+task is over
+pool-1-thread-3 ending...
+pool-1-thread-2 ending...
+//如果线程个数和任务个数保持一致
+pool-1-thread-1 starting...
+pool-1-thread-2 starting...
+task is over
+pool-1-thread-2 ending...
+pool-1-thread-1 ending...
+pool-1-thread-2 starting...
+pool-1-thread-1 starting...
+task is over
+pool-1-thread-1 ending...
+pool-1-thread-2 ending...
+pool-1-thread-2 starting...
+pool-1-thread-1 starting...
+task is over
+pool-1-thread-2 ending...
+pool-1-thread-1 ending...
+
+~~~
+
+> 线程的数量和任务的数量最好保持一致。
 
 ## 线程安全集合类
 
@@ -4069,12 +5707,4 @@ HashTable是map的实现，Vector是List的实现。
 
 > 遍历时如果发生了修改，对于非安全容器来讲，使用 fail-fast 机制也就是让遍历立刻失败，抛出
 > ConcurrentModificationException，不再继续遍历
-
-### ConcurrentHashMap原理
-
-HashMap在jdk7中插入节点使用的是头插法，而在jdk8中使用的是尾插法插入元素。
-
-#### hashMap7中多线程访问并发死链问题
-
-在jdk8中没有并发死链问题。
 
