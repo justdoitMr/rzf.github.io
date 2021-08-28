@@ -1,6 +1,6 @@
 👋 专注大数据技术，如果您是一名大数据技术的初学者，那么这份资料可以很快的帮助你入门，让您少走弯路，如果您已经有大数据开发基础，或许这份资料可以让您对大数据领域的各个框架原理有更深入的理解，不管您是用来学习，还是用来面试，都会对您有很大的收获！
 
-## Java
+## JAVA
 
 ### 基础
 
@@ -12,7 +12,7 @@
 
 [多线程二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BA%8C.md)
 
-### JVM
+## JVM
 
 [概述—类加载](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E6%A6%82%E8%BF%B0_%E7%B1%BB%E5%8A%A0%E8%BD%BD.md)
 
