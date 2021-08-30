@@ -8,6 +8,7 @@
 
 1. [java基础知识](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%20.md)
 2. [java基础知识疑难点](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E7%96%91%E9%9A%BE%E7%82%B9.md)
+3. [java常用关键字总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%B8%B8%E8%A7%81%E5%85%B3%E9%94%AE%E5%AD%97%E6%80%BB%E7%BB%93.md)
 
 #### 多线程:(重难点👍)
 
