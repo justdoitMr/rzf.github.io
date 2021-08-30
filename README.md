@@ -4,7 +4,7 @@
 
 ### 基础
 
-[java基础]()
+[java基础知识](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%20.md)
 
 ### 多线程
 
