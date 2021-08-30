@@ -8,13 +8,13 @@
 
 1. [java基础知识](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%20.md)
 
-#### 多线程
+#### 多线程:(重难点👍)
 
 1. [多线程一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%80%20.md)
 
 2. [多线程二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BA%8C.md)
 
-#### JVM
+#### JVM:(重点👍)
 
 1. [概述—类加载](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E6%A6%82%E8%BF%B0_%E7%B1%BB%E5%8A%A0%E8%BD%BD.md)
 2. [方法区](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E6%96%B9%E6%B3%95%E5%8C%BA.md)
