@@ -7,6 +7,7 @@
 #### 基础知识点/面试重难点:(重点看👍)
 
 1. [java基础知识](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%20.md)
+2. [java基础知识疑难点](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E7%96%91%E9%9A%BE%E7%82%B9.md)
 
 #### 多线程:(重难点👍)
 
