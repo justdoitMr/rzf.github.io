@@ -1,3 +1,7 @@
+> 本文来自公众号：末读代码的投稿，原文地址：https://mp.weixin.qq.com/s/AHWzboztt53ZfFZmsSnMSw  。
+
+
+
 ## 1. ConcurrentHashMap 1.7
 
 不使用HashMap是因为在多线程情况下会形成环形数据结构，不使用HashTable是因为使用的是重量级锁，效率比较低。
@@ -414,9 +418,25 @@ public V get(Object key) {
 
 ## 2. ConcurrentHashMap 1.8
 
+### **原理**
+
+LinkedHashMap 继承自 HashMap，所以它的底层仍然是基于拉链式散列结构。该结构由数组和链表或红黑树组成。其大致结构如下：
+
+![1630480364953](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/01/151255-264772.png)
+
+LinkedHashMap 在上面结构的基础上，增加了一条双向链表，使得上面的结构可以保持键值对的插入顺序。同时通过对链表进行相应的操作，实现了访问顺序相关逻辑。其结构可能如下图：
+
+![1630480593937](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/01/151634-29151.png)
+
+上图中，淡蓝色的箭头表示前驱引用，红色箭头表示后继引用。每当有新键值对节点插入，新节点最终会接在 tail 引用指向的节点后面。而 tail 引用则会移动到新的节点上，这样一个双向链表就建立起来了。也就是说插入节点使用的是尾插发。
+
+### Entry 的继承体系
+
+![1630480809459](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/01/152009-323069.png)
+
 ### 1. 存储结构
 
-![Java8 ConcurrentHashMap 存储结构（图片来自 javadoop）](./images/java8_concurrenthashmap.png)
+![Java8 ConcurrentHashMap 存储结构(图片来自 javadoop)](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/01/145042-795800.png)
 
 可以发现 Java8 的 ConcurrentHashMap  相对于 Java7 来说变化比较大，不再是之前的 **Segment 数组 + HashEntry 数组 + 链表**，而是 **Node 数组 + 链表 / 红黑树**。当冲突链表达到一定长度时，链表会转换成红黑树。
 
