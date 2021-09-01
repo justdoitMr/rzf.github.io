@@ -350,6 +350,161 @@ final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
 }
 ```
 
+插入元素分析
+
+~~~ java
+//root:红黑树根节点，x:代表将要插入的节点
+static <K,V> TreeNode<K,V> balanceInsertion(TreeNode<K,V> root,
+                                                    TreeNode<K,V> x) {
+  //新插入的节点，作为红色插入
+            x.red = true;
+  //xp:新节点的父节点，xpp:新节点的祖父节点，xppl：表示xpp的左孩子节点，xppr:xpp的右孩子节点
+            for (TreeNode<K,V> xp, xpp, xppl, xppr;;) {
+              //判断新插入节点的父节点是否是空，如果是空，那么当前节点作为根节点插入
+                if ((xp = x.parent) == null) {
+                    x.red = false;
+                    return x;
+                }
+              //父节点是黑色节点，或者说祖父节点是空，那么直接插入，不用做其他操作，也就是说插入节点的父节点现在是根节点
+                else if (!xp.red || (xpp = xp.parent) == null)
+                    return root;
+              //带插入节点的父节点是其祖父节点的左孩子
+                if (xp == (xppl = xpp.left)) {
+                  1 第一处调整
+                  //父节点的兄弟节点不是空，并且是红色节点
+                    if ((xppr = xpp.right) != null && xppr.red) {
+                      //兄弟节点变为黑色
+                        xppr.red = false;
+                      //当前节点的父节点变为黑色
+                        xp.red = false;
+                      //祖父节点变为红色
+                        xpp.red = true;
+                      //祖父节点作为当前新插入节点继续调节
+                        x = xpp;
+                    }
+                    else {
+                      //父节点的兄弟节点是空或者有兄弟节点但是颜色是黑色
+                      //当前节点是作为父节点的右孩子插入
+                        if (x == xp.right) {
+                          //先做左旋操作，x=xp代表当前是哪一个节点旋转
+                            root = rotateLeft(root, x = xp);
+                          //判断当前节点的父节点是否是空
+                            xpp = (xp = x.parent) == null ? null : xp.parent;
+                        }
+                      //右旋操作，当前节点的额父节点不空
+                        if (xp != null) {
+                          //当前节点父节点修改为黑色
+                            xp.red = false;
+                          //当前节点的祖父节点不空
+                            if (xpp != null) {
+                              //修改当前节点的祖父节点为红色
+                                xpp.red = true;
+                              //做右旋操作
+                                root = rotateRight(root, xpp);
+                            }
+                        }
+                    }
+                }
+                else {
+                  2 第二处调整
+                  //当前节点的兄弟节点不是空并且是红色节点
+                    if (xppl != null && xppl.red) {
+                      //父亲节点的兄弟节点修改为黑色
+                        xppl.red = false;
+                      //当前节点的父节点修改为黑色
+                        xp.red = false;
+                      //当前节点的祖父节点修改为红色
+                        xpp.red = true;
+                      //祖父节点作为当前节点递归调整
+                        x = xpp;
+                    }
+                    else {
+                      //当前插入节点是父节点的左孩子接地那
+                        if (x == xp.left) {
+                          //先做右旋操作
+                            root = rotateRight(root, x = xp);
+                            xpp = (xp = x.parent) == null ? null : xp.parent;
+                        }
+                      //左旋操作
+                        if (xp != null) {
+                            xp.red = false;
+                            if (xpp != null) {
+                                xpp.red = true;
+                                root = rotateLeft(root, xpp);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+~~~
+
+上面标注的两处调整是相互对应的
+
+第一处的调整，对应的原树结构是：
+
+![1610350269960](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/153118-338306.png)
+
+左旋后的结构
+
+![1610348659313](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/150421-664391.png)
+
+右旋后的结构
+
+![1610349602806](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/152004-741855.png)
+
+同样对于第二种调整原树结构
+
+![1610349747421](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/152229-666852.png)
+
+右旋后的结果
+
+![1610350672526](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/01/135408-648544.png)
+
+然后在左旋
+
+![1610350765945](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/153927-661676.png)
+
+### 左旋操作
+
+~~~ java
+static <K,V> TreeNode<K,V> rotateLeft(TreeNode<K,V> root,//根节点
+                                              TreeNode<K,V> p) {//待左旋的节点
+            TreeNode<K,V> r, pp, rl;
+   //节点p不是空节点，并且节点r是p节点的右2孩子
+            if (p != null && (r = p.right) != null) {
+              //把节点r 的左孩子赋值给p节点的右孩子
+                if ((rl = p.right = r.left) != null)
+                  //r1节点的父节点是p节点
+                    rl.parent = p;
+              //把节点p的父节点赋值给R节点的父节点，也就是说P节点的父节点是空
+                if ((pp = r.parent = p.parent) == null)
+                  //那么r节点就是root节点，修改颜色为黑色
+                    (root = r).red = false;
+              //判断pp节点，也就是P节点是否是pp节点的左孩子，如果是的话，就把pp节点的左孩子修改为r节点
+                else if (pp.left == p)
+                    pp.left = r;
+                else
+                  //否则就把pp节点的右孩子修改为节点r
+                    pp.right = r;
+              //修改r节点的左孩子为p节点，p节点的父节点是r节点
+                r.left = p;
+                p.parent = r;
+            }
+            return root;
+        }
+~~~
+
+**图解**
+
+![1610348195198](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/145636-686641.png)
+
+旋转后如下图
+
+![1610348585191](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/11/150406-8451.png)
+
+右旋和左旋是对称的。
+
 **我们再来对比一下 JDK1.7 put 方法的代码**
 
 **对于 put 方法的分析如下：**
@@ -381,6 +536,40 @@ public V put(K key, V value)
     return null;
 }
 ```
+
+### treeifyBin()
+
+~~~ JAVA
+//tab：当前的哈希表
+//hash:当前待插入节点的hash值
+final void treeifyBin(Node<K,V>[] tab, int hash) {
+        int n, index; Node<K,V> e;
+  //判断哈希表是否是空，或者数组的长度是否达到最大值，如果没有达到最大值，那么扩容操作也可以使链表的长度变短
+        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
+            resize();//可以初始化数组，也可以进行扩容
+  //如果上面条件不成立，下面才会转化为红黑树，是二选一的操作
+ //判断待插入元素的插入位置是否是空 
+        else if ((e = tab[index = (n - 1) & hash]) != null) {
+            TreeNode<K,V> hd = null, tl = null;
+            do {
+              //创建一个红黑树的节点
+              //下面操作表示把节点类型修改为红黑树节点类型，然后在修改为双向链表
+                TreeNode<K,V> p = replacementTreeNode(e, null);
+                if (tl == null)
+                    hd = p;
+                else {
+                    p.prev = tl;
+                    tl.next = p;
+                }
+                tl = p;
+            } while ((e = e.next) != null);
+          //hd是双向链表的头结点，
+            if ((tab[index] = hd) != null)
+              //基于头结点转化为红黑树
+                hd.treeify(tab);
+        }
+    }
+~~~
 
 ### get 方法
 
