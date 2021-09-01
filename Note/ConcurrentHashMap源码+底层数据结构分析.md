@@ -1,7 +1,3 @@
-> 本文来自公众号：末读代码的投稿，原文地址：https://mp.weixin.qq.com/s/AHWzboztt53ZfFZmsSnMSw  。
-
-
-
 ## 1. ConcurrentHashMap 1.7
 
 不使用HashMap是因为在多线程情况下会形成环形数据结构，不使用HashTable是因为使用的是重量级锁，效率比较低。
