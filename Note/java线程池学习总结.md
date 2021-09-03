@@ -388,7 +388,7 @@ pool-1-thread-2 End. Time = Sun Apr 12 11:14:47 CST 2020
 
 通过下图可以更好的对上面这 3 步做一个展示，下图是我为了省事直接从网上找到，原地址不明。
 
-![图解线程池实现原理](images/java线程池学习总结/图解线程池实现原理.png)
+![1630656913568](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/03/161515-811529.png)
 
 
 
