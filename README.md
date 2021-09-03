@@ -29,7 +29,7 @@
 3. [Java并发基础常见面试题总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%BB%E7%BB%93.md)
 4. [AQS原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/AQS%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8AAQS%E5%90%8C%E6%AD%A5%E7%BB%84%E4%BB%B6%E6%80%BB%E7%BB%93.md)
 5. [Atomic原子类介绍](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Atomic%E5%8E%9F%E5%AD%90%E7%B1%BB%E6%80%BB%E7%BB%93.md)
-6. 
+6. [Java线程池总总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93.md)
 
 #### JVM:(重点👍)
 
