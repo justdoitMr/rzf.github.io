@@ -1,5 +1,3 @@
-> 本文来自公众号：末读代码的投稿，原文地址：https://mp.weixin.qq.com/s/AHWzboztt53ZfFZmsSnMSw  。
-
 
 
 ## 1. ConcurrentHashMap 1.7
