@@ -27,6 +27,7 @@
 1. [多线程一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%80%20.md)
 2. [多线程二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BA%8C.md)
 3. [Java并发基础常见面试题总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%BB%E7%BB%93.md)
+4. [AQS原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/AQS%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8AAQS%E5%90%8C%E6%AD%A5%E7%BB%84%E4%BB%B6%E6%80%BB%E7%BB%93.md)
 
 #### JVM:(重点👍)
 
