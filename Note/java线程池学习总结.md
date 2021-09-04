@@ -705,7 +705,7 @@ Wed Nov 13 13:40:43 CST 2019::pool-1-thread-5
 
 `FixedThreadPool` 的 `execute()` 方法运行示意图（该图片来源：《Java 并发编程的艺术》）：
 
-![FixedThreadPool的execute()方法运行示意图](images/java线程池学习总结/FixedThreadPool.png)
+![FixedThreadPool的execute()方法运行示意图](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/04/153307-402253.png)
 
 **上图说明：**
 
@@ -755,7 +755,7 @@ Wed Nov 13 13:40:43 CST 2019::pool-1-thread-5
 #### 5.2.2 执行任务过程介绍
 
 **`SingleThreadExecutor` 的运行示意图（该图片来源：《Java 并发编程的艺术》）：**
-![SingleThreadExecutor的运行示意图](images/java线程池学习总结/SingleThreadExecutor.png)
+![SingleThreadExecutor的运行示意图](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/04/153334-485199.png)
 
 **上图说明;**
 
@@ -799,7 +799,7 @@ Wed Nov 13 13:40:43 CST 2019::pool-1-thread-5
 #### 5.3.2 执行任务过程介绍
 
 **CachedThreadPool 的 execute()方法的执行示意图（该图片来源：《Java 并发编程的艺术》）：**
-![CachedThreadPool的execute()方法的执行示意图](images/java线程池学习总结/CachedThreadPool-execute.png)
+![CachedThreadPool的execute()方法的执行示意图](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/04/153359-391500.png)
 
 **上图说明：**
 
@@ -830,7 +830,7 @@ Wed Nov 13 13:40:43 CST 2019::pool-1-thread-5
 
 ### 6.2 运行机制
 
-![ScheduledThreadPoolExecutor运行机制](images/java线程池学习总结/ScheduledThreadPoolExecutor机制.png)
+![ScheduledThreadPoolExecutor运行机制](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/04/153424-857642.png)
 
 **`ScheduledThreadPoolExecutor` 的执行主要分为两大部分：**
 
@@ -845,7 +845,7 @@ Wed Nov 13 13:40:43 CST 2019::pool-1-thread-5
 
 ### 6.3 ScheduledThreadPoolExecutor 执行周期任务的步骤
 
-![ScheduledThreadPoolExecutor执行周期任务的步骤](images/java线程池学习总结/ScheduledThreadPoolExecutor执行周期任务步骤.png)
+![ScheduledThreadPoolExecutor执行周期任务的步骤](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/04/153447-747386.png)
 
 1. 线程 1 从 `DelayQueue` 中获取已到期的 `ScheduledFutureTask（DelayQueue.take()）`。到期任务是指 `ScheduledFutureTask`的 time 大于等于当前系统的时间；
 2. 线程 1 执行这个 `ScheduledFutureTask`；
