@@ -848,7 +848,7 @@ GCViewer、GCEasy、GCHisto、GCLogViewer、Hpjmeter、garbagecat等
 1. 停顿时间比其他几款收集器确实有了质的飞跃，但也未实现最大停顿时间控制在十毫秒以内的目标。
 2. 而吞吐量方面出现了明显的下降，总运行时间是所有测试收集器里最长的。
 
-![img](file:///C:/Users/MrR/AppData/Local/Temp/msohtmlclip1/01/clip_image002.png)
+![img](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/05/135258-716577.png)
 
 总结
 
@@ -865,7 +865,7 @@ GCViewer、GCEasy、GCHisto、GCLogViewer、Hpjmeter、garbagecat等
 
 **吞吐量**
 
-![img](file:///C:/Users/MrR/AppData/Local/Temp/msohtmlclip1/01/clip_image004.png)
+![img](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/05/135257-37118.png)
 
 max-JOPS：以低延迟为首要前提下的数据
 
@@ -873,13 +873,13 @@ critical-JOPS：不考虑低延迟下的数据
 
 **低延迟**
 
-![img](file:///C:/Users/MrR/AppData/Local/Temp/msohtmlclip1/01/clip_image006.png)
+![img](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/05/135221-158487.png)
 
 在ZGC的强项停顿时间测试上，它毫不留情的将Parallel、G1拉开了两个数量级的差距。无论平均停顿、95%停顿、998停顿、99. 98停顿，还是最大停顿时间，ZGC都能毫不费劲控制在10毫秒以内。
 
 虽然ZGC还在试验状态，没有完成所有特性，但此时性能已经相当亮眼，用“令人震惊、革命性”来形容，不为过。未来将在服务端、大内存、低延迟应用的首选垃圾收集器。
 
-![img](file:///C:/Users/MrR/AppData/Local/Temp/msohtmlclip1/01/clip_image007.png)
+![img](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/05/135229-856602.png)
 
 1. JDK14之前，ZGC仅Linux才支持。
 2. 尽管许多使用ZGC的用户都使用类Linux的环境，但在Windows和macOS上，人们也需要ZGC进行开发部署和测试。许多桌面应用也可以从ZGC中受益。因此，ZGC特性被移植到了Windows和macOS上。
