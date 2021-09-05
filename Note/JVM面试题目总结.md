@@ -9,7 +9,7 @@
 
 - [GC收集器有哪些，CMS收集器和G1收集器的特点](#GC收集器有哪些，CMS收集器和G1收集器的特点)
 
-- [Minor GC,Major GC 和Full GC分别发生在什么时候，各有什么特点？](#Minor GC,Major GC 和Full GC分别发生在什么时候，各有什么特点？)
+- [Minor GC,Major GC 和Full GC分别发生在什么时候，各有什么特点？](#Minor GC-Major GC和Full GC分别发生在什么时候各有什么特点？)
 
 - [说说常用的内存调试工具？](#说说常用的内存调试工具？)
 
