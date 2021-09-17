@@ -1,10 +1,10 @@
-# 算法笔记
-
-[TOC]
+# `算法笔记
 
 # 数据结构
 
 ## 数组
+
+### 数组概念
 
 **基本概念**
 
@@ -14,6 +14,17 @@
 - 二维数组的内存地址是连续的吗？
   - 二维数组实际是一个线性数组存放着其他数组的首地址
 
+**数组在内存中的存储方式**
+
+![1631793034936](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/195036-259521.png)
+
+需要两点注意的是
+
+- 数组下标都是从0开始的。
+- 数组内存空间的地址是连续的
+
+正是因为数组的在内存空间的地址是连续的，所以我们在删除或者增添元素的时候，就难免要移动其他元素的地址。
+
 **操作复杂度分析**
 
 - 访问:o(1)
@@ -22,6 +33,178 @@
 - 删除:o(n)
 
 > 适合读多写少的情景
+
+### 简单题目
+
+#### 704、二分查找
+
+[二分查找](https://leetcode-cn.com/problems/binary-search/)
+
+
+
+![1631793346242](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/195548-464493.png)
+
+**题解**
+
+这是一道基础题目，必须掌握，但是需要注意一下4点：
+
+1. 需要考虑数组为空的情况下，
+2. 边界检查：`left <= right`，使用`<=`号，在这里当`left = right`的时候是有意义的。
+3. 实际中用`int mid = left + (right-left)/2`; 可以防止`left+right`溢出（超出整数范围）
+4. 在这个题目中还有一点就是题目中明确无重复元素，但是我们需要明白的是使用二分查找法最基本的就是保证元素有序。
+
+**下面给出代码：**
+
+~~~ java
+class Solution {
+    public int search(int[] nums, int target) {
+        if(nums.length == 0){
+            return -1;
+        }
+        if(nums == null){
+            return -1;
+        }
+        int left=0;
+        int right=nums.length-1;
+        int mid=0;
+        while(left <= right){
+            mid =(left + right)/2;
+          //int mid = left + (right-left)/2
+            if(nums[mid] == target){
+                return mid;
+            }else if(nums[mid]< target){
+                left =mid+1;
+            }else if(nums[mid] > target){
+                right =mid-1;
+            }
+        }
+        return -1;
+    }
+}
+~~~
+
+**二分法第二种写法**
+
+如果说定义 target 是在一个在左闭右开的区间里，也就是[left, right) ，那么二分法的边界处理方式则截然不同。
+
+有如下两点：
+
+- `while (left < right)`，这里使用 < ,因为left == right在区间[left, right)是没有意义的
+- `if (nums[middle] > target)` right 更新为 middle，因为当前`nums[middle]`不等于`target`，去左区间继续寻找，而寻找区间是左闭右开区间，所以right更新为middle，即：下一个查询区间不会去比较`nums[middle]`
+
+**代码演示**
+
+~~~ java
+// 版本二
+class Solution {
+public:
+    int search(vector<int>& nums, int target) {
+        int left = 0;
+        int right = nums.size(); // 定义target在左闭右开的区间里，即：[left, right)
+        while (left < right) { // 因为left == right的时候，在[left, right)是无效的空间，所以使用 <
+            int middle = left + ((right - left) >> 1);
+            if (nums[middle] > target) {
+                right = middle; // target 在左区间，在[left, middle)中
+            } else if (nums[middle] < target) {
+                left = middle + 1; // target 在右区间，在[middle + 1, right)中
+            } else { // nums[middle] == target
+                return middle; // 数组中找到目标值，直接返回下标
+            }
+        }
+        // 未找到目标值
+        return -1;
+    }
+};
+~~~
+
+#### 35、搜索插入位置
+
+[搜索插入位置](https://leetcode-cn.com/problems/search-insert-position/)
+
+![1631795197931](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/202638-648086.png)
+
+
+
+**题解**
+
+这道题明显是二分查找的变化版本，题目中已说明数组元素有序，并且提示时间复杂度，所以可以想到使用二分法解答。
+
+首先把题目当做二分查找来想，也就是在有序数组中查找某一个元素，查找到就返回元素下表，所以很简单可以写出二分查找算法，如果查不到，那么我们就返回元素待查找元素的插入位置，如果退出循环，说明此事没有查找到元素，而此时`right<left`那么让`right+1`就是元素插入位置，可以思考一下这里是为什么。
+
+另外注意题目描述：
+
+- 排序数组
+
+**代码展示**
+
+~~~ java
+class Solution {
+    public int searchInsert(int[] nums, int target) {
+        // 数组有序，明显使用二分搜索算法
+        if(nums == null)
+        return -1;
+        if(0 == nums.length)
+        return -1;
+        int left = 0;
+        int right=nums.length -1;
+        int mid = 0;
+        while(left <= right){
+            mid=(left+right)/2;
+            if(nums[mid] == target){
+                return mid;
+            }else if(nums[mid] < target){
+                left = mid +1;
+            }else if(nums[mid] > target){
+                right =mid -1;
+            }
+        }
+        // 退出循环，说明没有找到元素
+        return right+1;
+    }
+}
+~~~
+
+**小结**
+
+下面给出使用二分法结题的模板。
+
+> ~~~ java
+> class Solution {
+>     public int searchInsert(int[] nums, int target) {
+>         int left = 0, right = nums.length - 1; // 注意
+>         while(left <= right) { // 注意
+>             int mid = (left + right) / 2; // 注意
+>             if(nums[mid] == target) { // 注意
+>                 // 相关逻辑
+>             } else if(nums[mid] < target) {
+>                 left = mid + 1; // 注意
+>             } else {
+>                 right = mid - 1; // 注意
+>             }
+>         }
+>         // 相关返回值
+>         return 0;
+>     }
+> }
+> ~~~
+>
+> 另外注意题目中的描述，有序数组，无重复，都要想到二分法。
+
+
+
+
+
+### 中等
+
+#### 34、在排序数组中查找元素的第一个和最后一个位置
+
+[在排序数组中查找元素的第一个和最后一个位置](https://leetcode-cn.com/problems/find-first-and-last-position-of-element-in-sorted-array/)
+
+![1631796728054](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/205209-388231.png)
+
+
+
+
 
 ### 485
 
@@ -2396,3 +2579,93 @@ dp没有递归操作，因为使用数组存储之前的计算结果，用这些
 208
 
 692
+
+
+
+# 刷题笔记
+
+在开始刷算法题目之前，我们先来看看各种类型算法考察的频率：
+
+![1631788406934](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/183328-535505.png)
+
+## 算法复杂度分析
+
+### 什么是时间复杂度
+
+**时间复杂度是一个函数，它定性描述该算法的运行时间**。
+
+在软件开发中，时间复杂度就是用来方便开发者估算出程序运行的答题时间。
+
+那么该如何估计程序运行时间呢，通常会估算算法的操作单元数量来代表程序消耗的时间，这里默认CPU的每个单元运行消耗的时间都是相同的。
+
+假设算法的问题规模为n，那么操作单元数量便用函数f(n)来表示，随着数据规模n的增大，算法执行时间的增长率和f(n)的增长率相同，这称作为算法的渐近时间复杂度，简称时间复杂度，记为 O(f(n))。
+
+### 什么是大O
+
+说到时间复杂度，**大家都知道O(n)，O(n^2)，却说不清什么是大O**。
+
+算法导论给出的解释：**大O用来表示上界的**，当用它作为算法的最坏情况运行时间的**上界**，就是对任意数据输入的运行时间的上界，也可以理解为最坏情况下算法的时间复杂度。
+
+同样算法导论给出了例子：拿插入排序来说，插入排序的时间复杂度我们都说是O(n^2) 。
+
+输入数据的形式对程序运算时间是有很大影响的，在数据本来有序的情况下时间复杂度是O(n)，但如果数据是逆序的话，插入排序的时间复杂度就是O(n^2)，也就对于所有输入情况来说，最坏是O(n^2) 的时间复杂度，所以称插入排序的时间复杂度为O(n^2)。
+
+同样的同理再看一下快速排序，都知道快速排序是O(nlogn)，但是当数据已经有序情况下，快速排序的时间复杂度是O(n^2) 的，**所以严格从大O的定义来讲，快速排序的时间复杂度应该是O(n^2)**。
+
+**但是我们依然说快速排序是O(nlogn)的时间复杂度，这个就是业内的一个默认规定，这里说的O代表的就是一般情况，而不是严格的上界**。如图所示：
+
+![1631789680730](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/185442-259319.png)
+
+> **面试中说道算法的时间复杂度是多少指的都是一般情况**，也可以说是平均时间复杂度。
+
+### 不同数据规模的差异
+
+如下图中可以看出不同算法的时间复杂度在不同数据输入规模下的差异。
+
+![1631789815767](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/185657-517642.png)
+
+在决定使用哪些算法的时候，不是时间复杂越低的越好（因为简化后的时间复杂度忽略了常数项等等），要考虑数据规模，如果数据规模很小甚至可以用O(n^2)的算法比O(n)的更合适（在有常数项的时候）。
+
+就像上图中 O(5n^2) 和 O(100n) 在n为20之前 很明显 O(5n^2)是更优的，所花费的时间也是最少的。
+
+那为什么在计算时间复杂度的时候要忽略常数项系数呢，也就说O(100n) 就是O(n)的时间复杂度，O(5n^2) 就是O(n^2)的时间复杂度，而且要默认O(n) 优于O(n^2) 呢 ？
+
+这里就又涉及到大O的定义，**因为大O就是数据量级突破一个点且数据量级非常大的情况下所表现出的时间复杂度，这个数据量也就是常数项系数已经不起决定性作用的数据量**。
+
+例如上图中20就是那个点，n只要大于20 常数项系数已经不起决定性作用了。
+
+**所以我们说的时间复杂度都是省略常数项系数的，是因为一般情况下都是默认数据规模足够的大，基于这样的事实，给出的算法时间复杂的的一个排行如下所示**：
+
+O(1)常数阶 < O(logn)对数阶 < O(n)线性阶 < O(n^2)平方阶 < O(n^3)(立方阶) < O(2^n) (指数阶)
+
+但是也要注意大常数，如果这个常数非常大，例如10^7 ，10^9 ，那么常数就是不得不考虑的因素了。
+
+### 复杂表达式的化简
+
+有时候我们去计算时间复杂度的时候发现不是一个简单的O(n) 或者O(n^2)， 而是一个复杂的表达式，例如：
+
+~~~ java
+O(2*n^2 + 10*n + 1000)
+~~~
+
+那这里如何描述这个算法的时间复杂度呢，一种方法就是简化法。
+
+去掉运行时间中的加法常数项 （因为常数项并不会因为n的增大而增加计算机的操作次数）。
+
+~~~java
+O(2*n^2 + 10*n)
+~~~
+
+去掉常数系数（上文中已经详细讲过为什么可以去掉常数项的原因）。
+
+~~~ java
+O(n^2 + n)
+~~~
+
+只保留保留最高项，去掉数量级小一级的n （因为n^2 的数据规模远大于n），最终简化为：
+
+~~~ java
+O(n^2)
+~~~
+
+所以最后我们说：这个算法的算法时间复杂度是O(n^2) 。
