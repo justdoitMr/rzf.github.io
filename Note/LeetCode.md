@@ -190,7 +190,45 @@ class Solution {
 >
 > 另外注意题目中的描述，有序数组，无重复，都要想到二分法。
 
+#### [69、 x 的平方根](https://leetcode-cn.com/problems/sqrtx/)
 
+[69、x 的平方根](https://leetcode-cn.com/problems/sqrtx/)
+
+![1631868468352](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1631868468352.png)
+
+**解答**
+
+这一带题目很简单，但是有一点需要注意，就是溢出问题，两个数的乘积已经超过int类型的最大值，所以中间我们要使用long类型。
+
+**代码实现**
+
+~~~ java
+class Solution {
+    public int mySqrt(int x) {
+        if(x == 0 ){
+            return 0;
+        }
+        if(x == 1){
+            return 1;
+        }
+        long nextNum=0;
+         for(int i=1;i<=x/2;i++){
+            int sqrtNum=i;
+            nextNum=(long)(sqrtNum+1)*(sqrtNum+1);
+            sqrtNum *= sqrtNum;
+            if(sqrtNum <x && nextNum > x){
+                return i;
+            }else if(sqrtNum == x){
+                return i;
+            }else 
+            {
+               continue;
+            }
+        }
+        return -1;
+    }
+}
+~~~
 
 
 
@@ -201,6 +239,63 @@ class Solution {
 [在排序数组中查找元素的第一个和最后一个位置](https://leetcode-cn.com/problems/find-first-and-last-position-of-element-in-sorted-array/)
 
 ![1631796728054](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/16/205209-388231.png)
+
+**题解**
+
+根据题目描述，升序排列数组，所以很明显使用二分查找法，但是平常的二分法都是查找一个target，本题目中需要查找两个边界，所以想到两次使用二分查找算法，分别查找到左边界和右边界。
+
+**代码演示**
+
+~~~ java
+class Solution {
+    public int[] searchRange(int[] nums, int target) {
+        // 有序数组，但是可能存在重复元素
+       int []res={-1,-1};
+        if(nums == null)
+            return res;
+        if(0 == nums.length)
+            return res;
+        int left = 0;
+        int right=nums.length -1;
+        int mid = 0;
+        // 首先查找左边界
+        while(left <= right){
+            mid=(left+right)/2;
+            if(nums[mid] <= target){
+                if(nums[mid] == target)
+                    res[0]=mid;
+                left = mid +1;
+            }else if(nums[mid] > target){
+                right =mid -1;
+            }
+        }
+        left =0;
+        right=nums.length-1;
+        // 下面开始找右边界
+         while(left <= right){
+            mid=(left+right)/2;
+            if(nums[mid] < target){
+                left = mid +1;
+            }else if(nums[mid] >= target){
+                 if(nums[mid] == target)
+                res[1]=mid;
+                right =mid -1;
+            }
+        }
+        // 退出循环，说明没有找到元素
+        Arrays.sort(res);
+        return res;
+    }
+}
+~~~
+
+
+
+
+
+
+
+
 
 
 
