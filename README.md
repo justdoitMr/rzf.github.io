@@ -61,10 +61,9 @@
 ### Hadoop
 
 1. [Hadoop基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
-
 2. [分布式文件基础Hdfs](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
-
 3. [MapReduce计算模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/MapReduce.md)
+4. [Yarn资源调度器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/YARN%E8%B5%84%E6%BA%90%E8%B0%83%E5%BA%A6%E5%99%A8.md)
 
 ### Hive
 
@@ -76,11 +75,16 @@
 
 ### Redis
 
-1. [Redis](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Redis.md)
+1. [Redis基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Redis.md)
+2. [Redis面经](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Redis%E9%9D%A2%E7%BB%8F.md)
 
 ### Zookeeper
 
 1. [zookeeper](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Zookeeper.md)
+
+### Kafka
+
+1. [Kafka基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Kafka.md)
 
 ### Spark
 
@@ -90,6 +94,12 @@
 ### Flink
 
 1. [Flink原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Flink%E5%8E%9F%E7%90%86.md)
+
+### 分布式
+
+1. [分布式基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3.md)
+2. [分布式事务](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1.md)
+3. [分布式锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.md)
 
 ## 算法系列
 
