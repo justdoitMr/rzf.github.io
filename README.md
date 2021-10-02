@@ -124,6 +124,8 @@
 
 ###  [使用手册V1.0](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E4%BD%BF%E7%94%A8%E6%89%8B%E5%86%8CV1.0.md)
 
+### [使用手册V2.0](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E4%BD%BF%E7%94%A8%E6%89%8B%E5%86%8CV2.0%E7%89%88.md)
+
 ### [Java面试大全](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95%E9%A2%98%E5%A4%A7%E5%85%A8.pdf)
 
 ### [Java手册-上](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8A.pdf)
