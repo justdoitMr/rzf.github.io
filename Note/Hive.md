@@ -1660,7 +1660,7 @@ import table temp from '/export';
 
 ### 清除表中数据（Truncate）
 
-清空表，并不会删除元数据，只是删除的是数据，删除hdfs上面的额数据，如果是外部表，不会删除数据，清空表删除的是内部表的数据。
+清空表，并不会删除元数据，只是删除的是数据，删除hdfs上面的数据，如果是外部表，不会删除数据，清空表删除的是内部表的数据。
 
 注意：Truncate只能删除管理表，不能删除外部表中数据
 
@@ -1671,8 +1671,7 @@ truncate table student;
 ## 查询
 
 ~~~ java
-[WITH CommonTableExpression (, CommonTableExpression)*]    (Note: Only available
- starting with Hive 0.13.0)
+//查询语句
 SELECT [ALL | DISTINCT] select_expr, select_expr, ...
   FROM table_reference
   [WHERE where_condition]
@@ -1714,19 +1713,19 @@ select * from stu;
 
 #### 列命名
 
-- 重命名一个列
+- 重命名一个列。
 
-- 便于计算
+- 便于计算。
 
-- 紧跟列名，也可以在列名和别名之间加入关键字‘AS’ 
+- 紧跟列名，也可以在列名和别名之间加入关键字‘AS’。 
 
 #### 算术运算符
 
 | 运算符 | 描述           |
 | ------ | -------------- |
-| A+B    | A和B   相加    |
+| A+B    | A和B相加       |
 | A-B    | A减去B         |
-| A*B    | A和B   相乘    |
+| A*B    | A和B相乘       |
 | A/B    | A除以B         |
 | A%B    | A对B取余       |
 | A&B    | A和B按位取与   |
@@ -1738,31 +1737,31 @@ select * from stu;
 
 1. 求总行数（count）
 
-~~~ java
+~~~ sql
 select count(*) from stu;
 ~~~
 
 2. 求工资的最大值（max）
 
-~~~ java
+~~~ sql
 select max(sal) max_sal from emp;
 ~~~
 
 3. 求工资的最小值（min）
 
-~~~ java
+~~~ sql
 select min(sal) min_sal from emp;
 ~~~
 
 4. 求工资的总和（sum）
 
-~~~ java
+~~~ sql
 select sum(sal) sum_sal from emp; 
 ~~~
 
 5. 求工资的平均值（avg）
 
-~~~ java
+~~~ sql
 select avg(sal) avg_sal from emp;
 ~~~
 
@@ -1800,31 +1799,31 @@ select * from emp limit 5;
 | A [NOT] LIKE B          | STRING 类型    | B是一个SQL下的简单正则表达式，如果A与其匹配的话，则返回TRUE；反之返回FALSE。B的表达式说明如下：‘x%’表示A必须以字母‘x’开头，‘%x’表示A必须以字母’x’结尾，而‘%x%’表示A包含有字母’x’,可以位于开头，结尾或者字符串中间。如果使用NOT关键字则可达到相反的效果。 |
 | A RLIKE B, A REGEXP B   | STRING 类型    | B是一个正则表达式，如果A与其匹配，则返回TRUE；反之返回FALSE。匹配使用的是JDK中的正则表达式接口实现的，因为正则也依据其中的规则。例如，正则表达式必须和整个字符串A相匹配，而不是只需与其字符串匹配。 |
 
-注意：=是基于比较的，null值不存在两个值相等的情况。
+> 注意：=是基于比较的，null值不存在两个值相等的情况。
 
 **案例**
 
 1. 查询出薪水等于5000的所有员工
 
-~~~ java
+~~~ sql
 select * from emp where sal =5000;
 ~~~
 
 2. 查询工资在500到1000的员工信息
 
-~~~ java
+~~~ sql
 select * from emp where sal between 500 and 1000;
 ~~~
 
 3. 查询comm为空的所有员工信息
 
-~~~ java
+~~~ sql
 select * from emp where comm is null;
 ~~~
 
 4. 查询工资是1500或5000的员工信息
 
-~~~ java
+~~~ sql
 select * from emp where sal IN (1500, 5000);
 ~~~
 
@@ -1835,25 +1834,25 @@ select * from emp where sal IN (1500, 5000);
 - 选择条件可以包含字符或数字:
   - % 代表零个或多个字符(任意个字符)。
   - _ 代表一个字符。
-- RLIKE子句是Hive中这个功能的一个扩展，其可以通过Java的正则表达式这个更强大的语言来指定匹配条件。
+- **RLIKE**子句是Hive中这个功能的一个扩展，其可以通过Java的正则表达式这个更强大的语言来指定匹配条件。
 
 **案例**
 
 1. 查找以2开头薪水的员工信息
 
-~~~ java
+~~~ sql
 select * from emp where sal LIKE '2%';
 ~~~
 
 2. 查找第二个数值为2的薪水的员工信息
 
-~~~ java
+~~~ sql
 select * from emp where sal LIKE '_2%';
 ~~~
 
 3. 查找薪水中含有2的员工信息
 
-~~~ java
+~~~ sql
 select * from emp where sal RLIKE '[2]';//使用正则表达式
 ~~~
 
@@ -1889,7 +1888,7 @@ select * from emp where deptno not IN(30, 20);
 
 #### Group By语句
 
-GROUP BY语句通常会和聚合函数一起使用，按照一个或者多个列队结果进行分组，然后对每个组执行聚合操作。
+**GROUP BY语句通常会和聚合函数一起使用**，按照一个或者多个列队结果进行分组，然后对每个组执行聚合操作。
 
 **案例**
 
@@ -1910,7 +1909,7 @@ select t.deptno, t.job, max(t.sal) max_sal from emp t group by
 
 **having与where不同点**
 
-- where针对表中的列发挥作用，查询数据；having针对查询结果中的列发挥作用，筛选数据,，换句话说，having语句是针对查询结果的。
+- **where针对表中的列发挥作用，查询数据；having针对查询结果中的列发挥作用，筛选数据**，换句话说，having语句是针对查询结果的。
 - where后面不能写分组函数，而having后面可以使用分组函数。
 - having只用于group by分组统计语句。
 
@@ -1925,8 +1924,7 @@ select deptno, avg(sal) from emp group by deptno;
 2. 求每个部门的平均薪水大于2000的部门
 
 ~~~ java
-select deptno, avg(sal) avg_sal from emp group by deptno having
- avg_sal > 2000;
+select deptno, avg(sal) avg_sal from emp group by deptno having avg_sal > 2000;
 
 ~~~
 
@@ -1941,8 +1939,7 @@ Hive支持通常的SQL JOIN语句，但是只支持等值连接，不支持非�
 根据员工表和部门表中的部门编号相等，查询员工编号、员工名称和部门名称；
 
 ~~~ java
-select e.empno, e.ename, d.deptno, d.dname from emp e join dept d
- on e.deptno = d.deptno;
+select e.empno, e.ename, d.deptno, d.dname from emp e join dept d on e.deptno = d.deptno;
 ~~~
 
 #### 表的别名
@@ -1958,8 +1955,7 @@ select e.empno, e.ename, d.deptno, d.dname from emp e join dept d
 合并员工表和部门表
 
 ~~~ java
-select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno
- = d.deptno;
+select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno = d.deptno;
 ~~~
 
 > 在mysql中和hive中建立表是有区别的，在mysql中我们尽量建立多张表，减少数据的冗余，但是在hive我们尽量建立宽表，应为hive缺少的是计算资源，多张表在进行join的时候，浪费的是计算资源，所以我们建立表的时候，一般建立宽表存储数据。
@@ -1969,8 +1965,7 @@ select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno
 内连接：只有进行连接的两个表中都存在与连接条件相匹配的数据才会被保留下来。
 
 ~~~ java
-select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno
- = d.deptno;
+select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno = d.deptno;
 ~~~
 
 #### 左外链接
@@ -1978,8 +1973,7 @@ select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno
 左外连接：JOIN操作符左边表中符合WHERE子句的所有记录将会被返回。
 
 ~~~ java
-select e.empno, e.ename, d.deptno from emp e left join dept d on e.deptno
- = d.deptno;
+select e.empno, e.ename, d.deptno from emp e left join dept d on e.deptno = d.deptno;
 ~~~
 
 #### 右外链接
@@ -1987,19 +1981,17 @@ select e.empno, e.ename, d.deptno from emp e left join dept d on e.deptno
 右外连接：JOIN操作符右边表中符合WHERE子句的所有记录将会被返回。
 
 ~~~ java
-select e.empno, e.ename, d.deptno from emp e right join dept d on e.deptno
- = d.deptno;
+select e.empno, e.ename, d.deptno from emp e right join dept d on e.deptno = d.deptno;
 ~~~
 
 #### 满外链接
 
-在mysql中不支持满外链接，只能使用union关键字。
+**在mysql中不支持满外链接，只能使用union关键字。**
 
 满外连接：将会返回所有表中符合WHERE语句条件的所有记录。如果任一表的指定字段没有符合条件的值的话，那么就使用NULL值替代。
 
 ~~~ java
-select e.empno, e.ename, d.deptno from emp e full join dept d on e.deptno
- = d.deptno;
+select e.empno, e.ename, d.deptno from emp e full join dept d on e.deptno = d.deptno;
 ~~~
 
 #### 多表链接
@@ -2040,7 +2032,7 @@ select empno, dname from emp, dept;
 
 ~~~ java
 hive (default)> select e.empno, e.ename, d.deptno from emp e join dept d on e.deptno
-= d.deptno or e.ename=d.ename;   错误的
+= d.deptno or e.ename=d.ename;   //错误的
 
 ~~~
 
@@ -2048,13 +2040,11 @@ hive (default)> select e.empno, e.ename, d.deptno from emp e join dept d on e.de
 
 #### 全局排序（Order By）
 
-Order By：全局排序，一个Reducer，对整个数据最后的结果进行全局排序,在hive中可以设置reducer的个数，但是在这里排序的画默认只有1个reducer，尽管设置的reducer个数不是一个。
+Order By：全局排序，一个Reducer，对整个数据最后的结果进行全局排序,在hive中可以设置reducer的个数，但是在这里排序的话默认只有1个reducer，尽管设置的reducer个数不是一个。
 
 1. 使用 ORDER BY 子句排序
-
-- ASC（ascend）: 升序（默认）
-
-- DESC（descend）: 降序
+   1. ASC（ascend）: 升序（默认）
+   2. DESC（descend）: 降序
 
 2. ORDER BY子句在SELECT语句的结尾
 
@@ -2166,7 +2156,7 @@ cluster by:当分区字段和区内排序字段相同的时候，可以使用clu
 
 #### 分桶表数据存储
 
-- 分区针对的是数据的存储路径；分桶针对的是数据文件，也就是说分桶会把数据存储在一个文件夹下面，只是不同的数据以不同的文件形式存在。
+- 分区针对的是数据的**存储路径**；分桶针对的是**数据文件**，也就是说分桶会把数据存储在一个文件夹下面，只是不同的数据以不同的文件形式存在。
 
 - 分区提供一个隔离数据和优化查询的便利方式。不过，并非所有的数据集都可形成合理的分区，特别是之前所提到过的要确定合适的划分大小这个疑虑。
 - 分桶是将数据集分解成更容易管理的若干部分的另一个技术，数据是以文件形式分开存储。
@@ -2212,6 +2202,8 @@ insert into table stu_buck
 
 通过查询结果看到，分桶其实是根据数据的id对分桶的个数进行取模然后分桶的。但是mp中的分区是按照key的哈希值进行分区的。分桶是按照字段的规律进行划分数据。
 
+**分桶使用的算法是使用分桶字段的哈希值，然后对桶的个数取模得到的。**
+
 #### 分桶抽样查询
 
 - 对于非常大的数据集，有时用户需要使用的是一个具有代表性的查询结果而不是全部结果。Hive可以通过对表进行抽样来满足这个需求。
@@ -2253,7 +2245,7 @@ select * from stu_buck tablesample(bucket 1 out of 1 on id);
 - 其中x表示从哪一个桶开始抽样
 - y必须是table总bucket数的倍数或者因子。hive根据y的大小，决定抽样的比例。例如，table总共分了4份，当y=2时，抽取(4/2=)2个bucket的数据，当y=8时，抽取(4/8=)1/2个bucket的数据。
 - x表示从哪个bucket开始抽取，如果需要取多个分区，以后的分区号为当前分区号加上y。例如，table总bucket数为4，tablesample(bucket 1 out of 2)，表示总共抽取（4/2=）2个bucket的数据，抽取第1(x)个和第3(x+y)个bucket的数据。
-- 注意：x的值必须小于等于y的值，否则
+- 注意：x的值必须小于等于y的值
 
 ### 其他常用查询函数
 
@@ -2454,12 +2446,12 @@ group by
 
 - LATERAL VIEW
   - 用法：LATERAL VIEW udtf(expression) tableAlias（表别名） AS columnAlias（列别名）
-  - 解释：用于和split, explode等UDTF一起使用，它能够将一列数据拆成多行数据，在此基础上可以对拆分后的数据进行聚合。
+    - 解释：用于和split, explode等UDTF一起使用，它能够将一列数据拆成多行数据，在此基础上可以对拆分后的数据进行聚合。
 
 **数据准备**
 
 ~~~ sql
-movie	category
+movie					category
 《疑犯追踪》	悬疑,动作,科幻,剧情
 《Lie to me》	悬疑,警匪,动作,心理,剧情
 《战狼2》	战争,动作,灾难
@@ -2488,7 +2480,8 @@ movie	category
 ~~~ sql
 create table movie_info(
     movie string, 
-    category array<string>) 
+    category array<string>
+) 
 row format delimited fields terminated by "\t"
 collection items terminated by ",";
 
@@ -2525,7 +2518,7 @@ from
 
 #### 窗口函数
 
-窗口函数会针对每一条记录进行开窗口，窗口的大小是有over()函数里面的参数决定的
+窗口函数会针对每一条记录进行开窗口，窗口的大小是用over()函数里面的参数决定的
 
 **相关函数说明**
 
@@ -2535,8 +2528,7 @@ from
   - n PRECEDING：往前**n行**数据
   - n FOLLOWING：往后**n行**数据
   - UNBOUNDED：起点，UNBOUNDED PRECEDING 表示从前面的起点， UNBOUNDED FOLLOWING表示到后面的终点
-
-  上面的都是over()函数里面的参数，都是用来限定over函数中数据及的大小
+  - 上面的都是over()函数里面的参数，都是用来限定over函数中数据及的大小
 
   **下面的参数在over()函数外使用**,必须和over()函数搭配使用
 
@@ -2585,7 +2577,8 @@ create table business(
 name string, 
 orderdate string,
 cost int
-) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
+) 
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ',';
 -- 导入数据
  load data local inpath '/opt/module/data_/business.txt' into table business;
 ~~~
@@ -2595,7 +2588,7 @@ cost int
 1. 查询在2017年4月份购买过的顾客及总人数
 
 ~~~ sql
-select name,count(*) over () 
+select name,count(*) over () -- 使用over函数进行开窗操作
 from business 
 where substring(orderdate,1,7) = '2017-04' 
 group by name;
@@ -2605,7 +2598,7 @@ group by name;
 select name,count(*)
 from business 
 where substring(orderdate,1,7) = '2017-04' 
-group by name;//这里相当于做去重操作，去重有两种方式，distinct()和group by去重
+group by name;--这里相当于做去重操作，去重有两种方式，distinct()和group by去重
 -- 返回结果
 name    _c1
 jack    1
@@ -2924,7 +2917,7 @@ name    subject score   rp      drp     rmp
 
 ## 函数
 
-所有的聚合函数，用户自定义函数和内置函数，统称为用户自定义聚合函数（UDAF），聚合函数接受从零行到多行的零个到多个列，然后返回单一的值，
+所有的聚合函数，用户自定义函数和内置函数，统称为用户自定义聚合函数（UDAF），**聚合函数接受从零行到多行或零个到多个列，然后返回单一的值，**
 
 ### 系统内置函数
 
@@ -2952,7 +2945,7 @@ desc function extended upper;
 
 - 当Hive提供的内置函数无法满足你的业务处理需要时，此时就可以考虑使用用户自定义函数（UDF：user-defined function）。 
 
-- - - 聚集函数，多进一出, 类似于：count/max/min
+- - 聚集函数，多进一出, 类似于：count/max/min
   - UDTF（User-Defined Table-Generating Functions）
     - 一进多出, 如lateral view explore()，接受零个或者多个输入，然后产生多列或者多行输出
 
@@ -3050,7 +3043,7 @@ hive (default)> select ename, mylower(ename) lowername from emp;
 3. 在`hive`的命令行窗口创建函数
 4. 如果自定义函数要输入多个参数怎么办，就重载`EVALUTE()`方法，每个方法中的参数不同即可，也可以用可变形参的方法，但是局限性在于可变形参的类型必须一样。
 
-#### 自定义UDTF函数
+#### 自定义UDTF函数（一进多出）
 
 1. 创建类继承GenericUDTF
 
