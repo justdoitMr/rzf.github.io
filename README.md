@@ -64,6 +64,7 @@
 2. [分布式文件基础Hdfs](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
 3. [MapReduce计算模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/MapReduce.md)
 4. [Yarn资源调度器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/YARN%E8%B5%84%E6%BA%90%E8%B0%83%E5%BA%A6%E5%99%A8.md)
+5. [MapReduce原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/MapReduce%E5%8E%9F%E7%90%86.md)
 
 ### Hive
 
