@@ -6,7 +6,7 @@
 
 mapreducer一个作业的计算流程，适合迭代式计算，不适合并行计算。
 
-## mapreducer概念
+## MapReducer概念
 
 ### 什么是mapreducer。
 
@@ -319,17 +319,17 @@ Hadoop序列化的特点
 
 ### 常用数据序列化类型
 
-| **Java类型** | **H**adoop**Writable类型** |
-| ------------ | -------------------------- |
-| boolean      | BooleanWritable            |
-| byte         | ByteWritable               |
-| int          | IntWritable                |
-| float        | FloatWritable              |
-| long         | LongWritable               |
-| double       | DoubleWritable             |
-| string       | Text                       |
-| map          | MapWritable                |
-| array        | ArrayWritable              |
+| Java类型 | HadoopWritable类型 |
+| -------- | ------------------ |
+| boolean  | BooleanWritable    |
+| byte     | ByteWritable       |
+| int      | IntWritable        |
+| float    | FloatWritable      |
+| long     | LongWritable       |
+| double   | DoubleWritable     |
+| string   | Text               |
+| map      | MapWritable        |
+| array    | ArrayWritable      |
 
 ### 自定义bean对象实现序列化接口（Writable）
 
