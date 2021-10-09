@@ -2635,6 +2635,145 @@ class Solution {
 }
 ~~~
 
+### 111
+
+[二叉树的最小深度](https://leetcode-cn.com/problems/minimum-depth-of-binary-tree/)
+
+**BFS**
+
+~~~ java
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    public int minDepth(TreeNode root) {
+        
+        // 首先判断根节点是否是空的
+        if( root == null){
+            return 0;
+        }
+        // bfs必备工具，队列
+        Queue queue=new LinkedList();
+        // 开始是树的根节点，所以先将根节点加入队列中,offer()是将元素添加到队列的末尾
+        queue.offer(root);
+        // 定义树根的高度为1
+        int lowHeigh=1;
+        // 逐个遍历队列中的节点
+        while(!queue.isEmpty()){
+            // 返回对垒中元素的个数
+            int len=queue.size();
+            // 逐个遍历与当前节点相邻的节点
+            for(int i=0;i<len;i++){
+                // 抛出队列首的元素
+                TreeNode node=(TreeNode)queue.poll();
+              // 判断当前节点是否是叶子结点
+              if(node.left == null && node.right == null){
+                  return lowHeigh;
+              }
+                //  判断当前节点的左边是否有节点
+                if(node.left != null){
+                    queue.offer(node.left);
+                }
+                if(node.right != null){
+                    queue.offer(node.right);
+                }
+            }
+            lowHeigh ++;
+        }
+        return lowHeigh;
+    }
+}
+~~~
+
+### 109
+
+[开密码锁](https://leetcode-cn.com/problems/zlDJc7/)
+
+~~~ java
+class Solution {
+    public int openLock(String[] deadends, String target) {
+        // 使用一个哈希表记录不能访问的元素
+        Set<String> deads=new HashSet<String>();
+        for(String s:deadends){
+            deads.add(s);
+        }
+        // 使用一个访问数组，记录访问过的元素
+        Set visited= new HashSet<String>();
+        // 辅助队列
+        Queue q=new LinkedList<String>();
+        // 首先添加初始元素
+        q.offer("0000");
+        visited.add("0000");
+        int step=0;
+        while(!q.isEmpty()){
+            // 队列的大小代表树中每一层元素的个数
+            int len=q.size();
+            for(int i=0;i<len;i++){
+                // 首先抛出队列首页元素
+                String s=(String)q.poll();
+                if(deads.contains(s)){
+                    continue;
+                }
+                if(target.equals(s)){
+                    return step;
+                }
+                // 访问当前元素的所有相邻元素
+                for(int j=0;j<4;j++){
+                    // 向队列中添加元素的时候，首先判断是否访问过这个元素
+                    String up=plusOne(s,j);
+                    if(!visited.contains(up)){
+                        q.offer(up);
+                        visited.add(up);
+                    }
+                
+                    String down=subOne(s,j);
+                    if(!visited.contains(down)){
+                        q.offer(down);
+                        visited.add(down);
+                    }
+                }
+            }
+            step++;
+        }
+        return -1;
+    }
+
+    public String plusOne(String str,int j){
+        char []c=str.toCharArray();
+        if(c[j] == '9'){
+            c[j]='0';
+        }else{
+            c[j]+=1;
+        }
+        return new String(c);
+    }
+
+    public String subOne(String str,int j){
+        char []c=str.toCharArray();
+        if(c[j] == '0'){
+            c[j]='9';
+        }else{
+            c[j]-=1;
+        }
+        return new String(c);
+    }
+}
+~~~
+
+
+
 ## 贪心算法
 
 **思想**
