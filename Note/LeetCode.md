@@ -1713,6 +1713,209 @@ class Solution {
 }
 ~~~
 
+### 76
+
+[最小覆盖子串](https://leetcode-cn.com/problems/minimum-window-substring/)
+
+~~~ java
+class Solution {
+    public String minWindow(String s, String t) {
+        char[] s1 = s.toCharArray();
+        char[] t1 = t.toCharArray();
+//        存放窗口内部的字符
+        HashMap<Character, Integer> window = new HashMap<Character, Integer>();
+//        存放target字符
+        HashMap<Character, Integer> need = new HashMap<Character, Integer>();
+        for(char c:t1){
+            if(need.containsKey(c)){
+//                字符串t中肯恩存在重复的字符
+                need.put(c,need.getOrDefault(c,0)+1);
+            }else {
+                need.put(c,1);
+            }
+        }
+        // 记录最小覆盖子串的起始索引及长度
+        int start = 0;
+        int len = Integer.MAX_VALUE;
+//        定义窗口的位置
+        int left = 0, right = 0;
+        int valid = 0;//窗口中有效的字符个数
+        while (right <s1.length) {
+            // 向右开始滑动窗口
+            char c=s1[right];
+//            窗口增加一位
+            right++;
+//            判断t字符串中是否包含字符c
+            if (need.containsKey(c)) {
+//                把当前字符添加进窗口，然后对应值+1
+                window.put(c,window.getOrDefault(c,0)+1);
+                if(window.get(c) == need.get(c)){
+//                    有效字符个数+1
+                    valid++;
+                }
+            }
+//            判断左侧的字符是否需要收缩
+            while (valid == need.size()) {
+                // 在这里更新最小覆盖子串
+                if (right - left < len) {
+                    start = left;
+                    len = right - left;
+                }
+                // d 是将移出窗口的字符
+                char d = s1[left];
+                // 左移窗口
+                left++;
+                // 进行窗口内数据的一系列更新
+                if (need.containsKey(d)) {
+                    if (window.get(d) == need.get(d))
+                        valid--;
+                   window.put(d,window.get(d)-1);
+                }
+            }
+        }
+        // 返回最小覆盖子串
+        return len == Integer.MAX_VALUE? "" : s.substring(start,start+len);
+    }
+}
+~~~
+
+### 567
+
+[字符串排列](https://leetcode-cn.com/problems/permutation-in-string/)
+
+~~~ java
+class Solution {
+    public boolean checkInclusion(String s1, String s2) {
+         char[] s = s2.toCharArray();
+        char[] t = s1.toCharArray();
+//        存放窗口内部的字符
+        HashMap<Character, Integer> window = new HashMap<Character, Integer>();
+//        存放target字符
+        HashMap<Character, Integer> need = new HashMap<Character, Integer>();
+        for(char c:t){
+            if(need.containsKey(c)){
+//                字符串t中肯恩存在重复的字符
+                need.put(c,need.getOrDefault(c,0)+1);
+            }else {
+                need.put(c,1);
+            }
+        }
+        // 记录最小覆盖子串的起始索引及长度
+        int start = 0, len = Integer.MAX_VALUE;
+//        定义窗口的位置
+        int left = 0, right = 0;
+        int valid = 0;//窗口中有效的字符个数
+        while (right <s2.length()) {
+            // 向右开始滑动窗口
+            char c=s[right];
+//            窗口增加一位
+            right++;
+//            判断t字符串中是否包含字符c
+            if (need.containsKey(c)) {
+//                把当前字符添加进窗口，然后对应值+1
+                window.put(c,window.getOrDefault(c,0)+1);
+                if(window.get(c) == need.get(c)){
+//                    有效字符个数+1
+                    valid++;
+                }
+            }
+//            判断左侧的字符是否需要收缩
+            while ((right - left)>= s1.length()) {
+                // 在这里更新最小覆盖子串
+                if (valid == need.size()) {
+                    return true;
+                }
+                // d 是将移出窗口的字符
+                char d = s[left];
+                // 左移窗口
+                left++;
+                // 进行窗口内数据的一系列更新
+                if (need.containsKey(d)) {
+                    if (window.get(d) == need.get(d))
+                        valid--;
+                   window.put(d,window.get(d)-1);
+                }
+            }
+        }
+        // 返回最小覆盖子串
+        return false;
+    }
+}
+~~~
+
+### 483
+
+[找到字符串中所有字母异位词](https://leetcode-cn.com/problems/find-all-anagrams-in-a-string/)
+
+~~~ java
+class Solution {
+    public List<Integer> findAnagrams(String s, String p) {
+        if(s.equals(null) || p.equals(null)){
+            return null;
+        }
+
+        ArrayList<Integer> list = new ArrayList<>();
+        char[] s1 = s.toCharArray();
+        char[] t1 = p.toCharArray();
+//        存放窗口内部的字符
+        HashMap<Character, Integer> window = new HashMap<Character, Integer>();
+//        存放target字符
+        HashMap<Character, Integer> need = new HashMap<Character, Integer>();
+
+        for(char c:t1){
+            if(need.containsKey(c)){
+//                字符串t中肯恩存在重复的字符
+                need.put(c,need.getOrDefault(c,0)+1);
+            }else {
+                need.put(c,1);
+            }
+        }
+        // 记录最小覆盖子串的起始索引及长度
+        int start = 0, len = Integer.MAX_VALUE;
+//        定义窗口的位置
+        int left = 0, right = 0;
+        int valid = 0;//窗口中有效的字符个数
+        while (right <s1.length) {
+            // 向右开始滑动窗口
+            char c=s1[right];
+//            窗口增加一位
+            right++;
+//            判断t字符串中是否包含字符c
+            if (need.containsKey(c)) {
+//                把当前字符添加进窗口，然后对应值+1
+                window.put(c,window.getOrDefault(c,0)+1);
+                if(window.get(c).equals(need.get(c))){
+//                    有效字符个数+1
+                    valid++;
+                }
+            }
+//            判断左侧的字符是否需要收缩
+            while ((right - left)>= p.length()) {
+
+                // 在这里更新最小覆盖子串
+                if (valid == need.size()) {
+                    list.add(left);
+                }
+                // d 是将移出窗口的字符
+                char d = s1[left];
+                // 左移窗口
+                left++;
+                // 进行窗口内数据的一系列更新
+                if (need.containsKey(d)) {
+                    if (window.get(d).equals(need.get(d)))
+                        valid--;
+                   window.put(d,window.get(d)-1);
+                }
+            }
+        }
+        // 返回最小覆盖子串
+        return list;
+    }
+}
+~~~
+
+
+
 ## 递归
 
 递归算法的延伸：回溯，分治，DFS
