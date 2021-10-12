@@ -102,13 +102,6 @@
 2. [分布式事务](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1.md)
 3. [分布式锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.md)
 
-## 算法系列
-
-### LeetCode笔记
-
-1. [数据结构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode.md)
-2. [LeetCode刷题笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode%E5%88%B7%E9%A2%98%E7%AC%94%E8%AE%B0.md)
-
 ### 数据挖掘
 
 1. [使用sklearn学习决策树](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%86%B3%E7%AD%96%E6%A0%91.md)
@@ -132,3 +125,25 @@
 ### [Java手册-上](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8A.pdf)
 
 ### [Java手册-下](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8B.pdf)
+
+## 算法系列
+
+### LeetCode笔记
+
+1. [数据结构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode.md)
+2. [LeetCode刷题笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode%E5%88%B7%E9%A2%98%E7%AC%94%E8%AE%B0.md)
+
+---
+
+|              |              |      |      |
+| ------------ | ------------ | ---- | ---- |
+| [两数之和]() | [反转数组]() |      |      |
+|              |              |      |      |
+|              |              |      |      |
+|              |              |      |      |
+|              |              |      |      |
+|              |              |      |      |
+|              |              |      |      |
+|              |              |      |      |
+|              |              |      |      |
+
