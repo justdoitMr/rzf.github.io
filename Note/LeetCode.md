@@ -1303,6 +1303,8 @@ class Solution {
 
 ## 双指针
 
+双指针技巧还可以分为两类，一类是「快慢指针」，一类是「左右指针」。前者解决主要解决链表中的问题，比如典型的判定链表中是否包含环；后者主要解决数组（或者字符串）中的问题，比如二分查找。   
+
 - 普通双指针
   - 两个指针向同一个方向移动
 - 对撞双指针
@@ -1310,13 +1312,17 @@ class Solution {
 - 快慢双指针
   - 慢指针+快指针
 
-### 141
+### 快慢指针的常见算法
+
+#### 141
 
 [环形链表](https://leetcode-cn.com/problems/linked-list-cycle/)
 
 **题目描述**
 
-给定一个链表，判断链表中是否有环。
+![1633999394835](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/084318-127316.png)、
+
+用两个指针，一个每次前进两步，一个每次前进一步。如果不含有环，跑得快的那个指针最终会遇到 null，说明链表不含环；如果含有环，快指针最终会超慢指针一圈，和慢指针相遇，说明链表含有环。
 
 **代码实现**
 
@@ -1354,21 +1360,189 @@ public class Solution {
 }
 ~~~
 
-### 881
+#### 142
+
+**题目描述**
+
+![1634001226037](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/091357-610875.png)
+
+**代码实现**
+
+~~~ java
+/**
+ * Definition for singly-linked list.
+ * class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) {
+ *         val = x;
+ *         next = null;
+ *     }
+ * }
+ */
+public class Solution {
+    public ListNode detectCycle(ListNode head) {
+        if(head == null || head.next == null)
+        return null;
+       
+        ListNode slow,fast;
+        slow = fast=head;
+        while(fast != null && fast.next != null){
+            slow=slow.next;
+            fast=fast.next.next;
+            if(slow == fast){
+                slow = head;
+                 while(fast != slow){
+                    fast=fast.next;
+                    slow=slow.next;
+                }
+                return slow;
+            }
+        }
+        return null; 
+    }
+}
+~~~
+
+可以看到，当快慢指针相遇时，让其中任一个指针重新指向头节点，然后让它俩以相同速度前进，再次相遇时所在的节点位置就是环开始的位置。这是为什么呢？
+
+第一次相遇时，假设慢指针 slow 走了 k 步，那么快指针 fast 一定走了 2k 步，也就是说比 slow 多走了 k 步（也就是环的长度）
+
+![1634001356771](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/091602-243179.png)
+
+设相遇点距环的起点的距离为 m，那么环的起点距头结点 head 的距离为 k - m，也就是说如果从 head 前进 k - m 步就能到达环起点。
+
+巧的是，如果从相遇点继续前进 k - m 步，也恰好到达环起点。
+
+![1634001416588](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/091703-3349.png)
+
+所以，只要我们把快慢指针中的任一个重新指向 head，然后两个指针同速前进，k - m 步后就会相遇，相遇之处就是环的起点了。
+
+#### 876
+
+**题目描述**
+
+![1634002258197](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/093101-187315.png)
+
+类似上面的思路，我们还可以让快指针一次前进两步，慢指针一次前进一步，当快指针到达链表尽头时，慢指针就处于链表的中间位置。
+
+**代码实现**
+
+~~~ java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode middleNode(ListNode head) {
+        if(head == null){
+            return null;
+        }
+        ListNode slow=head,fast=head;
+        while(fast != null && fast.next != null){
+            slow=slow.next;
+            fast=fast.next.next;
+        }
+        return slow;
+
+    }
+}
+~~~
+
+当链表的长度是奇数时，slow 恰巧停在中点位置；如果长度是偶数，slow 最终的位置是中间偏右：
+
+#### 22
+
+**题目描述**
+
+![1634002858196](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/094122-947491.png)
+
+**代码实现**
+
+~~~ java
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode(int x) { val = x; }
+ * }
+ */
+class Solution {
+    public ListNode getKthFromEnd(ListNode head, int k) {
+        if(head == null || k<0){
+            return null;
+        }
+        ListNode slow=head,fast=head;
+        while(k>0){
+            fast=fast.next;
+            k--;
+        }
+        while(fast!= null){
+            fast=fast.next;
+            slow=slow.next;
+        }
+        return slow;
+
+    }
+}
+~~~
+
+我们的思路还是使用快慢指针，让快指针先走 k 步，然后快慢指针开始同速前进。这样当快指针走到链表末尾 null 时，慢指针所在的位置就是倒数第 k 个链表节点（为了简化，假设 k 不会超过链表长度）
+
+### 左右指针的常用算
+
+#### 1
+
+**题目描述**
+
+![1634006702251](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1634006702251.png)
+
+**代码实现**
+
+~~~ java
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+
+       int[] res = new int[2];
+    if(nums == null || nums.length == 0){
+        return res;
+    }
+    Map<Integer, Integer> map = new HashMap<>();
+    for(int i = 0; i < nums.length; i++){
+        int temp = target - nums[i];
+        if(map.containsKey(temp)){
+            res[1] = i;
+            res[0] = map.get(temp);
+        }
+        map.put(nums[i], i);
+    }
+    return res;
+    }
+}
+~~~
+
+只要数组有序，就应该想到双指针技巧。解法有点类似二分查找，通过调节 left 和 right 可以调整 sum 的大小.
+
+但是这一道题目的特点是数组无序，那么就不能使用简单的左右指针，如果有序，可以使用左右指针。
+
+#### 881
 
 [救生艇](https://leetcode-cn.com/problems/boats-to-save-people/)
 
 **题目描述**
 
-第 i 个人的体重为 people[i]，每艘船可以承载的最大重量为 limit。
-
-每艘船最多可同时载两人，但条件是这些人的重量之和最多为 limit。
-
-返回载到每一个人所需的最小船数。(保证每个人都能被船载)。
+![1634007027410](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/12/105038-356905.png)
 
 **思路**
 
-先对数组进行原地排序，然后使用对碰指针解决。
+注意到这一刀题目是求最优解问题，所以我们可以先对数组进行原地排序，然后使用对碰指针解决。
 
 **代码实现**
 
@@ -1612,6 +1786,60 @@ class Solution {
 
 ## 滑动窗口
 
+### 滑动窗口代码框架
+
+~~~ java
+
+  /* 滑动窗口算法框架 */
+    public static void slidingWindow(String s, String t) {
+//        定义窗口
+        HashMap<Character, Integer> window = new HashMap<>();
+//        定义目标字符串
+        HashMap<Character, Integer> need = new HashMap<>();
+        char[] source = s.toCharArray();
+        char[] chars= t.toCharArray();
+//        添加字符串到目标map
+        for (char c : chars) {
+            if(need.containsKey(c)){
+                need.put(c,need.getOrDefault(c,0)+1);
+            }else {
+                need.put(c,1);
+            }
+
+        }
+//定义左右窗口指针
+        int left = 0, right = 0;
+//        定义窗口中有效字符变量
+        int valid = 0;
+        while (right < s.length()) {
+            // c 是将移入窗口的字符
+            char c = source[right];
+            // 右移窗口
+            right++;
+            // 进行窗口内数据的一系列更新
+        ...
+
+            /*** debug 输出的位置 ***/
+            System.out.println("left ="+left+"  right ="+right);
+            /********************/
+
+            // 判断左侧窗口是否要收缩
+            while (window needs shrink) {
+                // d 是将移出窗口的字符
+                char d = source[left];
+                // 左移窗口
+                left++;
+                // 进行窗口内数据的一系列更新
+            ...
+            }
+        }
+    }
+~~~
+
+这个算法技巧的时间复杂度是 O(N)，⽐字符串暴⼒算法要⾼效得多。
+
+其中两处...表示的更新窗口数据的地方，到时候你直接往里面填就行了。
+
 ### ddd
 
 [定长子串中元音字母最大个数](https://leetcode-cn.com/problems/maximum-number-of-vowels-in-a-substring-of-given-length/submissions/)
@@ -1713,19 +1941,93 @@ class Solution {
 }
 ~~~
 
-### 76
+### 76、Hard
 
 [最小覆盖子串](https://leetcode-cn.com/problems/minimum-window-substring/)
 
-~~~ java
-class Solution {
-    public String minWindow(String s, String t) {
-        char[] s1 = s.toCharArray();
-        char[] t1 = t.toCharArray();
+**题目描述**
+
+![1633915171876](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/091937-717855.png)
+
+#### 思路
+
+就是说要在`S`(source) 中找到包含`T`(target) 中全部字母的一个子串，且这个子串一定是所有可能子串中最短的。其中找到的子串可以不按T串的顺序。
+
+**滑动窗口思路**
+
+1. 我们在字符串`S`中使用双指针中的左右指针技巧，初始化`left = right = 0`，**把索引左闭右开区间[left, right)称为一个「窗口」**。
+2. 我们先不断地增加`right`指针扩大窗口`[left, right)`，直到窗口中的字符串符合要求（包含了`T`中的所有字符）。**注意，这是开始收缩左边界的条件**
+3. 此时，我们停止增加`right`，转而不断增加`left`指针缩小窗口`[left, right)`，直到窗口中的字符串不再符合要求（不包含`T`中的所有字符了）。同时，每次增加`left`，我们都要更新一轮结果。
+4. 重复第 2 和第 3 步，直到`right`到达字符串`S`的尽头。
+
+这个思路其实也不难，**第 2 步相当于在寻找一个「可行解」，然后第 3 步在优化这个「可行解」，最终找到最优解，**也就是最短的覆盖子串。左右指针轮流前进，窗口大小增增减减，窗口不断向右滑动，这就是「滑动窗口」这个名字的来历。
+
+下面画图理解一下，`needs`和`window`相当于计数器，分别记录`T`中字符出现次数和「窗口」中的相应字符的出现次数。
+
+![1633915415873](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/092358-401605.png)
+
+此时window窗口中已经包含了T子串的所有字符，所以开始收缩左边界窗口。
+
+![1633915446901](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/092409-184753.png)
+
+左边界收缩两个字符
+
+![1633915615463](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/092656-358186.png)
+
+![1633915652547](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/092745-373950.png)
+
+之后重复上述过程，先移动`right`，再移动`left`…… 直到`right`指针到达字符串`S`的末端，算法结束。
+
+#### 代码思路
+
+首先，初始化`window`和`need`两个哈希表，记录窗口中的字符和需要凑齐的字符：
+
+```java
 //        存放窗口内部的字符
         HashMap<Character, Integer> window = new HashMap<Character, Integer>();
 //        存放target字符
         HashMap<Character, Integer> need = new HashMap<Character, Integer>();
+```
+
+然后，使用`left`和`right`变量初始化窗口的两端，不要忘了，区间`[left, right)`是左闭右开的，所以初始情况下窗口没有包含任何元素：
+
+```java
+int left = 0, right = 0;
+int valid = 0; 
+while (right < s.size()) {
+    // 开始滑动
+}
+```
+
+**其中valid变量表示窗口中满足need条件的字符个数**，如果`valid`和`need.size`的大小相同，则说明窗口已满足条件，已经完全覆盖了串`T`。
+
+解释一下这里为什么`valid`和`need.size`大小相同的话就表示已经满足条件，因为T中可能含有重复的字符，比如`ABACA`这样的，明显字符A有3个，所以使用HashMap的目的就是为了去重操作。
+
+**现在开始套模板，只需要思考以下四个问题**：
+
+**1、**当移动`right`扩大窗口，即加入字符时，应该更新哪些数据？
+
+**2、**什么条件下，窗口应该暂停扩大，开始移动`left`缩小窗口？
+
+**3、**当移动`left`缩小窗口，即移出字符时，应该更新哪些数据？
+
+**4、**我们要的结果应该在扩大窗口时还是缩小窗口时进行更新？
+
+如果一个字符进入窗口，应该增加`window`计数器；如果一个字符将移出窗口的时候，应该减少`window`计数器；当`valid`满足`need`时应该收缩窗口；应该在收缩窗口的时候更新最终结果。
+
+#### 代码实现
+
+```java
+class Solution {
+    public String minWindow(String s, String t) {
+//        首先把两个字符串转换为字符数组
+        char[] s1 = s.toCharArray();
+        char[] t1 = t.toCharArray();
+//        定义窗口
+        HashMap<Character, Integer> window = new HashMap<Character, Integer>();
+//        存放target字符
+        HashMap<Character, Integer> need = new HashMap<Character, Integer>();
+//        其中need中的某一个字符可能不止一个
         for(char c:t1){
             if(need.containsKey(c)){
 //                字符串t中肯恩存在重复的字符
@@ -1739,7 +2041,8 @@ class Solution {
         int len = Integer.MAX_VALUE;
 //        定义窗口的位置
         int left = 0, right = 0;
-        int valid = 0;//窗口中有效的字符个数
+//        窗口中有效的字符个数
+        int valid = 0;
         while (right <s1.length) {
             // 向右开始滑动窗口
             char c=s1[right];
@@ -1749,12 +2052,13 @@ class Solution {
             if (need.containsKey(c)) {
 //                把当前字符添加进窗口，然后对应值+1
                 window.put(c,window.getOrDefault(c,0)+1);
-                if(window.get(c) == need.get(c)){
+                if(window.get(c).equals(need.get(c))){
 //                    有效字符个数+1
                     valid++;
                 }
             }
 //            判断左侧的字符是否需要收缩
+//            这个是本题的左边界收缩条件，当窗口中有效字符的个数等于need中字符的个数，已经包含重复的字符
             while (valid == need.size()) {
                 // 在这里更新最小覆盖子串
                 if (right - left < len) {
@@ -1767,9 +2071,9 @@ class Solution {
                 left++;
                 // 进行窗口内数据的一系列更新
                 if (need.containsKey(d)) {
-                    if (window.get(d) == need.get(d))
+                    if (window.get(d).equals(need.get(d)))
                         valid--;
-                   window.put(d,window.get(d)-1);
+                    window.put(d,window.get(d)-1);
                 }
             }
         }
@@ -1777,77 +2081,145 @@ class Solution {
         return len == Integer.MAX_VALUE? "" : s.substring(start,start+len);
     }
 }
-~~~
+```
 
-### 567
+需要注意的是，当我们发现某个字符在`window`的数量满足了`need`的需要，就要更新`valid`，表示有一个字符已经满足要求。而且，你能发现，两次对窗口内数据的更新操作是完全对称的。
+
+当`valid == need.size()`时，说明`T`中所有字符已经被覆盖，已经得到一个可行的覆盖子串，现在应该开始收缩窗口了，以便得到「最小覆盖子串」。
+
+移动`left`收缩窗口时，窗口内的字符都是可行解，所以应该在收缩窗口的阶段进行最小覆盖子串的更新，以便从可行解中找到长度最短的最终结果。
+
+### 567、Medium
 
 [字符串排列](https://leetcode-cn.com/problems/permutation-in-string/)
+
+**题目描述**
+
+![1633916523426](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633916523426.png)
+
+这个题目已经明确说明是找目标串的一个排列，所以与目标串的顺序无关。所以我们找到的子串和Target串的长度应该相同，这就是我们收缩左侧边界的条件。
+
+#### 代码思路
+
+初始状态，让窗口的左右指针全部指向0的位置。
+
+![1633918794447](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/101957-363927.png)
+
+接下来一致增加右侧边界，直到window窗口中包含子串ab为止。
+
+![1633919023927](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/102353-922113.png)
+
+现在已经达到收缩左侧边界的条件，因为window窗口中已经包含了子串ab，也就是有效字符vaild现在为2。但是现在总的子窗口的长度是大于2的，我们要找的是window窗口中vaild=need窗口时候的条件。
+
+现在左侧left边界增加1，判断left处的字符是否包含在need窗口中，如果不包含的话就继续收缩，如果包含，那么就更新vaild有效字符个数和window窗口中的值。
+
+![1633919145173](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/102550-917791.png)
+
+继续收缩左侧边界的值，直到有效字符的个数等于need窗口的大小位置，返回结果。
+
+![1633919303117](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633919303117.png)
+
+
+
+#### 代码实现
+
+**左边界收缩条件**
+
+Target串长度==找到的子串长度的时候。
 
 ~~~ java
 class Solution {
     public boolean checkInclusion(String s1, String s2) {
-         char[] s = s2.toCharArray();
-        char[] t = s1.toCharArray();
-//        存放窗口内部的字符
-        HashMap<Character, Integer> window = new HashMap<Character, Integer>();
-//        存放target字符
-        HashMap<Character, Integer> need = new HashMap<Character, Integer>();
-        for(char c:t){
+        //        首先判断两个串是否是合法的
+        if(s1.equals(null) || s2.equals(null)){
+            return false;
+        }
+//        将字符串转换为字符数组
+        char[] target = s1.toCharArray();
+        char[] source = s2.toCharArray();
+        HashMap<Character, Integer> window = new HashMap<>();
+        HashMap<Character, Integer> need = new HashMap<>();
+        for(char c :target){
             if(need.containsKey(c)){
-//                字符串t中肯恩存在重复的字符
                 need.put(c,need.getOrDefault(c,0)+1);
-            }else {
+            }
+            else {
                 need.put(c,1);
             }
         }
-        // 记录最小覆盖子串的起始索引及长度
-        int start = 0, len = Integer.MAX_VALUE;
-//        定义窗口的位置
-        int left = 0, right = 0;
-        int valid = 0;//窗口中有效的字符个数
-        while (right <s2.length()) {
-            // 向右开始滑动窗口
-            char c=s[right];
-//            窗口增加一位
+//        定义窗口的左右边界
+        int left = 0,right=0;
+//        定义窗口中有效字符的个数
+        int vaild=0;
+
+        while(right <s2.length()){
+//           获取新添加进来的字符
+            char newChar=source[right];
+//            右侧窗口向右移动一位
             right++;
-//            判断t字符串中是否包含字符c
-            if (need.containsKey(c)) {
-//                把当前字符添加进窗口，然后对应值+1
-                window.put(c,window.getOrDefault(c,0)+1);
-                if(window.get(c) == need.get(c)){
-//                    有效字符个数+1
-                    valid++;
+//            首先判断新的字符是否在need窗口中
+            if(need.containsKey(newChar)){
+//                把新的字符添加到window窗口
+                window.put(newChar,window.getOrDefault(newChar,0)+1);
+//                开始判断有效字符
+                if(need.get(newChar).equals(window.get(newChar))){
+                    vaild++;
                 }
             }
-//            判断左侧的字符是否需要收缩
-            while ((right - left)>= s1.length()) {
-                // 在这里更新最小覆盖子串
-                if (valid == need.size()) {
+
+//            开始收缩左侧的边界,窗口中有效字符个数等于need窗口的大小
+            while(right - left >=s1.length()){
+//                返回条件
+                if(need.size() == vaild){
                     return true;
                 }
-                // d 是将移出窗口的字符
-                char d = s[left];
-                // 左移窗口
+
+//                获取左边界的字符
+                char leftChar=source[left];
+//                窗口向左边移动
                 left++;
-                // 进行窗口内数据的一系列更新
-                if (need.containsKey(d)) {
-                    if (window.get(d) == need.get(d))
-                        valid--;
-                   window.put(d,window.get(d)-1);
+//                更新窗口
+                if(need.containsKey(leftChar)){
+                    if(need.get(leftChar).equals(window.get(leftChar)))
+                        vaild--;
+                    window.put(leftChar,window.getOrDefault(leftChar,0)-1);
                 }
             }
         }
-        // 返回最小覆盖子串
         return false;
     }
 }
 ~~~
 
+对于这道题的解法代码，基本上和最小覆盖子串一模一样，只需要改变两个地方：
+
+**1、**本题移动`left`缩小窗口的时机是窗口大小大于`t.size()`时，因为排列嘛，显然长度应该是一样的。
+
+**2、**当发现`valid == need.size()`时，就说明窗口中就是一个合法的排列，所以立即返回`true`。
+
+至于如何处理窗口的扩大和缩小，和最小覆盖子串完全相同。
+
 ### 483
 
 [找到字符串中所有字母异位词](https://leetcode-cn.com/problems/find-all-anagrams-in-a-string/)
 
-~~~ java
+**题目描述**
+
+![1633919635108](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/103356-724335.png)
+
+#### 思路
+
+什么时候开始收缩左侧的边界？
+
+- 当`right-left >=T.length`的时候开始收缩左侧边界。因为这个时候，才有可能窗口中包含了T串，想象如果`right-left < T.length`的时候，是不是不可能包含T子串。
+
+什么时候找到子串T？
+
+- 当`need.length==vaild`的时候，就找到目标串T了。
+
+#### 代码实现
+
+```java
 class Solution {
     public List<Integer> findAnagrams(String s, String p) {
         if(s.equals(null) || p.equals(null)){
@@ -1912,7 +2284,9 @@ class Solution {
         return list;
     }
 }
-~~~
+```
+
+
 
 
 
