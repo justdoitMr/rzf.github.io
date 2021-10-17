@@ -101,6 +101,7 @@
 1. [分布式基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3.md)
 2. [分布式事务](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1.md)
 3. [分布式锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.md)
+4. [分布式ID解决方案](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8FID%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88.md)
 
 ### 数据挖掘
 
