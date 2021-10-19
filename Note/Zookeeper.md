@@ -158,8 +158,6 @@ Zookeeper中的配置文件zoo.cfg中参数含义解读如下：
 
 ![1618035512017](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/10/141832-157162.png)
 
-
-
 ## Zookeeper实战
 
 ### 分布式安装部署
