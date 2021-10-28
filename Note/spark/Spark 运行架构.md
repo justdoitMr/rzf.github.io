@@ -1,5 +1,6 @@
 ## Spark 运行架构
 
+
 Driver 和Executor是和计算相关的组件，Master和Worker是和资源调度相关的组件，如果让**资源和计算**之间直接交互，耦合性太强，所以就添加ApplicationMaster组件，如果Driver需要申请资源，那么就找ApplicationMaster申请资源，而ApplicationMaster在向Master申请资源，这样可以解耦。
 
 ### Spark集群角色
