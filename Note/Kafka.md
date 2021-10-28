@@ -252,10 +252,10 @@ Created topic "first".
 
 ![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/08/182809-557369.png)
 
-- 上图表示`kafka`集群有一个`topic A`,并且有三个分区，分布在三个节点上面，注意点：每个分区有两个副本，两个副本分别是`leader,follower`,并且每一个副本一定不和自己的`leader`分布在一个节点上面。`Kafka`中消息是以  **`topic`**进行分类的，生产者生产消息，消费者消费消息，都是面向  `topic`的。`topic`是==逻辑上的概念==，==而`partition`是物理上的概念==，每个` partition`对应于一个` log`文件，该` log`文件中存储的就是  `producer`生产的数据。`Producer`生产的数据会被不断追加到该`log`文件末端，且每条数据都有自己的  `offset`。消费者组中的每个消费者，都会实时记录自己消费到了哪个 `offset`，以便出错恢复时，从上次的位置继续消费。每一个分区内部的数据是有序的，但是全局不是有序的。
+- 上图表示`kafka`集群有一个`topic A`,并且有三个分区，分布在三个节点上面，注意点：每个分区有两个副本，两个副本分别是`leader,follower`,并且每一个副本一定不和自己的`leader`分布在一个节点上面。`Kafka`中消息是以  **`topic`**进行分类的，生产者生产消息，消费者消费消息，都是面向  `topic`的。`topic`是逻辑上的概念，而`partition`是物理上的概念，每个` partition`对应于一个` log`文件，该` log`文件中存储的就是  `producer`生产的数据。`Producer`生产的数据会被不断追加到该`log`文件末端，且每条数据都有自己的  `offset`。消费者组中的每个消费者，都会实时记录自己消费到了哪个 `offset`，以便出错恢复时，从上次的位置继续消费。每一个分区内部的数据是有序的，但是全局不是有序的。
 - `kafka`文件存储机制
 
-![](../img/kafka/kafka存储机制.png)
+![1634971918652](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/23/145159-895615.png)
 
 由于生产者生产的消息会不断追加到` log`文件末尾，为防止`  log`文件过大导致数据定位效率低下，`Kafka`采取了**分片和索引机制**，将每个  `partition`分为多个 ` segment`。每个  `segment`对应两个文件`“.index”`文件和`“.log”`文件。这些文件位于一个文件夹下，该文件夹的命名规则为：`topic名称+分区序号`。例如，`first`这个  ` topic`有三个分区，则其对应的文件夹为  :
 
@@ -273,9 +273,9 @@ Created topic "first".
 
 `index`和 ` log`文件以当前   `segment`的**第一条消息的  `offset`命名**。下图为   `index`文件和   `log`文件的结构示意图
 
-![](../img/kafka/index_log.png)
+![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/23/145247-76106.png)
 
-​	上面`kafka`再查找偏移量的时候是以**二分查找法进行查找的**。也就是查询index的时候使用的是二分查找法，查找原理是：文件头的偏移量和文件大小快速定位。`“.index”`文件存储大量的索引信息，在查找`index`的时候使用的是二分查找法，`“.log”`文件存储大量的数据，索引文件中的元数据指向对应数据文件中 `message`的物理偏移地址。
+上面`kafka`再查找偏移量的时候是以**二分查找法进行查找的**。也就是查询index的时候使用的是二分查找法，查找原理是：文件头的偏移量和文件大小快速定位。`“.index”`文件存储大量的索引信息，在查找`index`的时候使用的是二分查找法，`“.log”`文件存储大量的数据，索引文件中的元数据指向对应数据文件中 `message`的物理偏移地址。
 
 ### Kafka生产者写入数据
 
@@ -330,8 +330,6 @@ leader-epoch-checkpoint
 #### 分区`（partition）`
 
 消息发送时都被发送到一个`topic`，其本质就是一个目录，而`topic`是由一些`Partition Logs`(分区日志)组成，其组织结构如下图所示：
-
-![](../img/kafka/topic.png)
 
 ![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/17/090858-30434.png)
 
@@ -455,7 +453,7 @@ leader-epoch-checkpoint
 
 ![1618627826708](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/17/105027-10616.png)
 
-图中有一个消费者组合两个topic，kafka会把两个topic当做一个整体来考虑，根据两个topic中的所有分区，使用分区的哈希值对其进行排序，然后在轮训分发到消费者组中的每一个消费者。好处是多个消费者之间消费分区的个数最多差一个。
+图中有一个消费者组和两个topic，kafka会把两个topic当做一个整体来考虑，根据两个topic中的所有分区，使用分区的哈希值对其进行排序，然后在轮训分发到消费者组中的每一个消费者。好处是多个消费者之间消费分区的个数最多差一个。
 
 但是使用轮训的方式需要有一个条件，也就是保证当前消费者组中所有消费者订阅的主题topic是一样的。比如下面这种情况可能吧t1的数据发送给b,把t3的数据发送给a，
 
