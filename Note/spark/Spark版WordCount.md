@@ -1,5 +1,15 @@
 ## Spark版WordCount
+<!-- TOC -->
 
+- [Spark版WordCount](#spark版wordcount)
+    - [增加Scala插件](#增加scala插件)
+    - [增加依赖关系](#增加依赖关系)
+    - [WordCount代码](#wordcount代码)
+    - [异常处理](#异常处理)
+    - [程序执行过程](#程序执行过程)
+    - [main函数详细执行过程](#main函数详细执行过程)
+
+<!-- /TOC -->
 ### 增加Scala插件
 
 Spark 由 Scala语言开发的，所以本课件接下来的开发所使用的语言也为 Scala，咱们当前使用的Spark 版本为 3.0.0，默认采用的 Scala编译版本为 2.12，所以后续开发时。我们依然采用这个版本。开发前请保证 IDEA 开发工具中含有 Scala 开发插件

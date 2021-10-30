@@ -1,5 +1,32 @@
 ## Spark 运行架构
+<!-- TOC -->
 
+- [Spark 运行架构](#spark-运行架构)
+  - [Spark集群角色](#spark集群角色)
+  - [spark-shell和spark-submit](#spark-shell和spark-submit)
+    - [Spark-Shell](#spark-shell)
+    - [Spark-Submit](#spark-submit)
+    - [应用提交的语法](#应用提交的语法)
+      - [基本配置参数](#基本配置参数)
+      - [Driver Program 参数配置](#driver-program-参数配置)
+      - [Executor 参数配置](#executor-参数配置)
+      - [案例](#案例)
+  - [运行架构](#运行架构)
+  - [核心组件](#核心组件)
+    - [Driver：spark驱动器](#driverspark驱动器)
+    - [Executor：spark执行器](#executorspark执行器)
+    - [Master & Worker：集群管理器](#master--worker集群管理器)
+    - [ApplicationMaster](#applicationmaster)
+    - [集群管理器](#集群管理器)
+  - [核心概念](#核心概念)
+    - [Executor 与 Core](#executor-与-core)
+    - [并行度（Parallelism）](#并行度parallelism)
+    - [有向无环图（DAG）](#有向无环图dag)
+  - [提交流程](#提交流程)
+    - [Yarn Client 模式](#yarn-client-模式)
+    - [Yarn Cluster 模式](#yarn-cluster-模式)
+
+<!-- /TOC -->
 
 Driver 和Executor是和计算相关的组件，Master和Worker是和资源调度相关的组件，如果让**资源和计算**之间直接交互，耦合性太强，所以就添加ApplicationMaster组件，如果Driver需要申请资源，那么就找ApplicationMaster申请资源，而ApplicationMaster在向Master申请资源，这样可以解耦。
 
