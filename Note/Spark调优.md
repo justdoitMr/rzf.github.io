@@ -36,79 +36,90 @@
             - [怎么调节](#怎么调节)
     - [jvm调优](#jvm调优)
         - [降低cache操作的内存占比](#降低cache操作的内存占比)
-    - [**调节executor堆外内存与连接等待时长**](#调节executor堆外内存与连接等待时长)
-    - [](#)
-        - [**如果不合并****map****端输出文件的话，会怎么样？**](#如果不合并map端输出文件的话会怎么样)
-        - [**开启****shuffle map****端输出文件合并的机制**](#开启shuffle-map端输出文件合并的机制)
-        - [**合并****map****端输出文件，对咱们的****spark****的性能有哪些方面的影响呢？**](#合并map端输出文件对咱们的spark的性能有哪些方面的影响呢)
-        - [**默认情况下可能出现的问题**](#默认情况下可能出现的问题)
-        - [**调优方式**](#调优方式)
-        - [**在实际生产环境中，我们在什么时候来调节两个参数？**](#在实际生产环境中我们在什么时候来调节两个参数)
-        - [**调节以后的效果**](#调节以后的效果)
-        - [](#-1)
-        - [**shuffle调优概述**](#shuffle调优概述)
-        - [**ShuffleManager发展概述**](#shufflemanager发展概述)
-        - [**hash****、****sort****、****tungsten-sort****。如何来选择？**](#hashsorttungsten-sort如何来选择)
-        - [**MapPartitions的优缺点**](#mappartitions的优缺点)
-        - [**MapPartitions使用场景**](#mappartitions使用场景)
-        - [**出现问题**](#出现问题)
-        - [**解决问题方法**](#解决问题方法)
-        - [**默认的****foreach****的性能缺陷在哪里？**](#默认的foreach的性能缺陷在哪里)
-        - [**用了****foreachPartition****算子之后，好处在哪里？**](#用了foreachpartition算子之后好处在哪里)
-        - [**设置并行度**](#设置并行度)
-        - [**你设置的这个并行度，在哪些情况下会生效？什么情况下不会生效？**](#你设置的这个并行度在哪些情况下会生效什么情况下不会生效)
-        - [**可能出现的问题？**](#可能出现的问题)
-        - [**解决****Spark SQL****无法设置并行度和****task****数量的办法**](#解决spark-sql无法设置并行度和task数量的办法)
-        - [**用****reduceByKey****对性能的提升**](#用reducebykey对性能的提升)
-        - [**reduceByKey****在什么情况下使用呢？**](#reducebykey在什么情况下使用呢)
-        - [**reduce****端缓冲大小的另外一面，关于性能调优的一面**](#reduce端缓冲大小的另外一面关于性能调优的一面)
-        - [**reduce****端缓冲（****buffer****），可能会出现的问题及解决方式**](#reduce端缓冲buffer可能会出现的问题及解决方式)
-        - [**操作方法**](#操作方法)
-        - [**问题****描述**](#问题描述)
-        - [**解决方案**](#解决方案)
-        - [**问题描述**](#问题描述)
-        - [](#-2)
-        - [**解决方案**](#解决方案-1)
-        - [](#-3)
-        - [**问题描述**](#问题描述-1)
-        - [**序列化报错及解决方法**](#序列化报错及解决方法)
-        - [**问题描述**](#问题描述-2)
-        - [**解决方案**](#解决方案-2)
-        - [](#-4)
-        - [**Spark****-On-Yarn任务执行流程**](#spark-on-yarn任务执行流程)
-        - [](#-5)
-        - [**yarn-client****模式下，会产生什么样的问题呢？**](#yarn-client模式下会产生什么样的问题呢)
-        - [](#-6)
-        - [**解决方案**](#解决方案-3)
-        - [**问题描述**](#问题描述-3)
-        - [](#-7)
-        - [**解决方案**](#解决方案-4)
-        - [**使用持久化方式**](#使用持久化方式)
-        - [**checkpoint的使用**](#checkpoint的使用)
-        - [**数据倾斜怎么出现的**](#数据倾斜怎么出现的)
-        - [**发生数据倾斜以后的现象**](#发生数据倾斜以后的现象)
-        - [**定位数据倾斜出现的原因与出现问题的位置**](#定位数据倾斜出现的原因与出现问题的位置)
-        - [](#-8)
-        - [**方案一：聚合源数据**](#方案一聚合源数据)
-        - [](#-9)
-        - [**方案二：过滤导致倾斜的key**](#方案二过滤导致倾斜的key)
-        - [**问题描述**](#问题描述-4)
-        - [](#-10)
-        - [**提升****shuffle reduce****端并行度的操作方法**](#提升shuffle-reduce端并行度的操作方法)
-        - [](#-11)
-        - [**提升****shuffle reduce****并行度的缺陷**](#提升shuffle-reduce并行度的缺陷)
-        - [**使用场景**](#使用场景)
-        - [**解决方案**](#解决方案-5)
-        - [](#-12)
-        - [**使用方式**](#使用方式)
-        - [](#-13)
-        - [**使用场景**](#使用场景-1)
-        - [](#-14)
-        - [**方案实现思路**](#方案实现思路)
-        - [](#-15)
-        - [**使用场景**](#使用场景-2)
-        - [**使用场景及步骤**](#使用场景及步骤)
-        - [**局限性**](#局限性)
+        - [调节executor堆外内存与连接等待时长](#调节executor堆外内存与连接等待时长)
+    - [shuffle调优](#shuffle调优)
+        - [原理概述：](#原理概述)
+        - [合并map端输出文件](#合并map端输出文件)
+            - [如果不合并map端输出文件的话，会怎么样？](#如果不合并map端输出文件的话会怎么样)
+            - [开启shuffle map端输出文件合并的机制](#开启shuffle-map端输出文件合并的机制)
+            - [合并map端输出文件，对咱们的spark的性能有哪些方面的影响呢？](#合并map端输出文件对咱们的spark的性能有哪些方面的影响呢)
+        - [调节map端内存缓冲与reduce端内存占比](#调节map端内存缓冲与reduce端内存占比)
+            - [默认情况下可能出现的问题](#默认情况下可能出现的问题)
+            - [调优方式](#调优方式)
+            - [在实际生产环境中，我们在什么时候来调节两个参数？](#在实际生产环境中我们在什么时候来调节两个参数)
+        - [调节以后的效果](#调节以后的效果)
+        - [shuffle调优概述](#shuffle调优概述)
+            - [ShuffleManager发展概述](#shufflemanager发展概述)
+            - [hash、sort、tungsten-sort。如何来选择？](#hashsorttungsten-sort如何来选择)
+    - [算子调优](#算子调优)
+        - [MapPartitions提升Map类操作性能](#mappartitions提升map类操作性能)
+            - [MapPartitions的优缺点](#mappartitions的优缺点)
+            - [MapPartitions使用场景](#mappartitions使用场景)
+        - [filter过后使用coalesce减少分区数量](#filter过后使用coalesce减少分区数量)
+            - [出现问题](#出现问题)
+            - [解决问题方法](#解决问题方法)
+        - [使用foreachPartition优化写数据库性能](#使用foreachpartition优化写数据库性能)
+            - [默认的foreach的性能缺陷在哪里？](#默认的foreach的性能缺陷在哪里)
+            - [用了foreachPartition算子之后，好处在哪里？](#用了foreachpartition算子之后好处在哪里)
+        - [使用repartition解决Spark SQL低并行度的性能问题](#使用repartition解决spark-sql低并行度的性能问题)
+            - [设置并行度](#设置并行度-1)
+            - [你设置的这个并行度，在哪些情况下会生效？什么情况下不会生效？](#你设置的这个并行度在哪些情况下会生效什么情况下不会生效)
+            - [可能出现的问题？](#可能出现的问题)
+            - [解决Spark SQL无法设置并行度和task数量的办法](#解决spark-sql无法设置并行度和task数量的办法)
+        - [reduceByKey本地聚合介绍](#reducebykey本地聚合介绍)
+            - [用reduceByKey对性能的提升](#用reducebykey对性能的提升)
+            - [reduceByKey在什么情况下使用呢？](#reducebykey在什么情况下使用呢)
+        - [控制shuffle reduce端缓冲大小以避免OOM](#控制shuffle-reduce端缓冲大小以避免oom)
+            - [reduce端缓冲大小的另外一面，关于性能调优的一面](#reduce端缓冲大小的另外一面关于性能调优的一面)
+            - [reduce端缓冲（buffer），可能会出现的问题及解决方式](#reduce端缓冲buffer可能会出现的问题及解决方式)
+            - [操作方法](#操作方法)
+        - [解决JVM GC导致的shuffle文件拉取失败](#解决jvm-gc导致的shuffle文件拉取失败)
+            - [问题描述](#问题描述)
+            - [解决方案](#解决方案)
+        - [YARN队列资源不足导致的application直接失败](#yarn队列资源不足导致的application直接失败)
+            - [问题描述](#问题描述-1)
+            - [解决方案](#解决方案-1)
+        - [解决各种序列化导致的报错](#解决各种序列化导致的报错)
+            - [问题描述](#问题描述-2)
+            - [序列化报错及解决方法](#序列化报错及解决方法)
+        - [解决算子函数返回NULL导致的问题](#解决算子函数返回null导致的问题)
+            - [问题描述](#问题描述-3)
+            - [解决方案](#解决方案-2)
+        - [解决yarn-client模式导致的网卡流量激增问题](#解决yarn-client模式导致的网卡流量激增问题)
+            - [Spark-On-Yarn任务执行流程](#spark-on-yarn任务执行流程)
+            - [yarn-client模式下，会产生什么样的问题呢？](#yarn-client模式下会产生什么样的问题呢)
+            - [解决方案](#解决方案-3)
+        - [解决yarn-cluster模式的JVM栈内存溢出问题](#解决yarn-cluster模式的jvm栈内存溢出问题)
+            - [问题描述](#问题描述-4)
+            - [解决方案](#解决方案-4)
+        - [错误的持久化方式以及checkpoint的使用](#错误的持久化方式以及checkpoint的使用)
+            - [使用持久化方式](#使用持久化方式)
+            - [checkpoint的使用](#checkpoint的使用)
+        - [数据倾斜解决方案](#数据倾斜解决方案)
+            - [原理以及现象分析](#原理以及现象分析)
+            - [数据倾斜怎么出现的](#数据倾斜怎么出现的)
+            - [发生数据倾斜以后的现象](#发生数据倾斜以后的现象)
+            - [定位数据倾斜出现的原因与出现问题的位置](#定位数据倾斜出现的原因与出现问题的位置)
+            - [聚合源数据以及过滤导致倾斜的key](#聚合源数据以及过滤导致倾斜的key)
+                - [方案一：聚合源数据](#方案一聚合源数据)
+                - [方案二：过滤导致倾斜的key](#方案二过滤导致倾斜的key)
+                - [提高shuffle操作reduce并行度](#提高shuffle操作reduce并行度)
+                    - [问题描述](#问题描述-5)
+                    - [提升shuffle reduce端并行度的操作方法](#提升shuffle-reduce端并行度的操作方法)
+                    - [提升shuffle reduce并行度的缺陷](#提升shuffle-reduce并行度的缺陷)
+                - [使用随机key实现双重聚合](#使用随机key实现双重聚合)
+                    - [使用场景](#使用场景)
+                    - [解决方案](#解决方案-5)
+            - [将reduce join转换为map join](#将reduce-join转换为map-join)
+                    - [使用方式](#使用方式)
+                    - [使用场景](#使用场景-1)
+                - [sample采样倾斜key单独进行join](#sample采样倾斜key单独进行join)
+                    - [方案实现思路](#方案实现思路)
+                    - [使用场景](#使用场景-2)
+                - [使用随机数以及扩容表进行join](#使用随机数以及扩容表进行join)
+                    - [使用场景及步骤](#使用场景及步骤)
+                    - [局限性](#局限性)
+        - [实时计算程序性能调优](#实时计算程序性能调优)
 
 <!-- /TOC -->
 ## 性能调优
@@ -409,9 +420,9 @@ spark.storage.memoryFraction，0.6 -> 0.5 -> 0.4 -> 0.2
 
  
 
-## **调节executor堆外内存与连接等待时长**
+### 调节executor堆外内存与连接等待时长
 
-调节executor堆外内存
+**调节executor堆外内存**
 
 有时候，如果你的spark作业处理的数据量特别大，几亿数据量。然后spark作业一运行，时不时的报错，shuffle file cannot find，executor、task lost，out of memory（内存溢出）。
 
@@ -419,7 +430,7 @@ spark.storage.memoryFraction，0.6 -> 0.5 -> 0.4 -> 0.2
 
 上述情况下，就可以去考虑调节一下executor的堆外内存。也许就可以避免报错。此外，有时堆外内存调节的比较大的时候，对于性能来说，也会带来一定的提升。
 
-可以调节堆外内存的上限：
+**可以调节堆外内存的上限：**
 
 --conf spark.yarn.executor.memoryOverhead=2048
 
@@ -431,14 +442,11 @@ spark.yarn.executor.memoryOverhead（看名字，顾名思义，针对的是基�
 
 通常这个参数调节上去以后，就会避免掉某些JVM OOM的异常问题，同时呢，会让整体spark作业的性能，得到较大的提升。
 
- 
-
 **调节连接等待时长**
 
 我们知道，executor会优先从自己本地关联的BlockManager中获取某份数据。如果本地block manager没有的话，那么会通过TransferService，去远程连接其他节点上executor的block manager去获取。
 
 而此时上面executor去远程连接的那个executor，因为task创建的对象特别大，特别多，
-
 频繁的让JVM堆内存满溢，正在进行垃圾回收。而处于垃圾回收过程中，所有的工作线程全部停止，相当于只要一旦进行垃圾回收，spark / executor停止工作，无法提供响应。
 
 此时呢，就会没有响应，无法建立网络连接，会卡住。spark默认的网络连接的超时时长，是60s，如果卡住60s都无法建立连接的话，那么就宣告失败了。
@@ -455,23 +463,15 @@ spark.core.connection.ack.wait.timeout（spark core，connection，连接，ack�
 
 调节这个值比较大以后，通常来说，可以避免部分的偶尔出现的某某文件拉取失败，某某文件lost掉了。
 
+## shuffle调优
 
+### 原理概述：
 
-**3**
-
-
-
-**shuffle调优**
-
-
-
-**原理概述：**
-
-什么样的情况下，会发生shuffle？
+**什么样的情况下，会发生shuffle？**
 
 在spark中，主要是以下几个算子：groupByKey、reduceByKey、countByKey、join（分情况，先groupByKey后再join是不会发生shuffle的），等等。
 
-什么是shuffle？
+**什么是shuffle？**
 
 groupByKey，要把分布在集群各个节点上的数据中的同一个key，对应的values，都要集中到一块儿，集中到集群中同一个节点上，更严密一点说，就是集中到一个节点的一个executor的一个task中。
 
@@ -481,23 +481,15 @@ shuffle，一定是分为两个stage来完成的。因为这其实是个逆向�
 
 reduceByKey(_+_)，在某个action触发job的时候，DAGScheduler，会负责划分job为多个stage。划分的依据，就是，如果发现有会触发shuffle操作的算子，比如reduceByKey，就将这个操作的前半部分，以及之前所有的RDD和transformation操作，划分为一个stage。shuffle操作的后半部分，以及后面的，直到action为止的RDD和transformation操作，划分为另外一个stage。
 
- 
+### 合并map端输出文件
 
-**1**
-
-**合并map端输出文件**
-
-##  
-
-### **如果不合并****map****端输出文件的话，会怎么样？**
+#### 如果不合并map端输出文件的话，会怎么样？
 
 举例实际生产环境的条件：
 
 100个节点（每个节点一个executor）：100个executor
 
-每个executor：2个cpu core
-
-总共1000个task：每个executor平均10个task
+每个executor：2个cpu core，总共1000个task：每个executor平均10个task
 
 每个节点，10个task，每个节点会输出多少份map端文件？10 * 1000=1万个文件
 
@@ -515,21 +507,17 @@ shuffle中的写磁盘的操作，基本上就是shuffle中性能消耗最为严
 
 基本上，spark作业的性能，都消耗在shuffle中了，虽然不只是shuffle的map端输出文件这一个部分，但是这里也是非常大的一个性能消耗点。
 
-
-
-### **开启****shuffle map****端输出文件合并的机制**
+#### 开启shuffle map端输出文件合并的机制
 
 new SparkConf().set("spark.shuffle.consolidateFiles", "true")
 
 默认情况下，是不开启的，就是会发生如上所述的大量map端输出文件的操作，严重影响性能。
 
+#### 合并map端输出文件，对咱们的spark的性能有哪些方面的影响呢？
 
+1. map task写入磁盘文件的IO，减少：100万文件 -> 20万文件
 
-### **合并****map****端输出文件，对咱们的****spark****的性能有哪些方面的影响呢？**
-
-1、map task写入磁盘文件的IO，减少：100万文件 -> 20万文件
-
-2、第二个stage，原本要拉取第一个stage的task数量份文件，1000个task，第二个stage的每个task，都要拉取1000份文件，走网络传输。合并以后，100个节点，每个节点2个cpu core，第二个stage的每个task，主要拉取100 * 2 = 200个文件即可。此时网络传输的性能消耗也大大减少。
+2. 第二个stage，原本要拉取第一个stage的task数量份文件，1000个task，第二个stage的每个task，都要拉取1000份文件，走网络传输。合并以后，100个节点，每个节点2个cpu core，第二个stage的每个task，主要拉取100 * 2 = 200个文件即可。此时网络传输的性能消耗也大大减少。
 
 分享一下，实际在生产环境中，使用了spark.shuffle.consolidateFiles机制以后，实际的性能调优的效果：对于上述的这种生产环境的配置，性能的提升，还是相当的可观的。spark作业，5个小时 -> 2~3个小时。
 
@@ -537,13 +525,9 @@ new SparkConf().set("spark.shuffle.consolidateFiles", "true")
 
 这个时候，去开启这个机制，可以很有效的提升性能。
 
+### 调节map端内存缓冲与reduce端内存占比
 
-
-**2**
-
-**调节map端内存缓冲与reduce端内存占比**
-
-### **默认情况下可能出现的问题**
+#### 默认情况下可能出现的问题
 
 默认情况下，shuffle的map task，输出到磁盘文件的时候，统一都会先写入每个task自己关联的一个内存缓冲区。
 
@@ -561,17 +545,13 @@ reduce task，在进行汇聚、聚合等操作的时候，实际上，使用的
 
 在数据量比较大的情况下，可能频繁地发生reduce端的磁盘文件的读写。
 
-
-
-### **调优方式**
+#### 调优方式
 
 调节map task内存缓冲：spark.shuffle.file.buffer，默认32k（spark 1.3.x不是这个参数，后面还有一个后缀，kb。spark 1.5.x以后，变了，就是现在这个参数）
 
 调节reduce端聚合内存占比：spark.shuffle.memoryFraction，0.2
 
-
-
-### **在实际生产环境中，我们在什么时候来调节两个参数？**
+#### 在实际生产环境中，我们在什么时候来调节两个参数？
 
 看Spark UI，如果你的公司是决定采用standalone模式，那么狠简单，你的spark跑起来，会显示一个Spark UI的地址，4040的端口。进去观察每个stage的详情，有哪些executor，有哪些task，每个task的shuffle write和shuffle read的量，shuffle的磁盘和内存读写的数据量。如果是用的yarn模式来提交，从yarn的界面进去，点击对应的application，进入Spark UI，查看详情。
 
@@ -579,29 +559,21 @@ reduce task，在进行汇聚、聚合等操作的时候，实际上，使用的
 
 不能调节的太大，太大了以后过犹不及，因为内存资源是有限的，你这里调节的太大了，其他环节的内存使用就会有问题了。
 
-### **调节以后的效果**
+### 调节以后的效果
 
 map task内存缓冲变大了，减少spill到磁盘文件的次数。reduce端聚合内存变大了，减少spill到磁盘的次数，而且减少了后面聚合读取磁盘文件的数量。
 
- 
-
-**3**
-
 **HashShuffleManager与SortShuffleManager**
 
-###  
-
-### **shuffle调优概述**
+### shuffle调优概述
 
 大多数Spark作业的性能主要就是消耗在了shuffle环 节，因为该环节包含了大量的磁盘IO、序列化、网络数据传输等操作。因此，如果要让作业的性能更上一层楼，就有必要对shuffle过程进行调优。但是也 必须提醒大家的是，影响一个Spark作业性能的因素，主要还是代码开发、资源参数以及数据倾斜，shuffle调优只能在整个Spark的性能调优中占 到一小部分而已。因此大家务必把握住调优的基本原则，千万不要舍本逐末。下面我们就给大家详细讲解shuffle的原理，以及相关参数的说明，同时给出各个参数的调优建议。
 
-
-
-### **ShuffleManager发展概述**
+#### ShuffleManager发展概述
 
 在Spark的源码中，负责shuffle过程的执行、计算和处理的组件主要就是ShuffleManager，也即shuffle管理器。
 
-在Spark 1.2以前，默认的shuffle计算引擎是HashShuffleManager。该ShuffleManager而HashShuffleManager有着一个非常严重的弊端，就是会产生大量的中间磁盘文件，进而由大量的磁盘IO操作影响了性能。
+在Spark 1.2以前，默认的shuffle计算引擎是HashShuffleManager。而HashShuffleManager有着一个非常严重的弊端，就是会产生大量的中间磁盘文件，进而由大量的磁盘IO操作影响了性能。
 
 因此在Spark 1.2以后的版本中，默认的ShuffleManager改成了SortShuffleManager。SortShuffleManager相较于 HashShuffleManager来说，有了一定的改进。主要就在于，每个Task在进行shuffle操作时，虽然也会产生较多的临时磁盘文件，但是最后会将所有的临时文件合并（merge）成一个磁盘文件，因此每个Task就只有一个磁盘文件。在下一个stage的shuffle read task拉取自己的数据时，只要根据索引读取每个磁盘文件中的部分数据即可。
 
@@ -609,9 +581,7 @@ map task内存缓冲变大了，减少spill到磁盘文件的次数。reduce端�
 
 但是，唯一的不同之处在于，钨丝manager，是使用了自己实现的一套内存管理机制，性能上有很大的提升， 而且可以避免shuffle过程中产生的大量的OOM，GC，等等内存相关的异常。
 
-
-
-### **hash****、****sort****、****tungsten-sort****。如何来选择？**
+#### hash、sort、tungsten-sort。如何来选择？
 
 1、需不需要数据默认就让spark给你进行排序？就好像mapreduce，默认就是有按照key的排序。如果不需要的话，其实还是建议搭建就使用最基本的HashShuffleManager，因为最开始就是考虑的是不排序，换取高性能。
 
@@ -623,45 +593,30 @@ map task内存缓冲变大了，减少spill到磁盘文件的次数。reduce端�
 
 总结：
 
-1、在生产环境中，不建议大家贸然使用第三点和第四点：
+1. 在生产环境中，不建议大家贸然使用第三点和第四点：
 
-2、如果你不想要你的数据在shuffle时排序，那么就自己设置一下，用hash shuffle manager。
+2. 如果你不想要你的数据在shuffle时排序，那么就自己设置一下，用hash shuffle manager。
 
-3、如果你的确是需要你的数据在shuffle时进行排序的，那么就默认不用动，默认就是sort shuffle manager。或者是什么？如果你压根儿不care是否排序这个事儿，那么就默认让他就是sort的。调节一些其他的参数（consolidation机制）。（80%，都是用这种）
+3. 如果你的确是需要你的数据在shuffle时进行排序的，那么就默认不用动，默认就是sort shuffle manager。或者是什么？如果你压根儿不care是否排序这个事儿，那么就默认让他就是sort的。调节一些其他的参数（consolidation机制）。（80%，都是用这种）
 
-spark.shuffle.manager：hash、sort、tungsten-sort
+> spark.shuffle.manager：hash、sort、tungsten-sort
 
 spark.shuffle.sort.bypassMergeThreshold：200。自己可以设定一个阈值，默认是200，当reduce task数量少于等于200，map task创建的输出文件小于等于200的，最后会将所有的输出文件合并为一份文件。这样做的好处，就是避免了sort排序，节省了性能开销，而且还能将多个reduce task的文件合并成一份文件，节省了reduce task拉取数据的时候的磁盘IO的开销。
 
+## 算子调优
 
-
-**4**
-
-
-
-**算子调优**
-
-
-
-**1**
-
-**MapPartitions提升Map类操作性能**
-
-
+### MapPartitions提升Map类操作性能
 
 spark中，最基本的原则，就是每个task处理一个RDD的partition。
 
+#### MapPartitions的优缺点
 
-
-### **MapPartitions的优缺点**
-
-MapPartitions操作的优点：
-
+**MapPartitions操作的优点：**
 如果是普通的map，比如一个partition中有1万条数据。ok，那么你的function要执行和计算1万次。
 
 但是，使用MapPartitions操作之后，一个task仅仅会执行一次function，function一次接收所有的partition数据。只要执行一次就可以了，性能比较高。
 
-MapPartitions的缺点：
+**MapPartitions的缺点：**
 
 如果是普通的map操作，一次function的执行就处理一条数据。那么如果内存不够用的情况下，比如处理了1千条数据了，那么这个时候内存不够了，那么就可以将已经处理完的1千条数据从内存里面垃圾回收掉，或者用其他方法，腾出空间来吧。
 
@@ -669,9 +624,7 @@ MapPartitions的缺点：
 
 但是MapPartitions操作，对于大量数据来说，比如甚至一个partition，100万数据，一次传入一个function以后，那么可能一下子内存不够，但是又没有办法去腾出内存空间来，可能就OOM，内存溢出。
 
-
-
-### **MapPartitions使用场景**
+#### MapPartitions使用场景
 
 当分析的数据量不是特别大的时候，都可以用这种MapPartitions系列操作，性能还是非常不错的，是有提升的。比如原来是15分钟，（曾经有一次性能调优），12分钟。10分钟->9分钟。
 
@@ -679,49 +632,33 @@ MapPartitions的缺点：
 
 在项目中，自己先去估算一下RDD的数据量，以及每个partition的量，还有自己分配给每个executor的内存资源。看看一下子内存容纳所有的partition数据行不行。如果行，可以试一下，能跑通就好。性能肯定是有提升的。但是试了以后，发现OOM了，那就放弃吧。
 
+### filter过后使用coalesce减少分区数量
 
-
-
-
-**2**
-
-**filter过后使用coalesce减少分区数量**
-
-
-
-### **出现问题**
+#### 出现问题
 
 默认情况下，经过了filter之后，RDD中的每个partition的数据量，可能都不太一样了。（原本每个partition的数据量可能是差不多的）
 
-可能出现的问题：
+**可能出现的问题：**
 
 1、每个partition数据量变少了，但是在后面进行处理的时候，还是要跟partition数量一样数量的task，来进行处理，有点浪费task计算资源。
 
 2、每个partition的数据量不一样，会导致后面的每个task处理每个partition的时候，每个task要处理的数据量就不同，这样就会导致有些task运行的速度很快，有些task运行的速度很慢。这就是数据倾斜。
 
-针对上述的两个问题，我们希望应该能够怎么样？
+**针对上述的两个问题，我们希望应该能够怎么样？**
 
 1、针对第一个问题，我们希望可以进行partition的压缩吧，因为数据量变少了，那么partition其实也完全可以对应的变少。比如原来是4个partition，现在完全可以变成2个partition。那么就只要用后面的2个task来处理即可。就不会造成task计算资源的浪费。（不必要，针对只有一点点数据的partition，还去启动一个task来计算）
 
 2、针对第二个问题，其实解决方案跟第一个问题是一样的，也是去压缩partition，尽量让每个partition的数据量差不多。那么后面的task分配到的partition的数据量也就差不多。不会造成有的task运行速度特别慢，有的task运行速度特别快。避免了数据倾斜的问题。
 
-
-
-### **解决问题方法**
+#### 解决问题方法
 
 调用coalesce算子
 
 主要就是用于在filter操作之后，针对每个partition的数据量各不相同的情况，来压缩partition的数量，而且让每个partition的数据量都尽量均匀紧凑。从而便于后面的task进行计算操作，在某种程度上，能够一定程度的提升性能。
 
+### 使用foreachPartition优化写数据库性能
 
-
-**3**
-
-**使用foreachPartition优化写数据库性能**
-
-
-
-### **默认的****foreach****的性能缺陷在哪里？**
+#### 默认的foreach的性能缺陷在哪里？
 
 首先，对于每条数据，都要单独去调用一次function，task为每个数据，都要去执行一次function函数。
 
@@ -737,9 +674,7 @@ MapPartitions的缺点：
 
 以上两点（数据库连接，多次发送SQL语句），都是非常消耗性能的。
 
-
-
-### **用了****foreachPartition****算子之后，好处在哪里？**
+#### 用了foreachPartition算子之后，好处在哪里？
 
 1、对于我们写的function函数，就调用一次，一次传入一个partition所有的数据。
 
@@ -749,29 +684,19 @@ MapPartitions的缺点：
 
 注意，与mapPartitions操作一样，如果一个partition的数量真的特别特别大，比如是100万，那基本上就不太靠谱了。很有可能会发生OOM，内存溢出的问题。
 
- 
+### 使用repartition解决Spark SQL低并行度的性能问题
 
-**4**
-
-**使用repartition解决Spark SQL低并行度的性能问题**
-
-
-
-### **设置并行度**
+#### 设置并行度
 
 并行度：之前说过，并行度是设置的：
 
-1、spark.default.parallelism
+1. spark.default.parallelism
 
-2、textFile()，传入第二个参数，指定partition数量（比较少用）
-
- 
+2. textFile()，传入第二个参数，指定partition数量（比较少用）
 
 在生产环境中，是最好设置一下并行度。官网有推荐的设置方式，根据你的application的总cpu core数量（在spark-submit中可以指定），自己手动设置spark.default.parallelism参数，指定为cpu core总数的2~3倍。
 
- 
-
-### **你设置的这个并行度，在哪些情况下会生效？什么情况下不会生效？** 
+#### 你设置的这个并行度，在哪些情况下会生效？什么情况下不会生效？
 
 如果你压根儿没有使用Spark SQL（DataFrame），那么你整个spark application默认所有stage的并行度都是你设置的那个参数。（除非你使用coalesce算子缩减过partition数量）。
 
@@ -781,33 +706,21 @@ MapPartitions的缺点：
 
 你的第一个stage的并行度，是不受你的控制的，就只有20个task。第二个stage，才会变成你自己设置的那个并行度，100。
 
-
-
-### **可能出现的问题？**
+#### 可能出现的问题？
 
 Spark SQL默认情况下，它的那个并行度，咱们没法设置。可能导致的问题，也许没什么问题，也许很有问题。Spark SQL所在的那个stage中，后面的那些transformation操作，可能会有非常复杂的业务逻辑，甚至说复杂的算法。如果你的Spark SQL默认把task数量设置的很少，20个，然后每个task要处理为数不少的数据量，然后还要执行特别复杂的算法。
 
 这个时候，就会导致第一个stage的速度，特别慢。第二个stage1000个task非常快。
 
-
-
-### **解决****Spark SQL****无法设置并行度和****task****数量的办法**
+#### 解决Spark SQL无法设置并行度和task数量的办法
 
 repartition算子，你用Spark SQL这一步的并行度和task数量，肯定是没有办法去改变了。但是呢，可以将你用Spark SQL查询出来的RDD，使用repartition算子去重新进行分区，此时可以分成多个partition。然后呢，从repartition以后的RDD，再往后，并行度和task数量，就会按照你预期的来了。就可以避免跟Spark SQL绑定在一个stage中的算子，只能使用少量的task去处理大量数据以及复杂的算法逻辑。
 
- 
-
-**5**
-
-**reduceByKey本地聚合介绍**
-
-
+### reduceByKey本地聚合介绍
 
 reduceByKey，相较于普通的shuffle操作（比如groupByKey），它的一个特点，就是说，会进行map端的本地聚合。对map端给下个stage每个task创建的输出文件中，写数据之前，就会进行本地的combiner操作，也就是说对每一个key，对应的values，都会执行你的算子函数（_ + _）
 
-
-
-### **用****reduceByKey****对性能的提升**
+#### 用reduceByKey对性能的提升
 
 1、在本地进行聚合以后，在map端的数据量就变少了，减少磁盘IO。而且可以减少磁盘空间的占用。
 
@@ -817,37 +730,21 @@ reduceByKey，相较于普通的shuffle操作（比如groupByKey），它的一�
 
 4、reduce端，要进行聚合的数据量也变少了。
 
-
-
-### **reduceByKey****在什么情况下使用呢？**
+#### reduceByKey在什么情况下使用呢？
 
 1、非常普通的，比如说，就是要实现类似于wordcount程序一样的，对每个key对应的值，进行某种数据公式或者算法的计算（累加、类乘）。
 
-2、对于一些类似于要对每个key进行一些字符串拼接的这种较为复杂的操作，可以自己衡量一下，其实有时，也是可以使用reduceByKey来实现的。但是不太好实现。如果真能够实现出来，对性能绝对是有帮助的。（shuffle基本上就占了整个spark作业的90%以上的性能消耗，主要能对shuffle进行一定的调优，都是有价值的）
-
- 
-
-**5**
+2、对于一些类似于要对每个key进行一些字符串拼接的这种较为复杂的操作，可以自己衡量一下，其实有时，也是可以使用reduceByKey来实现的。但是不太好实现。如果真能够实现出来，对性能绝对是有帮助的。（shuffle基本上就占了整个spark作业的90%以上的性能消耗，主要能对shuffle进行一定的调优，都是有价值的）troubleshooting
 
 
-
-**troubleshooting**
-
-
-
-**1**
-
-**控制shuffle reduce端缓冲大小以避免OOM**
-
-
+### 控制shuffle reduce端缓冲大小以避免OOM
 
 map端的task是不断的输出数据的，数据量可能是很大的。
-
 但是，其实reduce端的task，并不是等到map端task将属于自己的那份数据全部写入磁盘文件之后，再去拉取的。map端写一点数据，reduce端task就会拉取一小部分数据，立即进行后面的聚合、算子函数的应用。
 
 每次reduece能够拉取多少数据，就由buffer来决定。因为拉取过来的数据，都是先放在buffer中的。然后才用后面的executor分配的堆内存占比（0.2），hashmap，去进行后续的聚合、函数的执行。
 
-### **reduce****端缓冲大小的另外一面，关于性能调优的一面**
+#### reduce端缓冲大小的另外一面，关于性能调优的一面
 
 假如Map端输出的数据量也不是特别大，然后你的整个application的资源也特别充足。200个executor、5个cpu core、10G内存。
 
@@ -859,7 +756,7 @@ map端的task是不断的输出数据的，数据量可能是很大的。
 
 注意，一定要在资源充足的前提下做此操作。
 
-### **reduce****端缓冲（****buffer****），可能会出现的问题及解决方式**
+#### reduce端缓冲（buffer），可能会出现的问题及解决方式
 
 可能会出现，默认是48MB，也许大多数时候，reduce端task一边拉取一边计算，不一定一直都会拉满48M的数据。大多数时候，拉取个10M数据，就计算掉了。
 
@@ -877,23 +774,15 @@ map端的task是不断的输出数据的，数据量可能是很大的。
 
 这种时候，只能采取牺牲性能的方式了，spark作业，首先，第一要义，就是一定要让它可以跑起来。
 
-### **操作方法**
-
-- 
+#### 操作方法
 
 ```
-new SparkConf().set(spark.reducer.maxSizeInFlight，”48”)
+new SparkConf()
+.set(spark.reducer.maxSizeInFlight，”48”)
 ```
+### 解决JVM GC导致的shuffle文件拉取失败
 
-
-
-**2**
-
-**解决JVM GC导致的shuffle文件拉取失败**
-
-
-
-### **问题****描述**
+#### 问题描述
 
 有时会出现一种情况，在spark的作业中，log日志会提示shuffle file not found。（spark作业中，非常常见的）而且有的时候，它是偶尔才会出现的一种情况。有的时候，出现这种情况以后，重新去提交task。重新执行一遍，发现就好了。没有这种错误了。
 
@@ -905,37 +794,33 @@ log怎么看？用client模式去提交你的spark作业。比如standalone clie
 
 就很可能会报出shuffle file not found。但是，可能下一个stage又重新提交了task以后，再执行就没有问题了，因为可能第二次就没有碰到JVM在gc了。
 
-### **解决方案**
-
+#### 解决方案
+```
 spark.shuffle.io.maxRetries 3
+````
 
 第一个参数，意思就是说，shuffle文件拉取的时候，如果没有拉取到（拉取失败），最多或重试几次（会重新拉取几次文件），默认是3次。
-
+```
 spark.shuffle.io.retryWait 5s
-
+```
 第二个参数，意思就是说，每一次重试拉取文件的时间间隔，默认是5s钟。
 
 默认情况下，假如说第一个stage的executor正在进行漫长的full gc。第二个stage的executor尝试去拉取文件，结果没有拉取到，默认情况下，会反复重试拉取3次，每次间隔是五秒钟。最多只会等待3 * 5s = 15s。如果15s内，没有拉取到shuffle file。就会报出shuffle file not found。
 
 针对这种情况，我们完全可以进行预备性的参数调节。增大上述两个参数的值，达到比较大的一个值，尽量保证第二个stage的task，一定能够拉取到上一个stage的输出文件。避免报shuffle file not found。然后可能会重新提交stage和task去执行。那样反而对性能也不好。
-
+```
 spark.shuffle.io.maxRetries 60
 
 spark.shuffle.io.retryWait 60s
-
+```
 最多可以忍受1个小时没有拉取到shuffle file。只是去设置一个最大的可能的值。full gc不可能1个小时都没结束吧。
 
 这样呢，就可以尽量避免因为gc导致的shuffle file not found，无法拉取到的问题。
 
- 
 
-**3**
+### YARN队列资源不足导致的application直接失败
 
-**YARN队列资源不足导致的application直接失败**
-
-
-
-### **问题描述**
+#### 问题描述
 
 如果说，你是基于yarn来提交spark。比如yarn-cluster或者yarn-client。你可以指定提交到某个hadoop队列上的。每个队列都是可以有自己的资源的。
 
@@ -953,13 +838,11 @@ spark.shuffle.io.retryWait 60s
 
 此时，可能会出现两种情况：（备注，具体出现哪种情况，跟你的YARN、Hadoop的版本，你们公司的一些运维参数，以及配置、硬件、资源肯能都有关系）
 
-1、YARN，发现资源不足时，你的spark作业，并没有hang在那里，等待资源的分配，而是直接打印一行fail的log，直接就fail掉了。
+1. YARN，发现资源不足时，你的spark作业，并没有hang在那里，等待资源的分配，而是直接打印一行fail的log，直接就fail掉了。
 
-2、YARN，发现资源不足，你的spark作业，就hang在那里。一直等待之前的spark作业执行完，等待有资源分配给自己来执行。
+2. YARN，发现资源不足，你的spark作业，就hang在那里。一直等待之前的spark作业执行完，等待有资源分配给自己来执行。
 
-###  
-
-### **解决方案**
+#### 解决方案
 
 1、在你的J2EE（我们这个项目里面，spark作业的运行， J2EE平台触发的，执行spark-submit脚本的平台）进行限制，同时只能提交一个spark作业到yarn上去执行，确保一个spark作业的资源肯定是有的。
 
@@ -970,91 +853,55 @@ spark.shuffle.io.retryWait 60s
 4、在J2EE中，通过线程池的方式（一个线程池对应一个资源队列），来实现上述我们说的方案。
 
 
+### 解决各种序列化导致的报错
 
-**4**
-
-**解决各种序列化导致的报错**
-
-###  
-
-### **问题描述**
+#### 问题描述
 
 用client模式去提交spark作业，观察本地打印出来的log。如果出现了类似于Serializable、Serialize等等字眼报错的log，那么恭喜大家，就碰到了序列化问题导致的报错。
 
-
-
-### **序列化报错及解决方法**
+#### 序列化报错及解决方法
 
 1、你的算子函数里面，如果使用到了外部的自定义类型的变量，那么此时，就要求你的自定义类型，必须是可序列化的。
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
 
 ```
-final Teacher teacher = new Teacher("leo");studentsRDD.foreach(new VoidFunction() {public void call(Row row) throws Exception {   String teacherName = teacher.getName();   ....  }});
+final Teacher teacher = new Teacher("leo");
+studentsRDD.foreach(new VoidFunction() {
+    public void call(Row row) throws Exception {   
+        String teacherName = teacher.getName();  
+        ....  
+ }});
 public class Teacher implements Serializable {}
 ```
 
-
-
 2、如果要将自定义的类型，作为RDD的元素类型，那么自定义的类型也必须是可以序列化的。
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
 
 ```
-JavaPairRDD<Integer, Teacher> teacherRDDJavaPairRDD<Integer, Student> studentRDDstudentRDD.join(teacherRDD)public class Teacher implements Serializable {}
+JavaPairRDD<Integer, Teacher> teacherRDDJavaPairRDD<Integer, Student> studentRDDstudentRDD.join(teacherRDD)
+public class Teacher implements Serializable {}
 public class Student implements Serializable {}
 ```
 
-
-
 3、不能在上述两种情况下，去使用一些第三方的，不支持序列化的类型。
 
-- 
-- 
-- 
-- 
-- 
-- 
-
 ```
-Connection conn =studentsRDD.foreach(new VoidFunction() {public void call(Row row) throws Exception {  conn.....}});
+Connection conn =studentsRDD.foreach(new VoidFunction() {
+public void call(Row row) throws Exception 
+    {  
+        conn.....
+    }
+});
 ```
+### 解决算子函数返回NULL导致的问题
 
-
-
-Connection是不支持序列化的
-
-
-
-**5**
-
-**解决算子函数返回NULL导致的问题**
-
-
-
-### **问题描述**
+#### 问题描述
 
 在有些算子函数里面，是需要我们有一个返回值的。但是，有时候不需要返回值。我们如果直接返回NULL的话，是会报错的。
-
-Scala.Math(NULL)，异常
-
-### **解决方案**
+```
+Scala.Math(NULL) //异常
+```
+#### 解决方案
 
 如果碰到你的确是对于某些值不想要有返回值的话，有一个解决的办法：
 
@@ -1064,17 +911,11 @@ Scala.Math(NULL)，异常
 
 3、大家不要忘了，之前咱们讲过的那个算子调优里面的coalesce算子，在filter之后，可以使用coalesce算子压缩一下RDD的partition的数量，让各个partition的数据比较紧凑一些。也能提升一些性能。
 
- 
+### 解决yarn-client模式导致的网卡流量激增问题
 
-**6**
+#### Spark-On-Yarn任务执行流程
 
-**解决yarn-client模式导致的网卡流量激增问题**
-
-###  
-
-### **Spark****-On-Yarn任务执行流程**
-
-Driver到底是什么？
+**Driver到底是什么？**
 
 我们写的spark程序，打成jar包，用spark-submit来提交。jar包中的一个main类，通过jvm的命令启动起来。
 
@@ -1094,9 +935,7 @@ ApplicationMaster(ExecutorLauncher)负责executor的申请，driver负责job和s
 
 每种计算框架（mr、spark），如果想要在yarn上执行自己的计算应用，那么就必须自己实现和提供一个ApplicationMaster。相当于是实现了yarn提供的接口，spark自己开发的一个类。
 
-###  
-
-### **yarn-client****模式下，会产生什么样的问题呢？**
+#### yarn-client模式下，会产生什么样的问题呢？
 
 由于driver是启动在本地机器的，而且driver是全权负责所有的任务的调度的，也就是说要跟yarn集群上运行的多个executor进行频繁的通信（中间有task的启动消息、task的执行统计消息、task的运行状态、shuffle的输出结果）。
 
@@ -1106,9 +945,7 @@ ApplicationMaster(ExecutorLauncher)负责executor的申请，driver负责job和s
 
 你的本地机器的网卡流量激增，当然不是一件好事了。因为在一些大的公司里面，对每台机器的使用情况，都是有监控的。不会允许单个机器出现耗费大量网络带宽等等这种资源的情况。
 
-###  
-
-### **解决方案**
+#### 解决方案
 
 实际上解决的方法很简单，就是心里要清楚，yarn-client模式是什么情况下，可以使用的？yarn-client模式，通常咱们就只会使用在测试环境中，你写好了某个spark作业，打了一个jar包，在某台测试机器上，用yarn-client模式去提交一下。因为测试的行为是偶尔为之的，不会长时间连续提交大量的spark作业去测试。还有一点好处，yarn-client模式提交，可以在本地机器观察到详细全面的log。通过查看log，可以去解决线上报错的故障（troubleshooting）、对性能进行观察并进行性能调优。
 
@@ -1116,15 +953,9 @@ ApplicationMaster(ExecutorLauncher)负责executor的申请，driver负责job和s
 
 yarn-cluster模式，就跟你的本地机器引起的网卡流量激增的问题，就没有关系了。也就是说，就算有问题，也应该是yarn运维团队和基础运维团队之间的事情了。使用了yarn-cluster模式以后，就不是你的本地机器运行Driver，进行task调度了。是yarn集群中，某个节点会运行driver进程，负责task调度。
 
- 
+### 解决yarn-cluster模式的JVM栈内存溢出问题
 
-**7**
-
-**解决yarn-cluster模式的JVM栈内存溢出问题**
-
-
-
-### **问题描述**
+#### 问题描述
 
 有的时候，运行一些包含了spark sql的spark作业，可能会碰到yarn-client模式下，可以正常提交运行。yarn-cluster模式下，可能无法提交运行的，会报出JVM的PermGen（永久代）的内存溢出，OOM。
 
@@ -1134,21 +965,16 @@ spark-sql，它的内部是要进行很复杂的SQL的语义解析、语法树�
 
 所以，此时，如果对永久代的占用需求，超过了82M的话，但是呢又在128M以内，就会出现如上所述的问题，yarn-client模式下，默认是128M，这个还能运行，如果在yarn-cluster模式下，默认是82M，就有问题了。会报出PermGen Out of Memory error log。
 
-###  
-
-### **解决方案**
+#### 解决方案
 
 既然是JVM的PermGen永久代内存溢出，那么就是内存不够用。我们就给yarn-cluster模式下的driver的PermGen多设置一些。
 
 spark-submit脚本中，加入以下配置即可：
 
-- 
-
 ```
---conf spark.driver.extraJavaOptions="-XX:PermSize=128M -XX:MaxPermSize=256M"
+--conf spark.driver.extraJavaOptions=
+"-XX:PermSize=128M -XX:MaxPermSize=256M"
 ```
-
-
 
 这个就设置了driver永久代的大小，默认是128M，最大是256M。这样的话，就可以基本保证你的spark作业不会出现上述的yarn-cluster模式导致的永久代内存溢出的问题。
 
@@ -1164,43 +990,34 @@ JVM Stack Memory Overflow，栈内存溢出。
 
 这种时候，建议不要搞那么复杂的spark sql语句。采用替代方案：**将一条****sql****语句，拆解成多条****sql****语句来执行**。每条sql语句，就只有100个or子句以内。一条一条SQL语句来执行。根据生产环境经验的测试，一条sql语句，100个or子句以内，是还可以的。通常情况下，不会报那个栈内存溢出。
 
- 
 
-**8**
+### 错误的持久化方式以及checkpoint的使用
 
-**错误的持久化方式以及checkpoint的使用**
-
-
-
-### **使用持久化方式**
+#### 使用持久化方式
 
 错误的持久化使用方式：
 
 usersRDD，想要对这个RDD做一个cache，希望能够在后面多次使用这个RDD的时候，不用反复重新计算RDD。可以直接使用通过各个节点上的executor的BlockManager管理的内存 / 磁盘上的数据，避免重新反复计算RDD。
-
+```
 usersRDD.cache()
 
 usersRDD.count()
 
 usersRDD.take()
-
+```
 上面这种方式，不要说会不会生效了，实际上是会报错的。会报什么错误呢？会报一大堆file not found的错误。
 
- 
-
 正确的持久化使用方式：
-
+```
 usersRDD
 
 usersRDD = usersRDD.cache() // Java
 
 val cachedUsersRDD = usersRDD.cache() // Scala
-
+```
 之后再去使用usersRDD，或者cachedUsersRDD就可以了。
 
-
-
-### **checkpoint的使用**
+#### checkpoint的使用
 
 对于持久化，大多数时候都是会正常工作的。但有些时候会出现意外。
 
@@ -1236,7 +1053,7 @@ checkpoint原理：
 
 5、job执行完之后，就会启动一个内部的新job，去将标记为inProgressCheckpoint的rdd的数据，都写入hdfs文件中。（备注，如果rdd之前cache过，会直接从缓存中获取数据，写入hdfs中。如果没有cache过，那么就会重新计算一遍这个rdd，再checkpoint）。
 
-6、将checkpoint过的rdd之前的依赖rdd，改成一个CheckpointRDD*，强制改变你的rdd的lineage。后面如果rdd的cache数据获取失败，直接会通过它的上游CheckpointRDD，去容错的文件系统，比如hdfs，中，获取checkpoint的数据。
+6、将checkpoint过的rdd之前的依赖rdd，改成一个CheckpointRDD，强制改变你的rdd的lineage。后面如果rdd的cache数据获取失败，直接会通过它的上游CheckpointRDD，去容错的文件系统，比如hdfs，中，获取checkpoint的数据。
 
 checkpoint的使用：
 
@@ -1244,29 +1061,15 @@ checkpoint的使用：
 
 2、对RDD执行checkpoint操作
 
-
-
-**6**
-
-
-
-**数据倾斜解决方案**
-
-
+### 数据倾斜解决方案
 
 数据倾斜的解决，跟之前讲解的性能调优，有一点异曲同工之妙。
 
 性能调优中最有效最直接最简单的方式就是加资源加并行度，并注意RDD架构（复用同一个RDD，加上cache缓存）。相对于前面，shuffle、jvm等是次要的。
 
+#### 原理以及现象分析
 
-
-**1**
-
-**原理以及现象分析**
-
-
-
-### **数据倾斜怎么出现的**
+#### 数据倾斜怎么出现的
 
 在执行shuffle操作的时候，是按照key，来进行values的数据的输出、拉取和聚合的。
 
@@ -1286,9 +1089,7 @@ checkpoint的使用：
 
 数据倾斜，一旦出现，是不是性能杀手？！
 
-
-
-### **发生数据倾斜以后的现象**
+#### 发生数据倾斜以后的现象
 
 Spark数据倾斜，有两种表现：
 
@@ -1308,9 +1109,7 @@ Spark数据倾斜，有两种表现：
 
 作业都跑不完，还谈什么性能调优这些东西？！
 
-
-
-### **定位数据倾斜出现的原因与出现问题的位置**
+#### 定位数据倾斜出现的原因与出现问题的位置
 
 根据log去定位
 
@@ -1318,17 +1117,9 @@ Spark数据倾斜，有两种表现：
 
 1、你在自己的程序里面找找，哪些地方用了会产生shuffle的算子，groupByKey、countByKey、reduceByKey、join
 
-2、看log
+2、看log,log一般会报是在你的哪一行代码，导致了OOM异常。或者看log，看看是执行到了第几个stage。spark代码，是怎么划分成一个一个的stage的。哪一个stage生成的task特别慢，就能够自己用肉眼去对你的spark代码进行stage的划分，就能够通过stage定位到你的代码，到底哪里发生了数据倾斜。
 
-log一般会报是在你的哪一行代码，导致了OOM异常。或者看log，看看是执行到了第几个stage。spark代码，是怎么划分成一个一个的stage的。哪一个stage生成的task特别慢，就能够自己用肉眼去对你的spark代码进行stage的划分，就能够通过stage定位到你的代码，到底哪里发生了数据倾斜。
-
-
-
-**2**
-
-**聚合源数据以及过滤导致倾斜的key**
-
-
+#### 聚合源数据以及过滤导致倾斜的key
 
 数据倾斜解决方案，第一个方案和第二个方案，一起来讲。这两个方案是最直接、最有效、最简单的解决数据倾斜问题的方案。
 
@@ -1340,9 +1131,7 @@ log一般会报是在你的哪一行代码，导致了OOM异常。或者看log�
 
 有效、简单、直接才是最好的，彻底根除了数据倾斜的问题。
 
-###  
-
-### **方案一：聚合源数据**
+##### 方案一：聚合源数据
 
 一些聚合的操作，比如groupByKey、reduceByKey，groupByKey说白了就是拿到每个key对应的values。reduceByKey说白了就是对每个key对应的values执行一定的计算。
 
@@ -1360,19 +1149,16 @@ spark中，可能对这个操作，就不需要执行shffule操作了，也就�
 
 或者是对每个key在hive etl中进行聚合，对所有values聚合一下，不一定是拼接起来，可能是直接进行计算。reduceByKey计算函数应用在hive etl中，从而得到每个key的values。
 
- 
-
 聚合源数据方案第二种做法是，你可能没有办法对每个key聚合出来一条数据。那么也可以做一个妥协，对每个key对应的数据，10万条。有好几个粒度，比如10万条里面包含了几个城市、几天、几个地区的数据，现在放粗粒度。直接就按照城市粒度，做一下聚合，几个城市，几天、几个地区粒度的数据，都给聚合起来。比如说
-
+```
 city_id date area_id
 
 select ... from ... group by city_id
+```
 
 尽量去聚合，减少每个key对应的数量，也许聚合到比较粗的粒度之后，原先有10万数据量的key，现在只有1万数据量。减轻数据倾斜的现象和问题。
 
-###  
-
-### **方案二：过滤导致倾斜的key**
+##### 方案二：过滤导致倾斜的key
 
 如果你能够接受某些数据在spark作业中直接就摒弃掉不使用。比如说，总共有100万个key。只有2个key是数据量达到10万的。其他所有的key，对应的数量都是几十万。
 
@@ -1380,23 +1166,15 @@ select ... from ... group by city_id
 
 那么这几个原先有大量数据，会导致数据倾斜的key，被过滤掉之后，那么在你的spark作业中，自然就不会发生数据倾斜了。
 
+##### 提高shuffle操作reduce并行度
 
-
-**3**
-
-**提高shuffle操作reduce并行度**
-
-
-
-### **问题描述**
+###### 问题描述
 
 第一个和第二个方案，都不适合做，然后再考虑这个方案。
 
 将reduce task的数量变多，就可以让每个reduce task分配到更少的数据量。这样的话也许就可以缓解甚至是基本解决掉数据倾斜的问题。
 
-###  
-
-### **提升****shuffle reduce****端并行度的操作方法**
+###### 提升shuffle reduce端并行度的操作方法
 
 很简单，主要给我们所有的shuffle算子，比如groupByKey、countByKey、reduceByKey。在调用的时候，传入进去一个参数。那个数字，就代表了那个shuffle操作的reduce端的并行度。那么在进行shuffle操作的时候，就会对应着创建指定数量的reduce task。
 
@@ -1404,9 +1182,7 @@ select ... from ... group by city_id
 
 比如说，原本某个task分配数据特别多，直接OOM，内存溢出了，程序没法运行，直接挂掉。按照log，找到发生数据倾斜的shuffle操作，给它传入一个并行度数字，这样的话，原先那个task分配到的数据，肯定会变少。就至少可以避免OOM的情况，程序至少是可以跑的。
 
-###  
-
-### **提升****shuffle reduce****并行度的缺陷**
+###### 提升shuffle reduce并行度的缺陷
 
 治标不治本的意思，因为它没有从根本上改变数据倾斜的本质和问题。不像第一个和第二个方案（直接避免了数据倾斜的发生）。原理没有改变，只是说，尽可能地去缓解和减轻shuffle reduce task的数据压力，以及数据倾斜的问题。
 
@@ -1419,20 +1195,13 @@ select ... from ... group by city_id
 那么，如果出现第二种情况的话，各位，就立即放弃第三种方案，开始去尝试和选择后面的四种方案。
 
 
+##### 使用随机key实现双重聚合
 
-**4**
-
-**使用随机key实现双重聚合**
-
-
-
-### **使用场景**
+###### 使用场景
 
 groupByKey、reduceByKey比较适合使用这种方式。join咱们通常不会这样来做，后面会讲三种针对不同的join造成的数据倾斜的问题的解决方案。
 
-
-
-### **解决方案**
+###### 解决方案
 
 第一轮聚合的时候，对key进行打散，将原先一样的key，变成不一样的key，相当于是将每个key分为多组。
 
@@ -1442,21 +1211,13 @@ groupByKey、reduceByKey比较适合使用这种方式。join咱们通常不会�
 
 如果说，之前的第一、第二、第三种方案，都没法解决数据倾斜的问题，那么就只能依靠这一种方式了。
 
+#### 将reduce join转换为map join
 
-
-**5**
-
-**将reduce join转换为map join**
-
-### 
-
-### **使用方式**
+###### 使用方式
 
 普通的join，那么肯定是要走shuffle。既然是走shuffle，那么普通的join就肯定是走的是reduce join。那怎么将reduce join 转换为mapjoin呢？先将所有相同的key，对应的value汇聚到一个task中，然后再进行join。
 
-###  
-
-### **使用场景**
+###### 使用场景
 
 这种方式适合在什么样的情况下来使用？
 
@@ -1478,23 +1239,16 @@ groupByKey、reduceByKey比较适合使用这种方式。join咱们通常不会�
 
 不走shuffle，直接走map，是不是性能也会高很多？这是肯定的。
 
- 
 
-**6**
+##### sample采样倾斜key单独进行join
 
-**sample采样倾斜key单独进行join**
-
-###  
-
-### **方案实现思路**
+###### 方案实现思路
 
 将发生数据倾斜的key，单独拉出来，放到一个RDD中去。就用这个原本会倾斜的key RDD跟其他RDD单独去join一下，这个时候key对应的数据可能就会分散到多个task中去进行join操作。
 
 就不至于说是，这个key跟之前其他的key混合在一个RDD中时，肯定是会导致一个key对应的所有数据都到一个task中去，就会导致数据倾斜。
 
-###  
-
-### **使用场景**
+###### 使用场景
 
 这种方案什么时候适合使用？
 
@@ -1518,13 +1272,9 @@ groupByKey、reduceByKey比较适合使用这种方式。join咱们通常不会�
 
 再去进行join，是不是性能就更好了。肯定可以将数据进行打散，去进行join。join完以后，可以执行map操作，去将之前打上的随机数给去掉，然后再和另外一个普通RDD join以后的结果进行union操作。
 
- 
+##### 使用随机数以及扩容表进行join
 
-**7**
-
-**使用随机数以及扩容表进行join**
-
-### **使用场景及步骤**
+###### 使用场景及步骤
 
 当采用随机数和扩容表进行join解决数据倾斜的时候，就代表着，你的之前的数据倾斜的解决方案，都没法使用。
 
@@ -1538,9 +1288,7 @@ groupByKey、reduceByKey比较适合使用这种方式。join咱们通常不会�
 
 3、最后将两个处理后的RDD进行join操作。
 
- 
-
-### **局限性**
+###### 局限性
 
 1、因为你的两个RDD都很大，所以你没有办法去将某一个RDD扩的特别大，一般咱们就是10倍。
 
@@ -1556,31 +1304,19 @@ sample采样倾斜key并单独进行join
 
 打散成100份，甚至1000份，2000份，去进行join，那么就肯定没有数据倾斜的问题了吧。
 
-
-
-**7**
-
-
-
-**实时计算程序性能调优**
-
-
+### 实时计算程序性能调优
 
 1、并行化数据接收：处理多个topic的数据时比较有效
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
 ```
-int numStreams = 5;List<JavaPairDStream<String, String>> kafkaStreams = new ArrayList<JavaPairDStream<String, String>>(numStreams);for (int i = 0; i < numStreams; i++) {  kafkaStreams.add(KafkaUtils.createStream(...));}JavaPairDStream<String, String> unifiedStream = streamingContext.union(kafkaStreams.get(0), kafkaStreams.subList(1, kafkaStreams.size()));unifiedStream.print();
+int numStreams = 5;
+List<JavaPairDStream<String, String>> kafkaStreams = new ArrayList<JavaPairDStream<String, String>>(numStreams);
+for (int i = 0; i < numStreams; i++) {  
+    kafkaStreams.add(KafkaUtils.createStream(...));
+}
+JavaPairDStream<String, String> unifiedStream = streamingContext.union(kafkaStreams.get(0), kafkaStreams.subList(1, kafkaStreams.size()));
+unifiedStream.print();
 ```
-
-
 
 2、spark.streaming.blockInterval：增加block数量，增加每个batch rdd的partition数量，增加处理并行度
 
@@ -1592,26 +1328,17 @@ batch rdd，它的partition数量是多少呢？一个batch有多少个block，�
 
 定死了，初始的rdd过来，直接就是固定的partition数量了
 
-
-
 3、inputStream.repartition(<number of partitions>)：重分区，增加每个batch rdd的partition数量
 
 有些时候，希望对某些dstream中的rdd进行定制化的分区
 
 对dstream中的rdd进行重分区，去重分区成指定数量的分区，这样也可以提高指定dstream的rdd的计算并行度
 
-
-
 4、调节并行度
-
-- 
-- 
 
 ```
 spark.default.parallelismreduceByKey(numPartitions)
 ```
-
-
 
 5、使用Kryo序列化机制：
 
@@ -1620,8 +1347,6 @@ spark streaming，也是有不少序列化的场景的
 提高序列化task发送到executor上执行的性能，如果task很多的时候，task序列化和反序列化的性能开销也比较可观
 
 默认输入数据的存储级别是StorageLevel.MEMORY_AND_DISK_SER_2，receiver接收到数据，默认就会进行持久化操作；首先序列化数据，存储到内存中；如果内存资源不够大，那么就写入磁盘；而且，还会写一份冗余副本到其他executor的block manager中，进行数据冗余。
-
-
 
 6、batch interval：每个的处理时间必须小于batch interval
 
