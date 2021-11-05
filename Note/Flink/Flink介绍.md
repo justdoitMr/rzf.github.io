@@ -1,4 +1,38 @@
 ## Flink介绍
+<!-- TOC -->
+
+- [Flink介绍](#flink介绍)
+  - [Flink是什么](#flink是什么)
+  - [为什么选择Flink](#为什么选择flink)
+  - [Flink流处理的特征](#flink流处理的特征)
+  - [Flink的基石](#flink的基石)
+    - [Checkpoint](#checkpoint)
+    - [State](#state)
+    - [Time](#time)
+    - [Window](#window)
+  - [组件栈](#组件栈)
+  - [哪些行业需要处理流数据](#哪些行业需要处理流数据)
+  - [传统数据处理架构](#传统数据处理架构)
+  - [状态化流处理](#状态化流处理)
+  - [一些概念](#一些概念)
+    - [Dataflow 图](#dataflow-图)
+    - [数据并行和任务并行](#数据并行和任务并行)
+    - [数据交换策略](#数据交换策略)
+    - [并行流处理](#并行流处理)
+    - [数据流上的操作](#数据流上的操作)
+    - [时间语义](#时间语义)
+  - [Flink 的主要特点](#flink-的主要特点)
+    - [**事件驱动（Event-driven）**](#事件驱动event-driven)
+    - [流与批的世界观](#流与批的世界观)
+    - [分层 api](#分层-api)
+    - [Flink其他的特点](#flink其他的特点)
+    - [Flink vs Spark Streaming](#flink-vs-spark-streaming)
+  - [为什么选择Flink](#为什么选择flink-1)
+  - [流处理和批处理](#流处理和批处理)
+  - [流处理和批处理统一](#流处理和批处理统一)
+  - [计算框架发展史](#计算框架发展史)
+
+<!-- /TOC -->
 
 ### Flink是什么
 

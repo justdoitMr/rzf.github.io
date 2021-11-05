@@ -1,5 +1,11 @@
 ## Flink版WordCount
+<!-- TOC -->
 
+- [Flink版WordCount](#flink版wordcount)
+  - [批处理](#批处理)
+  - [流式处理](#流式处理)
+
+<!-- /TOC -->
 ### 批处理
 
 ```java

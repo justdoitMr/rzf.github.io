@@ -1,5 +1,23 @@
 ## Flink部署
+<!-- TOC -->
 
+- [Flink部署](#flink部署)
+    - [Local本地模式安装](#local本地模式安装)
+        - [原理](#原理)
+        - [操作](#操作)
+        - [测试](#测试)
+    - [Standalone 模式](#standalone-模式)
+        - [原理，](#原理)
+        - [安装](#安装)
+        - [StandAlone的HA模式](#standalone的ha模式)
+    - [Flink-On-Yarn-模式](#flink-on-yarn-模式)
+        - [原理](#原理-1)
+        - [两种模式](#两种模式)
+        - [集群部署](#集群部署)
+            - [Session会话模式](#session会话模式)
+            - [Job分离模式--用的更多](#job分离模式--用的更多)
+
+<!-- /TOC -->
 Flink支持多种安装模式
 
 - Local—本地单机模式，学习测试时使用
