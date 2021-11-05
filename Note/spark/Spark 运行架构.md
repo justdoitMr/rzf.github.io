@@ -96,6 +96,8 @@ Spark支持多种集群管理器（Cluster Manager）,取决于传递给SparkCon
 >
 > yarn cluster模式：driver在AppMaster所有节点上，分布式分配，不能再提交任务的本机打印日志信息
 
+关于sparkON-yarn详细请看：[spark-on-yarn](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%20%E7%9A%84%20Yarn-cluster%20%E6%A8%A1%E5%BC%8F%E5%92%8C%20Yarn-client%20%E6%A8%A1%E5%BC%8F.md)
+
 #### Spark-Shell
 
 **引入**
@@ -192,7 +194,7 @@ Application时，有些基本参数需要传递值，如下所示：
 
 动态加载Spark Applicaiton运行时的参数，通过--conf进行指定，如下使用方式：
 
-![1621666641159](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621666641159.png)
+![1621666641159](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/05/134110-783986.png)
 
 ##### Driver Program 参数配置
 
@@ -275,6 +277,10 @@ Spark 框架的核心是一个计算引擎，整体来说，它采用了标准 m
 
 ![1614146784770](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/24/140626-84669.png)
 
+> driver:执行器，执行我们的main方法，创建SparkContext环境。
+>
+> Executor：执行器，具体负责计算的节点。
+
 ### 核心组件
 
 由上图可以看出，对于 Spark 框架有两个核心组件：
@@ -294,7 +300,7 @@ Spark 驱动器节点，用于执行 Spark 任务中的 main 方法，负责实�
 
 #### Executor：spark执行器
 
-Spark Executor 是集群中工作节点（Worker）中的一个 JVM 进程，负责在 Spark 作业中运行具体任务（Task），任务彼此之间相互独立。Spark 应用启动时，Executor 节点被同时启动，并且始终伴随着整个 Spark 应用的生命周期而存在。如果有Executor 节点发生了故障或崩溃，Spark 应用也可以继续执行，会将出错节点上的任务调度到其他 Executor 节点上继续运行。
+Spark Executor 是集群中工作节点（Worker）中的一个 JVM 进程（一个Worker种可以有多个Executor进程），负责在 Spark 作业中运行具体任务（Task），任务彼此之间相互独立。Spark 应用启动时，Executor 节点被同时启动，并且始终伴随着整个 Spark 应用的生命周期而存在。如果有Executor 节点发生了故障或崩溃，Spark 应用也可以继续执行，会将出错节点上的任务调度到其他 Executor 节点上继续运行。
 
 spark执行器也是一个进程，他负责执行由spark驱动器分配的任务，执行器的核心功能是:完成驱动器分配的任务，运行他们，并报告结果的状态和执行的结果，每一个spark应用程序都有自己的执行器进程。
 
@@ -309,7 +315,7 @@ Spark 集群的**独立部署环境**中，不需要依赖其他的资源调度�
 
 #### ApplicationMaster
 
-Hadoop 用户向 YARN 集群提交应用程序时,提交程序中应该包含ApplicationMaster，用于向资源调度器申请执行任务的资源容器 Container，运行用户自己的程序任务 job，监控整个任务的执行，跟踪整个任务的状态，处理任务失败等异常情况。
+Hadoop 用户向 YARN 集群提交应用程序时,提交程序中应该包含ApplicationMaster，ApplicationMaster其实就可以看作是一个作业的代理，在整个作业执行过程种，负责作业监控和资源的申请，用于向资源调度器申请执行任务的资源容器 Container，运行用户自己的程序任务 job，监控整个任务的执行，跟踪整个任务的状态，处理任务失败等异常情况。
 
 说的简单点就是，ResourceManager（资源）和Driver（计算）之间的解耦合靠的就是ApplicationMaster。
 
@@ -375,7 +381,7 @@ Client 模式将用于**监控和调度的Driver 模块在客户端执行**，�
 Cluster 模式将用于监控和调度的 Driver 模块启动在Yarn 集群资源中执行。一般应用于实际生产环境。
 
 - 在 YARN Cluster 模式下，任务提交后会和ResourceManager 通讯申请启动ApplicationMaster，
-- 随后ResourceManager 分配 container，在合适的 NodeManager 上启动 ApplicationMaster，此时的 ApplicationMaster 就是Driver。
+- 随后ResourceManager 分配 container，在合适的 NodeManager 上启动 ApplicationMaster，此时的 ApplicationMaster 就是Driver，Driver和ApplicationMaster 运行在一个节点上面。
 - Driver 启动后向 ResourceManager 申请Executor 内存，ResourceManager 接到ApplicationMaster 的资源申请后会分配container，然后在合适的NodeManager 上启动Executor 进程
 - Executor 进程启动后会向Driver 反向注册，Executor 全部注册完成后Driver 开始执行main 函数，
 - 之后执行到 Action 算子时，触发一个 Job，并根据宽依赖开始划分 stage，每个stage 生成对应的TaskSet，之后将 task 分发到各个Executor 上执行。
