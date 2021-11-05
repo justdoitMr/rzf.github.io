@@ -32,21 +32,69 @@ Driver 和Executor是和计算相关的组件，Master和Worker是和资源调�
 
 ### Spark集群角色
 
-当Spark
-Application运行在集群上时，主要有四个部分组成，如下示意图：
+当Spark Application运行在集群上时，主要有四个部分组成，如下示意图：
 
 ![1621665889519](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/194608-460280.png)
 
 - Driver：是一个JVM Process 进程，编写的Spark应用程序就运行在Driver上，由Driver进程执行；
-- Master(ResourceManager)：是一个JVM Process 进程，主要负责资源的调度和分配，并进行集群的监控等职责；
+- Master(ResourceManager)：是一个JVM Process 进程，主要负责资源的调度和分配，并进行集群的监控等职责；有多种类型的集群管理器。
 - Worker(NodeManager)：是一个JVM Process 进程，一个Worker运行在集群中的一台服务器上，主要负责两个职责，一个是用自己的内存存储RDD的某个或某些partition；另一个是启动其他进程和线程（Executor），对RDD上的partition进行并行的处理和计算。
 - Executor：是一个JVM Process 进程，一个Worker(NodeManager)上可以运行多个Executor，Executor通过启动多个线程（task）来执行对RDD的partition进行并行计算，也就是执行我们对RDD定义的例如map、flatMap、reduce等算子操作。
+
+> Driver、Executor：计算资源
+>
+> Master、Worker：资源调度
+>
+> 一个Worker上面可能有多个Executor进程
+>
+> 一个Executor进程可能有多个task线程
 
 ### spark-shell和spark-submit
 
 Spark支持多种集群管理器（Cluster Manager）,取决于传递给SparkContext的MASTER环境变量的值：local、spark、yarn，区别如下：
 
 ![1621666088206](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/194611-107665.png)
+
+> 在Standalone模式下运行，根据Driver程序运行在哪里分为两种模式，默认是client模式：
+>
+> 1. Client部署模式：7077，
+> 2. Cluster部署模式：6066
+>
+> 在Yarn集群模式下运行，也有两种部署模式：
+>
+> 1. yarn-client：Driver运行在本地，Executor运行在Yarn集群上
+> 2. yarn-cluster：Driver运行在Yarn集群上面，Executor运行在yarn集群上面
+
+##### Standalone的两种模式
+
+**client mode**
+
+![1636087375283](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/05/124256-280143.png)
+
+首先明白几个基本概念：Master节点就是你用来提交任务，即执行bin/spark-submit命令所在的那个节点；Driver进程就是开始执行你Spark程序的那个Main函数，虽然我这里边画的Driver进程在Master节点上，但注意Driver进程不一定在Master节点上，它可以在任何节点；Worker就是Slave节点，Executor进程必然在Worker节点上，用来进行实际的计算。
+
+1. client mode下Driver进程运行在Master节点上，不在Worker节点上，所以相对于参与实际计算的Worker集群而言，Driver就相当于是一个第三方的“client”。
+2. 正由于Driver进程不在Worker节点上，所以其是独立的，不会消耗Worker集群的资源
+3. client mode下Master和Worker节点必须处于同一片局域网内，因为Drive要和Executorr通信，例如Drive需要将Jar包通过Netty HTTP分发到Executor，Driver要给Executor分配任务等。
+4. client mode下没有监督重启机制，Driver进程如果挂了，需要额外的程序重启
+
+**cluster mode**
+
+![1636087854593](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/05/125100-894087.png)
+
+1. Driver程序在worker集群中某个节点，而非Master节点，但是这个节点由Master指定
+2. Driver程序占据Worker的资源
+3. cluster mode下Master可以使用–supervise对Driver进行监控，如果Driver挂了可以自动重启
+4. cluster mode下Master节点和Worker节点一般不在同一局域网，因此就无法将Jar包分发到各个Worker，所以cluster mode要求必须提前把Jar包放到各个Worker几点对应的目录下面
+
+**是选择client mode还是cluster mode呢？**
+
+- 一般来说，如果提交任务的节点（即Master）和Worker集群在同一个网络内，此时client mode比较合适
+- 如果提交任务的节点和Worker集群相隔比较远，就会采用cluster mode来最小化Driver和Executor之间的网络延迟
+
+> yarn client模式：driver在当前提交任务的节点上，也就是运行在本地，可以打印任务运行的日志信息。
+>
+> yarn cluster模式：driver在AppMaster所有节点上，分布式分配，不能再提交任务的本机打印日志信息
 
 #### Spark-Shell
 

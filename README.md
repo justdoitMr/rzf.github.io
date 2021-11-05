@@ -96,6 +96,7 @@
 6. [Spark原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Spark%E5%8E%9F%E7%90%86.md)
 7. [Spark Sql原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Spark%20Sql.md)
 8. [Spark调优](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Spark%E8%B0%83%E4%BC%98.md)
+9. [Spark 的 Yarn-cluster 模式和 Yarn-client 模式]()
 
 ### Flink
 
