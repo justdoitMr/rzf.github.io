@@ -6222,7 +6222,7 @@ public class Test21 {
 
 #### 无状态计算
 
-![1623139219723](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623139219723.png)
+![1623139219723](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/05/144846-62949.png)
 
 #### 有状态计算
 
@@ -10187,10 +10187,6 @@ Spark Streaming 跟 kafka 结合是存在背压机制的，目标是根据当前
 jobmanager 针对每一个 task，每 50ms 触发 100 次 Thread.getStackTrace() 调用，求出阻塞的占比。过程如图 16 所示：
 
 ![1623573551196](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623573551196.png)
-
-
-
-
 
 **补充**
 
