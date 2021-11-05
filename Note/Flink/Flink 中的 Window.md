@@ -1,4 +1,27 @@
 ## Flink 中的 Window 
+<!-- TOC -->
+
+- [Flink 中的 Window](#flink-中的-window)
+  - [为什么需要Window](#为什么需要window)
+  - [Window的分类](#window的分类)
+    - [按照time和count分类](#按照time和count分类)
+    - [按照slide和size分类](#按照slide和size分类)
+  - [Window Api](#window-api)
+    - [总体概况](#总体概况)
+    - [API类图](#api类图)
+    - [窗口的创建](#窗口的创建)
+      - [窗口分配器（window assigner）](#窗口分配器window-assigner)
+      - [创建不同类型的窗口](#创建不同类型的窗口)
+      - [窗口函数（window function）](#窗口函数window-function)
+        - [**增量聚合函数**](#增量聚合函数)
+        - [全窗口函数](#全窗口函数)
+        - [计数窗口](#计数窗口)
+      - [其他API](#其他api)
+      - [案例](#案例)
+      - [Window API总览](#window-api总览)
+
+<!-- /TOC -->
+
 
 - 窗 口 是流式应用中 一类十分常见的操作 。它们可以在无限数据流上基于有界区间实现聚合等转换。通常情况下， 这些区间都是基于时间逻辑定义的 。窗口算子提供了一种基于有限大小的桶对事件进行分组， 并对这些桶中的有限内容进行计算的方法 。 
 - streaming 流式计算是一种被设计用于处理无限数据集的数据处理引擎，而无限数据集是指一种不断增长的本质上无限的数据集，而 window 是一种切割无限数据为有限块进行处理的手段。Window 是无限数据流处理的核心， Window 将一个无限的 stream 拆分成有限大小的” buckets”桶，我们可以在这些桶上做计算操作。 
