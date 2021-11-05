@@ -1,5 +1,24 @@
 ## Flink运行时架构
+<!-- TOC -->
 
+- [Flink运行时架构](#flink运行时架构)
+  - [flink原理初探](#flink原理初探)
+  - [Flink运行时的组件](#flink运行时的组件)
+  - [名词说明](#名词说明)
+  - [任务提交流程](#任务提交流程)
+    - [on Yarn](#on-yarn)
+    - [Standalone版](#standalone版)
+  - [任务调度原理](#任务调度原理)
+  - [Operator传递模式](#operator传递模式)
+  - [并行度（Parallelism）](#并行度parallelism)
+  - [任务链（Operator Chains）](#任务链operator-chains)
+  - [TaskManager 和 Slots](#taskmanager-和-slots)
+  - [Sharing Slot](#sharing-slot)
+  - [并行子任务的分配](#并行子任务的分配)
+  - [程序与数据流（DataFlow）](#程序与数据流dataflow)
+  - [执行图（ExecutionGraph）](#执行图executiongraph)
+
+<!-- /TOC -->
 Flink 是一个用于**状态化并行流**处理的分布式系统。它的搭建涉及多个进程，这些进程通常会分布在多台机器上。分布式系统需要应对的常见挑战包括分配和管理集群计算资源，进程协调，持久且高可用的数据存储及故障恢复等。
 
 ### flink原理初探
