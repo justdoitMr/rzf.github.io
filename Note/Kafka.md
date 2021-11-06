@@ -1,6 +1,51 @@
 # Kafka
 
-[TOC]
+<!-- TOC -->
+
+- [Kafka](#kafka)
+  - [Kafka概述](#kafka概述)
+    - [1.1，什么是Kafka](#11什么是kafka)
+    - [1.2，消息队列](#12消息队列)
+    - [1.3，kafka架构](#13kafka架构)
+  - [kafka部署](#kafka部署)
+    - [2.1，集群搭建](#21集群搭建)
+    - [2.3，Kafka命令行控制](#23kafka命令行控制)
+  - [Kafka工作机制](#kafka工作机制)
+    - [**Kafka**工作流程及文件存储机制](#kafka工作流程及文件存储机制)
+    - [Kafka生产者写入数据](#kafka生产者写入数据)
+      - [副本](#副本)
+      - [写入方式：](#写入方式)
+      - [存储策略](#存储策略)
+      - [分区`（partition）`](#分区partition)
+      - [数据写入的可靠性保证。](#数据写入的可靠性保证)
+      - [ISR:](#isr)
+      - [故障处理细节](#故障处理细节)
+      - [**Exactly Once**语义](#exactly-once语义)
+    - [Kafka消费者](#kafka消费者)
+      - [消费方式](#消费方式)
+      - [分区分配策略](#分区分配策略)
+      - [**offset**的维护](#offset的维护)
+      - [`Kafka`高效读写数据](#kafka高效读写数据)
+      - [`zookeeper`在`kafka`中的作用](#zookeeper在kafka中的作用)
+      - [`Kafka`事务](#kafka事务)
+      - [消费者组案例](#消费者组案例)
+  - [Kafka API](#kafka-api)
+    - [Producer API](#producer-api)
+      - [消息发送流程](#消息发送流程)
+    - [异步发送 API](#异步发送-api)
+      - [不带回调函数的api](#不带回调函数的api)
+      - [带回调函数的api](#带回调函数的api)
+      - [设置固定的分区或者key-value](#设置固定的分区或者key-value)
+    - [自定义分区器](#自定义分区器)
+    - [同步发送api](#同步发送api)
+    - [Consumer API](#consumer-api)
+      - [手动提交offset](#手动提交offset)
+      - [自定义存储offset](#自定义存储offset)
+    - [自定义拦截器](#自定义拦截器)
+      - [拦截器原理](#拦截器原理)
+      - [拦截器案例](#拦截器案例)
+
+<!-- /TOC -->
 
 ## Kafka概述
 

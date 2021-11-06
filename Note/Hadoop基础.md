@@ -1,6 +1,43 @@
 # Hadoop基础
 
-[TOC]
+<!-- TOC -->
+
+- [Hadoop基础](#hadoop基础)
+  - [Hadoop基础概述](#hadoop基础概述)
+    - [Hadoop是什么](#hadoop是什么)
+    - [Hadoop发展史](#hadoop发展史)
+    - [Hadoop的三大发行版本](#hadoop的三大发行版本)
+    - [Hadoop的四大优势](#hadoop的四大优势)
+    - [Hadoop的组成(重点)](#hadoop的组成重点)
+    - [大数据生态体系](#大数据生态体系)
+    - [推荐系统框架图](#推荐系统框架图)
+  - [Hadoop运行环境搭建](#hadoop运行环境搭建)
+    - [虚拟机环境准备](#虚拟机环境准备)
+    - [安装JDk](#安装jdk)
+  - [JAVA_HOME](#java_home)
+    - [安装Hadoop](#安装hadoop)
+  - [HADOOP_HOME](#hadoop_home)
+    - [Hadoop的目录结构](#hadoop的目录结构)
+  - [Hadoop运行模式](#hadoop运行模式)
+    - [本地运行模式](#本地运行模式)
+      - [官方WordCount案例](#官方wordcount案例)
+    - [伪分布模式](#伪分布模式)
+      - [启动HDFS并运行MapReduce程序](#启动hdfs并运行mapreduce程序)
+      - [启动YARN并运行MapReduce程序](#启动yarn并运行mapreduce程序)
+      - [配置历史服务器](#配置历史服务器)
+      - [配置日志的聚集](#配置日志的聚集)
+      - [配置文件说明](#配置文件说明)
+    - [完全分布式模式](#完全分布式模式)
+      - [准备工作](#准备工作)
+      - [编写集群分发脚本xsync](#编写集群分发脚本xsync)
+      - [集群配置](#集群配置)
+      - [集群的单点启动](#集群的单点启动)
+      - [ssh无密码登录设置](#ssh无密码登录设置)
+      - [群起集群](#群起集群)
+      - [集群的基本测试](#集群的基本测试)
+      - [集群启动/停止方式总结](#集群启动停止方式总结)
+
+<!-- /TOC -->
 
 ## Hadoop基础概述
 

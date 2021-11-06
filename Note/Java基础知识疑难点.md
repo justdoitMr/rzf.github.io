@@ -1,3 +1,16 @@
+<!-- TOC -->
+
+- [正确使用 equals 方法](#正确使用-equals-方法)
+- [整型包装类值的比较](#整型包装类值的比较)
+- [BigDecimal](#bigdecimal)
+  - [BigDecimal 的用处](#bigdecimal-的用处)
+  - [BigDecimal 的大小比较](#bigdecimal-的大小比较)
+  - [BigDecimal 保留几位小数](#bigdecimal-保留几位小数)
+  - [BigDecimal 的使用注意事项](#bigdecimal-的使用注意事项)
+  - [总结](#总结)
+- [基本数据类型与包装数据类型的使用标准](#基本数据类型与包装数据类型的使用标准)
+
+<!-- /TOC -->
 ## 正确使用 equals 方法
 
 Object的equals方法容易抛空指针异常，应使用**常量或确定有值**的对象来调用 equals。 

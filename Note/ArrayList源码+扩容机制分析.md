@@ -1,3 +1,24 @@
+<!-- TOC -->
+
+- [1. ArrayList 简介](#1-arraylist-简介)
+  - [1.1. Arraylist 和 Vector 的区别?](#11-arraylist-和-vector-的区别)
+  - [1.2. Arraylist 与 LinkedList 区别?](#12-arraylist-与-linkedlist-区别)
+- [2. ArrayList 核心源码解读](#2-arraylist-核心源码解读)
+- [3. ArrayList 扩容机制分析](#3-arraylist-扩容机制分析)
+  - [3.1. 先从 ArrayList 的构造函数说起](#31-先从-arraylist-的构造函数说起)
+  - [3.2. 一步一步分析 ArrayList 扩容机制](#32-一步一步分析-arraylist-扩容机制)
+    - [3.2.1. 先来看 `add` 方法](#321-先来看-add-方法)
+    - [3.2.2. 再来看看 `ensureCapacityInternal()` 方法](#322-再来看看-ensurecapacityinternal-方法)
+    - [3.2.3. `ensureExplicitCapacity()` 方法](#323-ensureexplicitcapacity-方法)
+    - [3.2.4. `grow()` 方法](#324-grow-方法)
+    - [3.2.5. `hugeCapacity()` 方法。](#325-hugecapacity-方法)
+  - [3.3. `System.arraycopy()` 和 `Arrays.copyOf()`方法](#33-systemarraycopy-和-arrayscopyof方法)
+    - [3.3.1. `System.arraycopy()` 方法](#331-systemarraycopy-方法)
+    - [3.3.2. `Arrays.copyOf()`方法](#332-arrayscopyof方法)
+    - [3.3.3. 两者联系和区别](#333-两者联系和区别)
+  - [3.4. `ensureCapacity`方法](#34-ensurecapacity方法)
+
+<!-- /TOC -->
 ## 1. ArrayList 简介
 
 `ArrayList` 的底层是数组，相当于动态数组。与 Java 中的数组相比，它的容量能动态增长。在添加大量元素前，应用程序可以使用`ensureCapacity`操作来增加 `ArrayList` 实例的容量。这可以减少递增式再分配的数量。

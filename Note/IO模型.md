@@ -1,3 +1,16 @@
+<!-- TOC -->
+
+- [前言](#前言)
+- [I/O](#io)
+  - [何为 I/O?](#何为-io)
+  - [有哪些常见的 IO 模型?](#有哪些常见的-io-模型)
+- [Java 中 3 种常见 IO 模型](#java-中-3-种常见-io-模型)
+  - [BIO (Blocking I/O)](#bio-blocking-io)
+  - [NIO (Non-blocking/New I/O)](#nio-non-blockingnew-io)
+  - [AIO (Asynchronous I/O)](#aio-asynchronous-io)
+- [参考](#参考)
+
+<!-- /TOC -->
 IO 模型这块确实挺难理解的，需要太多计算机底层知识。写这篇文章用了挺久，就非常希望能把我所知道的讲出来吧!希望朋友们能有收获！
 
 ## 前言

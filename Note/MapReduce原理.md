@@ -1,5 +1,18 @@
 # MapReduce原理
+<!-- TOC -->
 
+- [MapReduce原理](#mapreduce原理)
+  - [MapReduce工作流程](#mapreduce工作流程)
+  - [MapReduce任务的Shuffle和排序过程](#mapreduce任务的shuffle和排序过程)
+    - [Map端流程分析](#map端流程分析)
+    - [Shuffle分析](#shuffle分析)
+    - [Reduce端的shuffle过程：](#reduce端的shuffle过程)
+    - [MapReduce全局过程](#mapreduce全局过程)
+  - [MapReduce应用程序执行过程](#mapreduce应用程序执行过程)
+  - [小结](#小结)
+  - [Mr程序总结](#mr程序总结)
+
+<!-- /TOC -->
 ## MapReduce工作流程
 
 MapReduce体系结构主要由四个部分组成，分别是：Client、JobTracker（ResourceManager）、TaskTracker（TaskManager）以及Task。

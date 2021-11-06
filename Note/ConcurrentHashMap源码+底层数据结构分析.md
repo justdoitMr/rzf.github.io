@@ -1,5 +1,22 @@
 
+<!-- TOC -->
 
+- [1. ConcurrentHashMap 1.7](#1-concurrenthashmap-17)
+  - [1. 存储结构](#1-存储结构)
+  - [2. 初始化](#2-初始化)
+  - [3. put](#3-put)
+  - [4. 扩容 rehash](#4-扩容-rehash)
+  - [5. get](#5-get)
+- [2. ConcurrentHashMap 1.8](#2-concurrenthashmap-18)
+  - [**原理**](#原理)
+  - [Entry 的继承体系](#entry-的继承体系)
+  - [1. 存储结构](#1-存储结构-1)
+  - [2. 初始化 initTable](#2-初始化-inittable)
+  - [3. put](#3-put-1)
+  - [4. get](#4-get)
+- [3.  总结](#3--总结)
+
+<!-- /TOC -->
 ## 1. ConcurrentHashMap 1.7
 
 不使用HashMap是因为在多线程情况下会形成环形数据结构，不使用HashTable是因为使用的是重量级锁，效率比较低。
