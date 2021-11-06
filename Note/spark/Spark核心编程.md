@@ -4,177 +4,178 @@
 <!-- TOC -->
 
 - [深入理解Spark原理](#深入理解spark原理)
-    - [Spark 核心编程](#spark-核心编程)
-        - [RDD](#rdd)
-            - [为什么需要RDD](#为什么需要rdd)
-            - [什么是RDD](#什么是rdd)
-            - [RDD的设计核心](#rdd的设计核心)
-            - [SparkContext](#sparkcontext)
-            - [小案例](#小案例)
-            - [IO类比](#io类比)
-            - [RDD之间的依赖关系](#rdd之间的依赖关系)
-            - [RDD原理](#rdd原理)
-            - [核心属性](#核心属性)
-                - [分区列表](#分区列表)
-                - [分区计算函数](#分区计算函数)
-                - [RDD之间的依赖关系](#rdd之间的依赖关系-1)
-                - [分区器（可选）](#分区器可选)
-                - [首选位置（可选）](#首选位置可选)
-            - [执行原理](#执行原理)
-            - [基础编程](#基础编程)
-                - [RDD对象的创建](#rdd对象的创建)
-                    - [从集合（内存）中创建 RDD](#从集合内存中创建-rdd)
-                    - [从外部存储（文件）创建RDD](#从外部存储文件创建rdd)
-                    - [从其他 RDD 创建](#从其他-rdd-创建)
-                    - [直接创建 RDD（new）](#直接创建-rddnew)
-                - [RDD 并行度与分区](#rdd-并行度与分区)
-            - [RDD方法分类](#rdd方法分类)
-                - [对key-value数据类型的支持](#对key-value数据类型的支持)
-                - [对数字型数据的支持](#对数字型数据的支持)
-                - [**RDD特点**](#rdd特点)
-                - [什么是弹性分布式数据集](#什么是弹性分布式数据集)
-                - [RDD属性小结](#rdd属性小结)
-            - [RDD算子概述](#rdd算子概述)
-                - [转换算子](#转换算子)
-                - [行动算子](#行动算子)
-                - [常用算子](#常用算子)
-            - [RDD 转换算子](#rdd-转换算子)
-                - [**Value** **类型**](#value-类型)
-                    - [map](#map)
-                    - [foreach](#foreach)
-                    - [**saveAsTextFile**](#saveastextfile)
-                    - [mapValues](#mapvalues)
-                    - [mapPartitions](#mappartitions)
-                    - [mapPartitionsWithIndex](#mappartitionswithindex)
-                    - [flatmap](#flatmap)
-                    - [glom](#glom)
-                    - [groupBy](#groupby)
-                    - [Filter](#filter)
-                    - [sample](#sample)
-                    - [distinct](#distinct)
-                    - [coalesce](#coalesce)
-                    - [repartition](#repartition)
-                    - [sortBy](#sortby)
-                - [双 Value 类型](#双-value-类型)
-                    - [intersection](#intersection)
-                    - [union](#union)
-                    - [subtract](#subtract)
-                    - [zip](#zip)
-                - [Key - Value 类型](#key---value-类型)
-                    - [聚合函数详解](#聚合函数详解)
-                    - [partitionBy](#partitionby)
-                    - [reduceByKey](#reducebykey)
-                    - [groupByKey](#groupbykey)
-                    - [aggregateByKey](#aggregatebykey)
-                    - [foldByKey](#foldbykey)
-                    - [combineByKey](#combinebykey)
-                    - [sortByKey](#sortbykey)
-                    - [小结](#小结)
-                    - [join](#join)
-                    - [leftOuterJoin](#leftouterjoin)
-                    - [cogroup](#cogroup)
-                    - [获取键值集合](#获取键值集合)
-                    - [面试题](#面试题)
-                - [项目练手](#项目练手)
-                    - [数据准备](#数据准备)
-                    - [需求描述](#需求描述)
-                    - [代码实现](#代码实现)
-            - [行动算子](#行动算子-1)
-                - [reduce](#reduce)
-                - [collect](#collect)
-                - [count](#count)
-                - [first](#first)
-                - [take](#take)
-                - [takeOrdered](#takeordered)
-                - [案例](#案例)
-                - [aggregate](#aggregate)
-                - [fold](#fold)
-                - [countByKey](#countbykey)
-                - [wordcount](#wordcount)
-                - [save 相关算子](#save-相关算子)
-                - [foreach](#foreach-1)
-            - [阶段性项目](#阶段性项目)
-            - [RDD 序列化](#rdd-序列化)
-            - [RDD 依赖关系](#rdd-依赖关系)
-                - [RDD血缘关系](#rdd血缘关系)
-                - [RDD 窄依赖](#rdd-窄依赖)
-                - [RDD 宽依赖](#rdd-宽依赖)
-                - [RDD阶段划分](#rdd阶段划分)
-                - [RDD 任务划分](#rdd-任务划分)
-        - [RDD 缓存](#rdd-缓存)
-            - [RDD的三个特性](#rdd的三个特性)
-            - [使用缓存的意义](#使用缓存的意义)
-            - [问题引出](#问题引出)
-            - [RDD Cache 缓存](#rdd-cache-缓存)
-            - [缓存级别](#缓存级别)
-        - [RDD检查点](#rdd检查点)
-            - [**CheckPoint的作用**](#checkpoint的作用)
-            - [RDD CheckPoint API](#rdd-checkpoint-api)
-            - [缓存和检查点区别](#缓存和检查点区别)
-        - [RDD 分区器](#rdd-分区器)
-                - [Hash 分区：对于给定的 key，计算其 hashCode,并除以分区个数取余](#hash-分区对于给定的-key计算其-hashcode并除以分区个数取余)
-                - [Range分区](#range分区)
-                - [自定义分区](#自定义分区)
-                - [面试题目](#面试题目)
-                - [RDD 文件读取与保存](#rdd-文件读取与保存)
-        - [RDD的分区和Shuffle](#rdd的分区和shuffle)
-            - [查看分区的方式](#查看分区的方式)
-            - [指定RDD分区个数的方式](#指定rdd分区个数的方式)
-            - [重定义分区数](#重定义分区数)
-            - [通过其他算子指定分区个数](#通过其他算子指定分区个数)
-            - [RDD中的shuffle过程](#rdd中的shuffle过程)
-        - [Spark原理](#spark原理)
-            - [总体概述](#总体概述)
-                - [再看WordCount案例](#再看wordcount案例)
-                - [再看Spark集群](#再看spark集群)
-                - [逻辑执行图](#逻辑执行图)
-                - [物理执行图](#物理执行图)
-            - [逻辑执行计划](#逻辑执行计划)
-                    - [明确边界](#明确边界)
-                    - [RDD的生成](#rdd的生成)
-                    - [RDD之间的依赖关系](#rdd之间的依赖关系-2)
-            - [物理执行图](#物理执行图-1)
-                - [物理执行图的作用](#物理执行图的作用)
-                - [RDD的计算-Task](#rdd的计算-task)
-                - [如何划分阶段](#如何划分阶段)
-                - [数据如何流动](#数据如何流动)
-            - [运行过程](#运行过程)
-                - [首先生成逻辑图](#首先生成逻辑图)
-                - [物理图](#物理图)
-                - [Job和Stage的关系](#job和stage的关系)
-                - [Stage和Task的关系](#stage和task的关系)
-                - [整体执行流程](#整体执行流程)
-        - [累加器](#累加器)
-            - [为什么要累加器](#为什么要累加器)
-            - [实现原理](#实现原理)
-            - [系统累加器](#系统累加器)
-            - [可能出现的问题](#可能出现的问题)
-            - [自定义累加器](#自定义累加器)
-        - [广播变量](#广播变量)
-            - [为什么要广播变量](#为什么要广播变量)
-            - [实现原理](#实现原理-1)
-            - [案例使用](#案例使用)
-    - [三层架构模式](#三层架构模式)
-        - [三层架构模式代码实现](#三层架构模式代码实现)
-            - [模式包名](#模式包名)
-            - [application层](#application层)
-            - [common层](#common层)
-            - [util层](#util层)
-            - [Controller层](#controller层)
-            - [Dao层](#dao层)
-            - [service层](#service层)
+	- [Spark 核心编程](#spark-核心编程)
+		- [RDD](#rdd)
+			- [为什么需要RDD](#为什么需要rdd)
+			- [什么是RDD](#什么是rdd)
+			- [RDD的设计核心](#rdd的设计核心)
+			- [SparkContext](#sparkcontext)
+			- [小案例](#小案例)
+			- [IO类比](#io类比)
+			- [RDD之间的依赖关系](#rdd之间的依赖关系)
+			- [RDD原理](#rdd原理)
+			- [核心属性](#核心属性)
+				- [分区列表](#分区列表)
+				- [分区计算函数](#分区计算函数)
+				- [RDD之间的依赖关系](#rdd之间的依赖关系-1)
+				- [分区器（可选）](#分区器可选)
+				- [首选位置（可选）](#首选位置可选)
+			- [执行原理](#执行原理)
+			- [基础编程](#基础编程)
+				- [RDD对象的创建](#rdd对象的创建)
+					- [从集合（内存）中创建 RDD](#从集合内存中创建-rdd)
+					- [从外部存储（文件）创建RDD](#从外部存储文件创建rdd)
+					- [从其他 RDD 创建](#从其他-rdd-创建)
+					- [直接创建 RDD（new）](#直接创建-rddnew)
+				- [RDD 并行度与分区](#rdd-并行度与分区)
+			- [RDD方法分类](#rdd方法分类)
+				- [对key-value数据类型的支持](#对key-value数据类型的支持)
+				- [对数字型数据的支持](#对数字型数据的支持)
+				- [**RDD特点**](#rdd特点)
+				- [什么是弹性分布式数据集](#什么是弹性分布式数据集)
+				- [RDD属性小结](#rdd属性小结)
+			- [RDD算子概述](#rdd算子概述)
+				- [转换算子](#转换算子)
+				- [行动算子](#行动算子)
+				- [常用算子](#常用算子)
+			- [RDD 转换算子](#rdd-转换算子)
+				- [**Value** **类型**](#value-类型)
+					- [map](#map)
+					- [foreach](#foreach)
+					- [**saveAsTextFile**](#saveastextfile)
+					- [mapValues](#mapvalues)
+					- [mapPartitions](#mappartitions)
+					- [mapPartitionsWithIndex](#mappartitionswithindex)
+					- [flatmap](#flatmap)
+					- [glom](#glom)
+					- [groupBy](#groupby)
+					- [Filter](#filter)
+					- [sample](#sample)
+					- [distinct](#distinct)
+					- [coalesce](#coalesce)
+					- [repartition](#repartition)
+					- [sortBy](#sortby)
+				- [双 Value 类型](#双-value-类型)
+					- [intersection](#intersection)
+					- [union](#union)
+					- [subtract](#subtract)
+					- [zip](#zip)
+				- [Key - Value 类型](#key---value-类型)
+					- [聚合函数详解](#聚合函数详解)
+					- [partitionBy](#partitionby)
+					- [reduceByKey](#reducebykey)
+					- [groupByKey](#groupbykey)
+					- [aggregateByKey](#aggregatebykey)
+					- [foldByKey](#foldbykey)
+					- [combineByKey](#combinebykey)
+					- [sortByKey](#sortbykey)
+					- [小结](#小结)
+					- [join](#join)
+					- [leftOuterJoin](#leftouterjoin)
+					- [cogroup](#cogroup)
+					- [获取键值集合](#获取键值集合)
+					- [面试题](#面试题)
+				- [项目练手](#项目练手)
+					- [数据准备](#数据准备)
+					- [需求描述](#需求描述)
+					- [代码实现](#代码实现)
+			- [行动算子](#行动算子-1)
+				- [reduce](#reduce)
+				- [collect](#collect)
+				- [count](#count)
+				- [first](#first)
+				- [take](#take)
+				- [takeOrdered](#takeordered)
+				- [案例](#案例)
+				- [aggregate](#aggregate)
+				- [fold](#fold)
+				- [countByKey](#countbykey)
+				- [wordcount](#wordcount)
+				- [save 相关算子](#save-相关算子)
+				- [foreach](#foreach-1)
+			- [阶段性项目](#阶段性项目)
+			- [RDD 序列化](#rdd-序列化)
+			- [RDD 依赖关系](#rdd-依赖关系)
+				- [RDD血缘关系](#rdd血缘关系)
+				- [RDD 窄依赖](#rdd-窄依赖)
+				- [RDD 宽依赖](#rdd-宽依赖)
+				- [RDD阶段划分](#rdd阶段划分)
+				- [RDD 任务划分](#rdd-任务划分)
+				- [Stage的切割规则](#stage的切割规则)
+				- [shuffle 是划分 DAG 中 stage 的标识,同时影响 Spark 执行速度的关键步骤](#shuffle-是划分-dag-中-stage-的标识同时影响-spark-执行速度的关键步骤)
+		- [RDD 缓存](#rdd-缓存)
+			- [RDD的三个特性](#rdd的三个特性)
+			- [使用缓存的意义](#使用缓存的意义)
+			- [问题引出](#问题引出)
+			- [RDD Cache 缓存](#rdd-cache-缓存)
+			- [缓存级别](#缓存级别)
+		- [RDD检查点](#rdd检查点)
+			- [**CheckPoint的作用**](#checkpoint的作用)
+			- [RDD CheckPoint API](#rdd-checkpoint-api)
+			- [缓存和检查点区别](#缓存和检查点区别)
+		- [RDD 分区器](#rdd-分区器)
+				- [Hash 分区：对于给定的 key，计算其 hashCode,并除以分区个数取余](#hash-分区对于给定的-key计算其-hashcode并除以分区个数取余)
+				- [Range分区](#range分区)
+				- [自定义分区](#自定义分区)
+				- [面试题目](#面试题目)
+				- [RDD 文件读取与保存](#rdd-文件读取与保存)
+		- [RDD的分区和Shuffle](#rdd的分区和shuffle)
+			- [查看分区的方式](#查看分区的方式)
+			- [指定RDD分区个数的方式](#指定rdd分区个数的方式)
+			- [重定义分区数](#重定义分区数)
+			- [通过其他算子指定分区个数](#通过其他算子指定分区个数)
+			- [RDD中的shuffle过程](#rdd中的shuffle过程)
+		- [Spark原理](#spark原理)
+			- [总体概述](#总体概述)
+				- [再看WordCount案例](#再看wordcount案例)
+				- [再看Spark集群](#再看spark集群)
+				- [逻辑执行图](#逻辑执行图)
+				- [物理执行图](#物理执行图)
+			- [逻辑执行计划](#逻辑执行计划)
+					- [明确边界](#明确边界)
+					- [RDD的生成](#rdd的生成)
+					- [RDD之间的依赖关系](#rdd之间的依赖关系-2)
+			- [物理执行图](#物理执行图-1)
+				- [物理执行图的作用](#物理执行图的作用)
+				- [RDD的计算-Task](#rdd的计算-task)
+				- [如何划分阶段](#如何划分阶段)
+				- [数据如何流动](#数据如何流动)
+			- [运行过程](#运行过程)
+				- [首先生成逻辑图](#首先生成逻辑图)
+				- [物理图](#物理图)
+				- [Job和Stage的关系](#job和stage的关系)
+				- [Stage和Task的关系](#stage和task的关系)
+				- [整体执行流程](#整体执行流程)
+		- [累加器](#累加器)
+			- [为什么要累加器](#为什么要累加器)
+			- [实现原理](#实现原理)
+			- [系统累加器](#系统累加器)
+			- [可能出现的问题](#可能出现的问题)
+			- [自定义累加器](#自定义累加器)
+		- [广播变量](#广播变量)
+			- [为什么要广播变量](#为什么要广播变量)
+			- [实现原理](#实现原理-1)
+			- [案例使用](#案例使用)
+	- [三层架构模式](#三层架构模式)
+		- [三层架构模式代码实现](#三层架构模式代码实现)
+			- [模式包名](#模式包名)
+			- [application层](#application层)
+			- [common层](#common层)
+			- [util层](#util层)
+			- [Controller层](#controller层)
+			- [Dao层](#dao层)
+			- [service层](#service层)
 
 <!-- /TOC -->
 Spark计算框架为了能够进行高并发和高吞吐的数据处理，封装了三大数据结构，用于处理不同的应用场景。三大数据结构分别是：
 
-- RDD : 弹性分布式数据集
-
+- RDD : 弹性分布式数据集(可以看作是一种数据结构)
 - 累加器：分布式共享**只写**变量
 - 广播变量：分布式共享**只读**变量
 
 接下来我们一起看看这三大数据结构是如何在数据处理中使用的，上面的三大数据结构是Spark中的地基api操作。
 
-一共有两种低级的API,一种是用于处理分布式数据(RDD)，另一种是用于分发和处理分布式共享变量（广播变量和累加器），sparkContext是地基API的入口，
+一共有两种低级的API,一种是用于处理分布式数据(RDD)，另一种是用于分发和处理分布式共享变量（广播变量和累加器），sparkContext是底层API的入口，
 
 ### RDD
 
@@ -182,13 +183,9 @@ Spark计算框架为了能够进行高并发和高吞吐的数据处理，封装
 
 没有RDD/DataSet之前,做WordCount(大数据计算)可以使用:
 
-1. 原生集合:Java/Scala中的List,但是只支持单机版! 不支持分布式!如果要做分布式的计算,需要做很多额外工作,线程/进程通信,容错,自动均衡.....麻烦,所以就诞生了框架!
+1. 原生集合:Java/Scala中的List,但是只支持单机版! 不支持分布式!如果要做分布式的计算,需要做很多额外工作,**线程/进程通信,容错,自动均衡**.....麻烦,所以就诞生了框架!
 
-2. MR:效率低(运行效率低,开发效率低)--早就淘汰，所以需要有一个分布式的数据抽象,也就是用该抽象,可以表示
-
-   分布式的集合,那么基于这个分布式集合进行操作,就可以很方便的完成分布式的WordCount!(该分布式集合底
-
-   层应该将实现的细节封装好,提供简单易用的API!)
+2. MR:效率低(运行效率低,开发效率低)--早就淘汰，所以需要有一个分布式的数据抽象,也就是用该抽象,可以表示分布式的数据集合,那么基于这个分布式集合进行操作,就可以很方便的完成分布式的WordCount!(**该分布式集合底层应该将实现的细节封装好,提供简单易用的API**!)
 
 ![1621747526106](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165810-78279.png)
 
@@ -196,19 +193,21 @@ Spark计算框架为了能够进行高并发和高吞吐的数据处理，封装
 
 ![1621747684369](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/132816-462746.png)
 
+> 上面直观的展示了spark可以基于内存的迭代计算，而hadoop不仅不可以做迭代计算，中间结果还需要落盘，做迭代计算智能是多个作业顺序执行，效率非常的低效。
+
 #### 什么是RDD
 
-RDD（Resilient Distributed Dataset）叫做弹性分布式数据集，是 Spark 中最基本的数据处理模型。代码中是一个抽象类，它代表一个弹性的、不可变、可分区、里面的元素可**并行计算**的集合。类似于我们程序中的Task类。subTask是真正意义上的计算任务，Task算是一种数据结构，可以认为类似于spark中的RDD数据结构。
+RDD（Resilient Distributed Dataset）叫做**弹性分布式数据集（区别于我们普通的集合式数据结构，只能够在单机上面运行，RDD可以在集群中运行，也就是分布式，但是我们编程的时候，可以像使用单机版的集合一样去使用，简化了编程方式。）**，是 Spark 中最基本的数据处理模型。代码中是一个抽象类，它代表一个**弹性的、不可变、可分区、里面的元素可并行计算**的集合。类似于我们程序中的Task类。subTask是真正意义上的计算任务，Task算是一种数据结构，可以认为类似于spark中的RDD数据结构。
 
-RDD提供了一个抽象的数据模型，不必担心底层数据的分布式特性，只需将具体的应用逻辑表达为一系列转换操作（函数），不同RDD之间的转换操作之间还可以形成依赖关系，进而实现管道化，从而避免了中间结果的存储，大大降低了数据复制、磁盘IO和序列化开销，并且还提供了更多的API(map/reduec/filter/groupBy...)。Spark中所有的运算以及操作都建立在 RDD 数据结构的基础之上
+RDD提供了一个抽象的数据模型，不必担心底层数据的分布式特性（**可以认为将底层的分布式特性进行封装，对我们只提供接口编程**），只需将具体的应用逻辑表达为一系列转换操作（函数），不同RDD之间的转换操作之间还可以形成依赖关系，进而实现管道化，从而避免了中间结果的存储，大大降低了数据复制、磁盘IO和序列化开销,并且还提供了更多的API(map/reduec/filter/groupBy...)。Spark中所有的运算以及操作都建立在 RDD 数据结构的基础之上。
 
 #### RDD的设计核心
 
 ![1621687801583](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/205007-358874.png)
 
-通俗理解RDD
+**通俗理解RDD**
 
-可以认为RDD是分布式的列表List或数组Array，是一种抽象的数据结构：
+可以认为RDD是分布式的列表List或数组Array，是一种抽象的数据结构，可以处理分布式的计算任务：
 
 RDD是一个抽象类Abstract Class和泛型Generic Type：
 
@@ -242,7 +241,7 @@ RDD中还包括一个分区的概念，分区的目的就是为了把数据划�
 
 #### SparkContext
 
-SparkContext是程序的入口，想要使用RDD数据结构，我们必须使用SparkContext创建。
+SparkContext是程序的入口，相当于程序的执行环境，提交我们的作业之后，Driver会创建我们的SparkContext环境，想要使用RDD数据结构，我们必须使用SparkContext创建。
 
 **获取SparkContext上下文环境**
 
@@ -319,7 +318,7 @@ object Test04 {
 
 ![1621745561514](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/125244-130276.png)
 
-- 当文件特别大的时候，如何处理？
+- 当文件特别大的时候，如何处理？---->分区
 - 如何放在集群上面执行？
 - 任务如何分解？
 - 如何移动计算？
@@ -328,7 +327,7 @@ object Test04 {
 
 **针对上面的问题，给出解决方案**
 
-- 对于大文件，可以做并行计算。
+- 对于大文件，可以做并行计算，并行计算的前提是对数据集可以分区操作。
 
 ![1621746053474](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/130059-252502.png)
 
@@ -336,7 +335,7 @@ object Test04 {
 
 ![1621746301334](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/175627-134758.png)
 
-- 可以把文件划分为多个分区
+- 可以把文件划分为多个分区，一个分区形成一个Task。
 
 ![1621746493012](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/175908-120721.png)
 
@@ -348,7 +347,9 @@ object Test04 {
 
 ![1621747102311](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/175939-308466.png)
 
-简单来说两种容错方式，数据备份副本，记录依赖关系
+简单来说两种容错方式，**数据备份副本，记录依赖关系**
+- 对计算过的数据做备份，存储副本，耗费内存。
+- 记录此数据的计算关系，出错的话，重新计算一遍，可能费时间。
 
 ![1621747142938](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/131908-963209.png)
 
@@ -372,7 +373,9 @@ io操作体现装饰着模式
 
 ![1614216305685](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/26/123209-531147.png)
 
-从文件中读取吧的时候是以字节流形式读取，然后使用InputStreamReader流转换为字节流，最后使用BufferedReader流缓冲到缓冲区后，最后全部输出，上述的一系列流操作，真正读取的是FileInputStream流在底层读取，而InputStreamReader和BufferedReader仅仅是做装饰工作，是对底层的封装，InputStreamReader负责吧字节流转换为字符流，比如3个字节组成一个汉字，那么就等到三个字节后，InputStreamReader就把这三个字节转换为一个汉字，然后交给BufferedReader存放在缓冲区，等到缓冲区快满的时候打印，上述过程中，最重要的方法是readLine()函数，应为此函数会触发读取操作，在建立流的过程中只是建立一套传输系统，不会真正的读取数据，只有真正readLine()读取数据的时候，才会触发读取操作，可以认为是一个懒加载操作。RDD也是我们的一个最小计算单元，以后的操作都是在RDD上封装叠加操作。
+从文件中读取的时候是以字节流形式读取，然后使用InputStreamReader流转换为字节流，最后使用BufferedReader流缓冲到缓冲区后，最后全部输出，上述的一系列流操作，真正读取的是FileInputStream流在底层读取，而InputStreamReader和BufferedReader仅仅是做装饰工作，是对底层的封装，InputStreamReader负责把字节流转换为字符流，比如3个字节组成一个汉字，那么就等到三个字节后，InputStreamReader就把这三个字节转换为一个汉字，然后交给BufferedReader存放在缓冲区，等到缓冲区快满的时候打印，上述过程中，最重要的方法是readLine()函数，应为此函数会触发读取操作，在建立流的过程中只是建立一套传输系统，不会真正的读取数据，只有真正readLine()读取数据的时候，才会触发读取操作，可以认为是一个懒加载操作。
+
+RDD也是我们的一个最小计算单元，以后的操作都是在RDD上封装叠加操作。
 
 #### RDD之间的依赖关系
 
@@ -388,21 +391,27 @@ RDD 的一个重要优势是能够记录 RDD 间的依赖关系，即所谓血�
 
 黑色圆圈表示一个RDD，上图中有5个黑色圆圈，说明整个Job中有个5个RDD
 
-【1号】RDD类型：HadoopRDD，从HDFS或LocalFS读取文件数据；
+- 【1号】RDD类型：HadoopRDD，从HDFS或LocalFS读取文件数据；
 
-【2号、3号和4号】RDD类型：MapPartitionsRDD，从一个RDD转换而来，没有经过shuffle操作；
+- 【2号、3号和4号】RDD类型：MapPartitionsRDD，从一个RDD转换而来，没有经过shuffle操作；
 
-【5号】RDD类型：ShuffledRDD，从一个RDD转换而来，经过Shuffle重分区操作，Spark Shuffle类似MapReduce流程中Map Phase和Reduce Phase中的Shuffle；
+- 【5号】RDD类型：ShuffledRDD，从一个RDD转换而来，经过Shuffle重分区操作，Spark Shuffle类似MapReduce流程中Map Phase和Reduce Phase中的Shuffle；
 
 浅蓝色矩形框表示调用RDD函数
 
-上图中【5号】RDD所在在蓝色矩形框上的函数【reduceByKey】，表明【5号】RDD是【4号】RDD调用reduceByKey函数得到；
+上图中【5号】RDD所在蓝色矩形框上的函数【reduceByKey】，表明【5号】RDD是【4号】RDD调用reduceByKey函数得到；
 
 查看ShuffleRDD源码，实现了RDD的5个特性
 
 ![1621766118667](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165854-158400.png)
 
-每一种类型的RDD基本都需要实现RDD的5个特点。
+- 依赖关系
+- 分区列表
+- 计算函数
+- 分区函数
+- 最佳位置
+
+每一种类型的RDD基本都需要实现RDD的5个特点，RDD是所有其他RDD类型的父类，所有子类可以重新实现这5个方法或者是继承。
 
 #### RDD原理
 
@@ -412,9 +421,13 @@ RDD 的一个重要优势是能够记录 RDD 间的依赖关系，即所谓血�
 
 **小结**
 
-RDD数据的处理方式类似于IO流，也有装饰者设计模式，但是也有不同，io中真正new对象时候不会触发文件数据的读取，RDD数据只有在调用collect的时候才会真正执行逻辑操作，之前的封装都是对功能的扩展，RDD他是不保存数据，也就是没有缓冲区，但是IO流有缓冲区，会临时保存数据。RDD其实就是通过功能的组合，最终完成一个复杂的功能计算。
+RDD数据的处理方式类似于IO流，也有装饰者设计模式，但是也有不同，Io中真正new对象时候不会触发文件数据的读取，RDD数据只有在调用collect的时候才会真正执行逻辑操作，之前的封装都是对功能的扩展，RDD他是不保存数据，也就是没有缓冲区，但是IO流有缓冲区，会临时保存数据。RDD其实就是通过功能的组合，最终完成一个复杂的功能计算。
 
-我们可以看到RDD有很多的子类，也就是我们可以有多种数据源。
+> 共同点都是通过懒惰加载，触发执行后才加载数据然后执行。
+> 
+>不同之处是IO有缓冲区，但是RDD没有缓冲区
+
+我们可以看到RDD有很多的子类，也就是我们可以有多种数据源，其中在执行转换的时候，RDD还可以转换为其他类型的RDD。
 
 ![1621764853796](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/181418-940811.png)
 
@@ -528,20 +541,22 @@ def collect(): Array[T] = withScope {
   }
 ~~~
 
+**名词说明**
+
 - **弹性**（可变）
-  - 存储的弹性：内存与磁盘的自动切换；比mr计算模型效率高
-  - 容错的弹性：数据丢失可以自动恢复；
-  - 计算的弹性：计算出错重试机制；计算出错后，可以重头重新计算
+  - 存储的弹性：内存与磁盘的自动切换；比MR计算模型效率高，数据首选存储在内存当中，如果内存存储不下，会进行落盘。
+  - 容错的弹性：数据丢失可以自动恢复，有多种方式可以实现容错(依赖链，数据副本)；
+  - 计算的弹性：计算出错重试机制；计算出错后，可以重头重新计算。
   - 分片的弹性：可根据需要重新分片。分区操作，
-- 分布式：数据可以进行分片，存储在大数据集群不同节点上
-- 数据集：RDD 封装了计算逻辑，并不保存数据，也就是封装的是对数据的计算操作步骤，不会像io一样会存储数据。
-- 数据抽象：RDD 是一个抽象类，需要子类具体实现
+- 分布式：数据可以进行分片，存储在大数据集群不同节点上。
+- 数据集：RDD 封装了计算逻辑，并不保存数据，也就是封装的是对数据的计算操作步骤，不会像Io一样会存储数据。
+- 数据抽象：RDD 是一个抽象类，需要子类具体实现。
 - 不可变：RDD 封装了计算逻辑，是不可以改变的，想要改变，只能产生新的RDD，在新的RDD 里面封装计算逻辑，也就是一个计算封装为RDD后，以后不可以对这个封装好的RDD在进行扩展，只能重新创建一个RDD对前面的RDD逻辑进行封装和装饰。
 - 可分区、并行计算，可以分区是进行并行计算的前提。
 
 #### 核心属性
 
-RDD 是一个数据集的抽象表示，不仅表示了数据集，还表示了这个数据集从哪来、如何计算，主要属性包括五个方面（必须牢记，通过编码加深理解，面试常问），如下为RDD 源码：
+RDD 是一个分布式数据集的抽象表示，不仅表示了数据集，还表示了这个数据集从哪来、如何计算，主要属性包括五个方面（必须牢记，通过编码加深理解，面试常问），如下为RDD 源码：
 
 ~~~ java
 * Internally, each RDD is characterized by five main properties:
@@ -557,22 +572,22 @@ RDD 是一个数据集的抽象表示，不仅表示了数据集，还表示了�
 
 前三个特征每个RDD都具备的，后两个特征可选的。
 
-RDD将Spark的底层的细节都隐藏起来（自动容错、位置感知、任务调度执行，失败重试等），让开发者可以像操作本地集合一样**以函数式编程的方式操作RDD**这个分布式数据集，进行各种并行计算，RDD中很多数据处理函数/API与Scala集合相同/类似。
+RDD将Spark的底层的细节都隐藏起来（**自动容错、位置感知、任务调度执行，失败重试等**），让开发者可以像操作本地集合一样**以函数式编程的方式操作RDD**这个分布式数据集，进行各种并行计算，RDD中很多数据处理函数/API与Scala集合相同/类似。
 
 ![1621765124844](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/181849-32430.png)
 
 > 简单说明一下：
 >
-> 对于大数据集，需要进行并行计算加快计算速度，所以要对数据进行分区操作，以分区为单位对数据进行并行计算，而分区函数就是针对source进行分区操作，当然spark还需要考虑容错机制，具体来说有两种容错机制，spark使用的是根据前一步的计算逻辑去计算下一步数据集，所以需要依赖，也就是如果知道其父亲的操作，那么就可以推出下一步数据集，那么在其父亲和儿子之间的计算方法就是计算函数。
+> 对于大数据集，需要进行并行计算加快计算速度，所以要对数据进行分区操作，以分区为单位对数据进行并行计算，而分区函数就是针对Source端数据进行分区操作，当然spark还需要考虑容错机制，具体来说有两种容错机制，spark使用的是根据前一步的计算逻辑去计算下一步数据集，所以需要依赖，也就是如果知道其父亲的操作，那么就可以推出下一步数据集，那么在其父亲和儿子之间的计算方法就是计算函数。
 
+**下面详细介绍五大属性**
 ##### 分区列表
 
-- 一组分片(Partition)/一个分区(Partition)列表，即数据集的基本组成单位；
-
-- RDD 数据结构中存在分区列表，用于执行任务时并行计算，**是实现分布式计算的重要属性**,分区之间的数据没有相互关系，把数据分为多个分区，然后封装为Task在不同的节点上面执行。
+- 一组分片(Partition)/一个分区(Partition)列表，即数据集的基本组成单位；数据集的最小单位就是分区。
+- RDD 数据结构中存在分区列表，用于执行任务时并行计算，**是实现分布式计算的重要属性**,分区之间的数据没有相互关系，把数据分为多个分区，然后封装为Task在不同的节点上面执行。也就是说多个分区之间是相互独立的，不会相互一影响。
 - 对于RDD来说，每个分片都会被一个计算任务处理，分片数决定并行度；
 - 用户可以在创建RDD时指定RDD的分片个数，如果没有指定，那么就会采用默认值；
-- 分区的目的是提高并行度。
+- **分区的目的是提高并行度**。
 
 ~~~ java
  /**
@@ -606,9 +621,10 @@ RDD将Spark的底层的细节都隐藏起来（自动容错、位置感知、任
 
 - 一个RDD会依赖于其他多个RDD；
 
-- RDD的每次转换都会生成一个新的RDD，所以RDD之间就会形成类似于流水线一样的前后依赖关系。在部分分区数据丢失时，Spark可以通过这个依赖关系重新计算丢失的分区数据，而不是对RDD的所有分区进行重新计算（Spark的容错机制）；
+- **RDD的每次转换都会生成一个新的RDD**，所以RDD之间就会形成类似于流水线一样的前后依赖关系。在部分分区数据丢失时，Spark可以通过这个依赖关系重新计算丢失的分区数据，而不是对RDD的所有分区进行重新计算（**Spark的容错机制**）；
 
 - RDD 是计算模型的封装，当需求中需要将多个计算模型进行组合时，就需要将多个RDD 建立依赖关系。
+- 这种依赖关系就像迭代计算一样，上一步的计算结果是存储在内存中，下一步计算可以接着进行完成计算，效率非常高。
 
 ~~~ java
  /**
@@ -620,9 +636,9 @@ RDD将Spark的底层的细节都隐藏起来（自动容错、位置感知、任
 
 ##### 分区器（可选）
 
-- 可选项,对于KeyValue类型的RDD会有一个Partitioner，即RDD的分区函数；
+- 可选项,对于KeyValue类型的RDD会有一个Partitioner，即RDD的分区函数，会根据key对数据进行分区操作，也可以自定义分区操作。
 
-- 当前Spark中实现了两种类型的分区函数，一个是基于哈希的HashPartitioner，另外一个是基于范围的RangePartitioner。
+- **当前Spark中实现了两种类型的分区函数，一个是基于哈希的HashPartitioner，另外一个是基于范围的RangePartitioner。**
 
 - 只有对于key-value的RDD，才会有Partitioner，非key-value的RDD的Parititioner的值是None。
 
@@ -642,9 +658,13 @@ RDD将Spark的底层的细节都隐藏起来（自动容错、位置感知、任
 
 - 对于一个HDFS文件来说，这个列表保存的就是每个Partition所在的块的位置。
 
-- 按照"移动数据不如移动计算"的理念，Spark在进行任务调度的时候，会尽可能选择那些存有数据的worker节点来进行任务计算。（数据本地性）
+- **按照"移动数据不如移动计算"的理念，Spark在进行任务调度的时候，会尽可能选择那些存有数据的worker节点来进行任务计算。（数据本地性）**
 
-- 计算数据时，可以根据计算节点的状态选择不同的节点位置进行计算，也就是决定每一个Task分发给哪一个节点进行执行,效率最优，（移动数据不如计算）
+- **计算数据时，可以根据计算节点的状态选择不同的节点位置进行计算，也就是决定每一个Task分发给哪一个节点进行执行,效率最优，（移动数据不如计算）**
+
+> 在这里我们可以想想一下，首选位置记录的是我们每一个分片数据存储在hdfs上的哪一个块上，也就是保存这两者之间的映射，而task正是我们封装好的计算任务，是没有数据的，这些计算任务需要发送到具体的节点上然后拉取数据进行计算，所以有时候，某些task会被发送到距离某些数据最近的节点上进行计算，最好的情况是发送到数据存储的节点上面，这样就不需要网络传输数据，效率非常高。
+
+> 从这个角度，理解RDD是封装了我们的计算，也许会更好理解一点，RDD本身是不存储数据，只是封装了计算的步骤，也就是我们处理数据的方法步骤。
 
 ~~~ java
 /**
@@ -667,29 +687,40 @@ RDD将Spark的底层的细节都隐藏起来（自动容错、位置感知、任
 
 Spark 框架在执行时，先申请资源，然后将应用程序的数据处理逻辑分解成一个一个的计算任务。然后将任务发到已经分配资源的计算节点上,  按照指定的计算模型进行数据计算。最后得到计算结果。
 
+**WordCount中的RDD**
+
+1. 分区列表:每个RDD都有会分区的概念,类似与HDFS的分块, 分区的目的:提高并行度!
+2. 用于计算每个分区的函数:用函数来操作各个分区中的数据
+3. 对其他RDD的依赖列表:后面的RDD需要依赖前面的RDD
+4. 可选地，键值RDDs的分区器（例如，reduceByKey中的默认的Hash分区器）
+5. 可选地，计算每个分区的首选位置列表/最佳位置（例如HDFS文件）--移动计算比移动数据更划算!
+
+我们看看每一个属性所在的位置：
+![20211106141332](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106141332.png)
+
 RDD 是 Spark 框架中用于数据处理的核心模型，接下来我们看看，在 Yarn 环境中，RDD 的工作原理:
 
 1. 启动 Yarn 集群环境
 
 ![1614221773058](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/27/184107-901473.png)
 
-2. Spark 通过申请资源创建调度节点和计算节点（driver和Executor）
+2. Spark 通过申请资源创建作业调度节点和任务计算节点（Driver和Executor），client模式。
 
-   driver，Executor都是运行在某一个NodeManager节点上面的。resourcemanager是负责管理整个所有的nodemanager节点的，真正工作的节点是nodemanager节点
+   Driver，Executor都是运行在某一个NodeManager节点上面的。Resourcemanager是负责管理整个所有的Nodemanager节点的，真正工作的节点是Nodemanager节点
 
    ![1614221855307](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/25/105736-882674.png)
 
 3. Spark 框架根据需求将计算逻辑根据分区划分成不同的任务
 
-   可以看到，任务的数量取决与分区的个数，driver负责调度RDD，多个RDD计算逻辑进行关联，然后被分解为多个task任务，然后把任务放进任务池中。
+   可以看到，**任务的数量取决与分区的个数**，Driver负责调度RDD，多个RDD计算逻辑进行关联，然后被分解为多个task任务，然后把任务放进任务池中。
 
 ![1614222023617](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/25/110025-291725.png)
 
-4. 调度节点将任务根据计算节点状态发送到对应的计算节点进行计算
+4. 调度节点将任务根据计算节点状态发送到对应的计算节点进行计算。
 
 ![1614222280933](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/25/110442-417648.png)
 
-从以上流程可以看出 RDD在整个流程中主要用于将计算逻辑进行封装，并生成Task 发送给Executor节点执行计算，接下来我们就一起看看Spark 框架中RDD 是具体是如何进行数据处理的。
+从以上流程可以看出 RDD在整个流程中主要用于将**计算逻辑**进行封装，并生成Task 发送给Executor节点执行计算，接下来我们就一起看看Spark 框架中RDD 是具体是如何进行数据处理的。
 
 #### 基础编程
 
@@ -4827,9 +4858,9 @@ object Test16 {
 
 从计算的角度, 算子以外的代码都是在 Driver 端执行, 算子里面的代码都是在 Executor端执行。 那么在 scala 的函数式编程中，就会导致算子内经常会用到算子外的数据，这样就形成了闭包的效果，如果使用的算子外的数据无法序列化，就意味着无法传值给 Executor端执行，就会发生错误，所以需要在执行任务计算前，检测闭包内的对象是否可以进行序列化，这个操作我们称之为闭包检测。 Scala2.12 版本后闭包编译方式发生了改变 
 
-**序列化方法和属性 **
+**序列化方法和属性**
 
-从计算的角度, 算子以外的代码都是在 Driver 端执行, 算子里面的代码都是在 Executor端执行 
+从计算的角度, 算子以外的代码都是在 Driver 端执行, 算子里面的代码都是在 Executor端执行 。
 
 ~~~ java
 object Spark_RDD_serial {
@@ -4881,7 +4912,7 @@ object Spark_RDD_serial {
 }
 ~~~
 
-**Kryo 序列化框架 **
+**Kryo 序列化框架**
 
 Java 的序列化能够序列化任何的类。但是比较重（字节多） ，序列化后，对象的提交也比较大。 Spark 出于性能的考虑， Spark2.0 开始支持另外一种 Kryo 序列化机制。 Kryo 速度是 Serializable 的 10 倍。当 RDD 在 Shuffle 数据的时候，简单数据类型、数组和字符串类型已经在 Spark 内部使用 Kryo 来序列化。 
 
@@ -4931,11 +4962,13 @@ object Spark_RDD_kryo {
 }
 ~~~
 
+> 使用kryo序列化需要在创建SparkContext的时候设置序列化类型，然后自定义类型也需要继承Serializable类。
+
 #### RDD 依赖关系 
 
 ##### RDD血缘关系
 
-RDD 只支持粗粒度转换，即在大量记录上执行的单个操作。将创建 RDD 的一系列 Lineage（血统）记录下来，以便恢复丢失的分区。 RDD 的 Lineage 会记录 RDD 的元数据信息和转换行为，当该 RDD 的部分分区数据丢失时，它可以根据这些信息来重新运算和恢复丢失的数据分区。 
+RDD 只支持粗粒度转换，即在大量记录上执行的单个操作。将创建 RDD 的一系列 Lineage（血统）记录下来，以便恢复丢失的分区。 RDD 的 Lineage 会记录 RDD 的**元数据信息和转换行为**，当该 RDD 的部分分区数据丢失时，它可以根据这些信息来重新运算和恢复丢失的数据分区。 
 
 ![1614933707058](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/164149-246145.png)
 
@@ -4943,7 +4976,7 @@ RDD 只支持粗粒度转换，即在大量记录上执行的单个操作。将�
 
 ![1614934303590](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/170802-120012.png)
 
-黄色部分就表示保存的血缘关系。
+黄色部分就表示保存的血缘关系，依赖关系包括转换行为和元数据信息。
 
 **血缘关系**
 
@@ -5092,7 +5125,7 @@ List(org.apache.spark.ShuffleDependency@1e236278)shuffer依赖关系
 
 ![1614935447609](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/171324-789475.png)
 
-这种情况下，新的RDD中分区中的数据来自对应的老的RDD中分区中的数据，存在一对一的关系。
+这种情况下，新的RDD中分区中的数据来自对应的老的RDD中分区中的数据，不会把老RDD中的数据打乱重新分布，存在一对一的关系。
 
 **源码角度**
 
@@ -5106,14 +5139,13 @@ class OneToOneDependency[T](rdd: RDD[T]) extends NarrowDependency[T](rdd) {
 
 ##### RDD 宽依赖 
 
-宽依赖表示同一个父（上游） RDD 的 Partition 被多个子（下游） RDD 的 Partition 依赖，会
-引起 Shuffle，总结：宽依赖我们形象的比喻为多生。 
+宽依赖表示同一个父（上游） RDD 的 一个Partition 被多个子（下游） RDD 的 Partition 依赖，会引起 Shuffle，总结：宽依赖我们形象的比喻为多生。 
 
 **shuffer 依赖**也叫做宽依赖
 
 ![1614935603198](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/171401-695375.png)
 
-这种依赖的话会把老的RDD中的数据全部打乱重新分配给新的RDD，所以叫做shuffle依赖
+这种依赖的话会把老的RDD中的数据全部打乱重新分配给新的RDD，所以叫做shuffle依赖。
 
 **源码角度**
 
@@ -5135,11 +5167,20 @@ class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
 
 ![1614935943959](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/172134-528166.png)
 
-如果使用宽依赖，那么任务的数量就会增加，因为数据全部被打散，
+
+> 其实区分宽窄依赖主要就是看父RDD的一个Partition的流向，要是流向一个的话就是窄依赖，流向多个的话就是宽依赖,如下图所示，很容易理解：
+
+![20211106144726](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106144726.png)
+
+如果使用宽依赖，那么任务的数量就会增加，因为数据全部被打散，如下图所示，新的RDD中的数据可能来自多个父类RDD中的数据。下图中一共有两个任务。
 
 ![1614936854674](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/173416-455965.png)
 
-宽依赖使任务量增加，所以就要划分阶段执行任务，不同分区的数据到达的时间不一样，所以就会存在等待的关系，所以需要划分阶段执行，保证不同阶段里面的task全部执行完毕，才可以执行下一个阶段。
+**宽依赖使任务量增加，所以就要划分阶段执行任务，不同分区的数据到达的时间不一样，所以就会存在等待的关系，所以需要划分阶段执行，保证不同阶段里面的task全部执行完毕，才可以执行下一个阶段。**
+
+> 这里有很重要的一代女，为什么需要在宽依赖处划分阶段，就是因为子RDD中的数据来自多个父RDD中的数据，数据到来的时间不一样，如果不划分阶段，那么所有的任务都在这里等待，耗时浪费资源，划分阶段可以保证尽可能的让少的任务等待，其他的任务继续向下执行。
+
+下图中，可以发现，一共有两个任务，从shuffle位置划分为两个阶段。
 
 ![1614937061280](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/173836-818567.png)
 
@@ -5147,17 +5188,51 @@ class ShuffleDependency[K: ClassTag, V: ClassTag, C: ClassTag](
 
 ![1614936891785](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/173453-172770.png) 
 
+当RDD分区丢失时（某个节点故障），spark会对数据进行重算。
+
+**窄依赖**
+
+![20211106151713](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106151713.png)
+
+对于窄依赖，由于父RDD的一个分区只对应一个子RDD分区，这样只需要重算和子RDD分区对应的父RDD分区即可，所以这个重算对数据的利用率是100%的。
+
+**宽依赖**
+
+![20211106151752](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106151752.png)
+
+对于宽依赖，重算的父RDD分区对应多个字RDD分区，这样实际上父RDD中只有一部分的数据是被用于恢复这个丢失的子RDD分区的，另一部分对应子RDD的其他未丢失分区，这就造成了多余的计算，宽依赖中子RDD分区通常来自于多个父RDD分区，极端情况下，所有的父RDD分区都要重新计算。
+
+如下图所示，b1分区丢失，则需要重新计算a1，a2和a3，这样就产生了冗余计算（a1,a2,a3中对应着b2的数据）。
+
+![20211106151947](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106151947.png)
+
+区分这两种依赖很有用，首先，窄依赖允许在一个集群节点上以流水线的方式（pipeline）计算所有父分区。例如，逐个元素地执行map，然后filter操作；而宽依赖则需要首先计算好所有父分区数据，然后在节点间进行shuffle，这和MapReduce类似。第二，窄依赖能够更有效地进行失效节点的恢复，即只需要重新计算丢失RDD分区的父分区，而且不同节点间可以并行计算；而对于一个宽依赖关系的Lineage图，单个节点失效可能导致这个RDD的所有祖先丢失部分分区，因而需要整体重新计算。
+
+在深入分区级别来看待这个问题，重算的效用并不在于算了多少，而是在于有多少是冗余的计算。窄依赖中需要重算的都是必须的，所以重算并不会产生冗余计算。
+
 ##### RDD阶段划分
 
-96
+> Task：被送到某个executor上的工作单元
+> 
+> Job：包含很多任务（Task）的并行计算，可以看做和action对应
+> 
+> Stage：一个Job会被拆分成很多组任务，每组任务被称为Stage
+> 
+> 按照资源层面划分：Master->Worker->Executor->ThreadPool
+> 
+> 按照任务层面划分：Application->job->stage->tasks
 
-DAG（Directed Acyclic Graph）有向无环图是由点和线组成的拓扑图形，该图形具有方向，不会闭环。例如， DAG 记录了 RDD 的转换过程和任务的阶段 
 
 
+
+
+Spark中的Stage其实就是一组并行的任务，任务是一个个的task 。
+
+Spark任务会根据RDD之间的依赖关系，形成一个DAG有向无环图，DAG会提交给DAGScheduler，DAGScheduler会把DAG划分相互依赖的多个stage，划分stage的依据就是RDD之间的宽窄依赖。遇到宽依赖就划分stage,每个stage包含一个或多个task任务。然后将这些task以taskSet的形式提交给TaskScheduler运行。 stage是由一组并行的task组成。
+
+> DAG（Directed Acyclic Graph）有向无环图是由点和线组成的拓扑图形，该图形具有方向，不会闭环。例如， DAG 记录了 RDD 的转换过程和任务的阶段 
 
 ##### RDD 任务划分 
-
-98
 
 RDD 任务切分中间分为： Application、 Job、 Stage 和 Task 
 
@@ -5178,20 +5253,89 @@ def collect(): Array[T] = withScope {
   }
 ~~~
 
-- Stage： Stage 等于宽依赖(ShuffleDependency)的个数加 1； 也就是shuffle依赖的数量+resultStage，最终阶段
+- Stage： Stage 等于宽依赖(ShuffleDependency)的个数加 1； 也就是shuffle依赖的数量+resultStage，最终阶段。
 - Task：一个 Stage 阶段中，最后一个 RDD 的分区个数就是 Task 的个数。也就是说任务的数量等于最后一个阶段中分区的数量。 
 
 > 注意： Application->Job->Stage->Task 每一层都是 1 对 n 的关系。 
 >
-> - 一个应用程序中如果有多个行动算子，那么就是说有多个job，
-> - 一个job中如果有shuffle依赖，那么一个job中就右多个阶段
-> - 而一个阶段中可能会有多个分区，所以就会产生多个TASK,极限情况下有一个分区，产生一个task
+> - 一个应用程序中如果有多个行动算子，那么就是说有多个job。
+> - 一个job中如果有shuffle依赖，那么一个job中就右多个阶段。
+> - 而一个阶段中可能会有多个分区（或者说有多少个并行计算的任务），所以就会产生多个TASK,极限情况下有一个分区，产生一个task。
+
+##### Stage的切割规则
+
+切割规则：从后往前，遇到宽依赖就切割stage。
+![20211106145333](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106145333.png)
+
+**Stage的计算模式**
+
+pipeline管道计算模式,pipeline只是一种计算思想，模式。
+
+![20211106145438](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106145438.png)
+
+**说明**
+
+Spark的pipeLine的计算模式，相当于执行了一个高阶函数f3(f2(f1(textFile))) !+!+!=3 也就是来一条数据然后计算一条数据，把所有的逻辑走完，然后落地，准确的说一个task处理遗传分区的数据 因为跨过了不同的逻辑的分区。而MapReduce是 1+1=2,2+1=3的模式，也就是计算完落地，然后在计算，然后再落地到磁盘或内存，最后数据是落在计算节点上，按reduce的hash分区落地。所以这也是比Mapreduce快的原因，完全基于内存计算。
+
+管道中的数据何时落地：shuffle write的时候，对RDD进行持久化的时候。
+
+Stage的task并行度是由stage的最后一个RDD的分区数来决定的 。一般来说，一个partiotion对应一个task,但最后reduce的时候可以手动改变reduce的个数，也就是分区数，即改变了并行度。例如reduceByKey(XXX,3),GroupByKey(4)，union由的分区数由前面的相加。
+
+如何提高stage的并行度：reduceBykey(xxx,numpartiotion),join(xxx,numpartiotion)，也就是手动设置我们每一个stage里面并行执行的任务个数。
+
+##### shuffle 是划分 DAG 中 stage 的标识,同时影响 Spark 执行速度的关键步骤
+
+RDD 的 Transformation 函数中,又分为窄依赖(narrow dependency)和宽依赖(wide dependency)的操作.窄依赖跟宽依赖的区别是是否发生 shuffle(洗牌) 操作.宽依赖会发生 shuffle 操作. 窄依赖是子 RDD的各个分片(partition)不依赖于其他分片,能够独立计算得到结果,宽依赖指子 RDD 的各个分片会依赖于父RDD 的多个分片,所以会造成父 RDD 的各个分片在集群中重新分片, 看如下两个示例:
+
+![20211106150248](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106150248.png)
+
+第一个 Map 操作将 RDD 里的各个元素进行映射, RDD 的各个数据元素之间不存在依赖,可以在集群的各个内存中独立计算,也就是并行化
+
+第二个 groupby 之后的 Map 操作,为了计算相同 key 下的元素个数,需要把相同 key 的元素聚集到同一个 partition 下,所以造成了数据在内存中的重新分布,即 shuffle 操作,shuffle 操作是 spark 中最耗时的操作,应尽量避免不必要的 shuffle。
+
+宽依赖主要有两个过程: shuffle write 和 shuffle fetch. 类似 Hadoop 的 Map 和 Reduce 阶段,shuffle write 将 ShuffleMapTask 任务产生的中间结果缓存到内存中, shuffle fetch 获得 ShuffleMapTask 缓存的中间结果进行 ShuffleReduceTask 计算,这个过程容易造成OutOfMemory。因为会从各个节点拉去大量的数据存放到内存，当内存放不下的时候，会进行落地操作。
+
+shuffle 过程内存分配使用 ShuffleMemoryManager 类管理,会针对每个 Task 分配内存,Task 任务完成后通过 Executor 释放空间，这里可以把 Task 理解成不同 key 的数据对应一个 Task. 早期的内存分配机制使用公平分配,即不同 Task 分配的内存是一样的,但是这样容易造成内存需求过多的 Task 的 OutOfMemory, 从而造成多余的磁盘 IO 过程,影响整体的效率.(例:某一个 key 下的数据明显偏多,但因为大家内存都一样,这一个 key 的数据就容易 OutOfMemory)，1.5版以后 Task 共用一个内存池,内存池的大小默认为 JVM 最大运行时内存容量的16%,分配机制如下:假如有 N 个 Task,ShuffleMemoryManager 保证每个 Task 溢出之前至少可以申请到1/2N 内存,且至多申请到1/N,N 为当前活动的 shuffle Task 数,因为N 是一直变化的,所以 manager 会一直追踪 Task 数的变化,重新计算队列中的1/N 和1/2N.但是这样仍然容易造成内存需要多的 Task 任务溢出,所以最近有很多相关的研究是针对 shuffle 过程内存优化的.
+
+![20211106151010](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106151010.png)
+
+如下 DAG 流程图中,分别读取数据,经过处理后 join 2个 RDD 得到结果:
+
+![20211106151134](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106151134.png)
+
+在这个图中,根据是否发生 shuffle 操作能够将其分成如下的 stage 类型:
+
+![20211106151204](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211106151204.png)
+
+(join 需要针对同一个 key 合并,所以需要 shuffle)
+
+运行到每个 stage 的边界时，数据在父 stage 中按照 Task 写到磁盘上，而在子 stage 中通过网络按照 Task 去读取数据。这些操作会导致很重的网络以及磁盘的I/O，所以 stage 的边界是非常占资源的，在编写 Spark 程序的时候需要尽量避免的 。父 stage 中 partition 个数与子 stage 的 partition 个数可能不同，所以那些产生 stage 边界的 Transformation 常常需要接受一个 numPartition 的参数来决定子 stage 中的数据将被切分为多少个 partition。
+
+>PS:shuffle 操作的时候可以用 combiner 压缩数据,减少 IO 的消耗
+
+**Stage:**
+
+一个Job会被拆分为多组Task，每组任务被称为一个Stage就像Map Stage， Reduce Stage。Stage的划分，简单的说是以shuffle和result这两种类型来划分。在Spark中有两类task，一类是shuffleMapTask，一类是resultTask，第一类task的输出是shuffle所需数据，第二类task的输出是result，stage的划分也以此为依据，shuffle之前的所有变换是一个stage，shuffle之后的操作是另一个stage。
+
+比如 rdd.parallize(1 to 10).foreach(println) 这个操作没有shuffle，直接就输出了，那么只有它的task是resultTask，stage也只有一个；
+
+如果是rdd.map(x => (x, 1)).reduceByKey(_ + _).foreach(println), 这个job因为有reduce，所以有一个shuffle过程，那么reduceByKey之前的是一个stage，执行shuffleMapTask，输出shuffle所需的数据，reduceByKey到最后是一个stage，直接就输出结果了。如果job中有多次shuffle，那么每个shuffle之前都是一个stage.
+
+会根据RDD之间的依赖关系将DAG图划分为不同的阶段，对于窄依赖，由于partition依赖关系的确定性，partition的转换处理就可以在同一个线程里完成，窄依赖就被spark划分到同一个stage中，而对于宽依赖，只能等父RDD shuffle处理完成后，下一个stage才能开始接下来的计算。之所以称之为ShuffleMapTask是因为它需要将自己的计算结果通过shuffle到下一个stage中 
+
+**Stage划分思路**
+
+因此spark划分stage的整体思路是：从后往前推，遇到宽依赖就断开，划分为一个stage；遇到窄依赖就将这个RDD加入该stage中。
+
+在spark中，Task的类型分为2种：ShuffleMapTask和ResultTask；简单来说，DAG的最后一个阶段会为每个结果的partition生成一个ResultTask，即每个Stage里面的Task的数量是由该Stage中最后一个RDD的Partition的数量所决定的！
+
+而其余所有阶段都会生成ShuffleMapTask；之所以称之为ShuffleMapTask是因为它需要将自己的计算结果通过shuffle到下一个stage中。
 
 ### RDD 缓存
 
 #### RDD的三个特性
 
-- RDD的分区和hsuffle过程
+- RDD的分区和suffle过程
 
 - RDD的缓存
 
@@ -5203,7 +5347,7 @@ def collect(): Array[T] = withScope {
 
 ![1616988151858](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/145628-224411.png)
 
-因为在最后两步获取结果的时候，调用了两次Action算子，相当于触发了两个作业，但是这两个作业前半部分的数据处理基本一致，这样就导致了重复计算，浪费资源，并且每一个作业都执行了两次shuffle操作，我们说程序中药尽量减少shuffle操作。但是入股可以把前面的相同计算的结果进行缓存，那么这样就可以减少shuffle操作。
+因为在最后两步获取结果的时候，调用了两次Action算子，相当于触发了两个作业(一个行动算子触发一个job)，但是这两个作业前半部分的数据处理基本一致，这样就导致了重复计算，浪费资源，并且每一个作业都执行了两次shuffle操作，我们说程序中尽量减少shuffle操作。但是如果可以把前面的相同计算的结果进行缓存，那么这样就可以减少shuffle操作。
 
 2. **容错**
 
@@ -5211,7 +5355,7 @@ def collect(): Array[T] = withScope {
 
 可以对中间的计算结果进行缓存操作，后面如果出现失败时候可以直接从缓存点获取计算数据，重新计算。
 
-- 减少shuffle，减少其他算子执行缓存算子生成的结果
+- 减少shuffle，减少其他算子执行缓存算子生成的结果。
 - 容错
 
 #### 问题引出
@@ -5318,7 +5462,7 @@ object Spark_RDD_persist_ {
 def persist(): this.type = persist(StorageLevel.MEMORY_ONLY)
 ~~~
 
-可以发现,cache的底层使用的是persist()方法。
+> 可以发现,cache的底层使用的是persist()方法，默认是是缓存在内存中的。
 
 **图解**
 
@@ -5326,13 +5470,13 @@ def persist(): this.type = persist(StorageLevel.MEMORY_ONLY)
 
 ![1614945775874](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/110430-490727.png)
 
-**改进**
+**持久化改进**
 
-添加持久化操作，数据可以存放到内存当中，也可以存放到磁盘当中
+添加持久化操作，数据可以存放到内存当中，也可以存放到磁盘当中，作为数据的备份。
 
 ![1614945944979](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/170924-976462.png)
 
-RDD持久化操作不一定是为了重用操作，在数据执行时间较长或者比较重要的场合也用持久化操作。
+RDD持久化操作不一定是为了重用操作，在数据执行时间较长或者比较重要的场合也用持久化操作。当转换过程中出现故障，可以直接从磁盘中加载持久化的数据。
 
 #### RDD Cache 缓存 
 
@@ -5353,7 +5497,7 @@ wordToOneRdd.cache()
 
 ![1616989352669](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/114238-64154.png)
 
-是否以反序列化的形式进行存储，如果是，那么存储的就是一个对象，如果不是，那么存储的就是一个序列化过的值。必粗要序列化之后对象才可以存储在磁盘中，如果deserialized是true的话存储的就是一个对象，如果是false的话存储的就是二进制数据。
+是否以反序列化的形式进行存储，如果是，那么存储的就是一个对象，如果不是，那么存储的就是一个序列化过的值。必需要序列化之后对象才可以存储在磁盘中，如果deserialized是true的话存储的就是一个对象，如果是false的话存储的就是二进制数据。
 
 ![1616989874428](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/153603-809804.png)
 
@@ -5381,9 +5525,9 @@ val OFF_HEAP = new StorageLevel(true, true, true, false, 1)
 
 ![1614946766976](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/112750-313978.png)
 
-缓存有可能丢失，或者存储于内存的数据由于内存不足而被删除， RDD 的缓存容错机制保证了即使缓存丢失也能保证计算的正确执行。通过基于 RDD 的一系列转换，丢失的数据会被重算，由于 RDD 的各个 Partition 是相对独立的，因此只需要计算丢失的部分即可，并不需要重算全部 Partition。 
+缓存有可能丢失，因为缓存默认是存储在内存当中，断电数据会丢失，或者存储于内存的数据由于内存不足而被删除， RDD 的缓存容错机制保证了即使缓存丢失也能保证计算的正确执行。通过基于 RDD 的一系列转换，丢失的数据会被重算，由于 RDD 的各个 Partition 是相对独立的，因此只需要计算丢失的部分即可，并不需要重算全部 Partition。 
 
-Spark 会自动对一些 Shuffle 操作的中间数据做持久化操作(比如： reduceByKey)。这样做的目的是为了当一个节点 Shuffle 失败了避免重新计算整个输入。但是，在实际使用的时候，如果想重用数据，仍然建议调用 persist 或 cache。 
+Spark 会自动对一些 Shuffle 操作的中间数据做持久化操作(比如： reduceByKey)。这样做的目的是为了当一个节点 Shuffle 失败了避免重新计算整个输入，加快计算。但是，在实际使用的时候，如果想重用数据，仍然建议调用 persist 或 cache。 
 
 ### RDD检查点
 
@@ -5395,7 +5539,7 @@ hdfs的edits机制
 
 **检查点作用**
 
-将数据checkpoint的情况非常少，一般都是缓存在hdfs上面保存。
+将数据checkpoint的情况非常少，一般都是缓存在HDFS上面保存。
 
 ![1616990352556](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/154326-179761.png)
 
@@ -5405,7 +5549,7 @@ hdfs的edits机制
 
 ![1622188716121](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/171001-209134.png)
 
-解决办法就是把RDD4的数据存储在HDFS上面，这样就可以保证数据出错误后，原始的数据没有丢失。
+解决办法就是把RDD4的数据存储在HDFS上面，这样就可以保证数据出错误后，依赖链虽然断了，但是已经checkpoint数据到磁盘上面，可以直接加载直接使用，不用再次重新计算一遍。
 
 #### RDD CheckPoint API 
 
@@ -5468,9 +5612,9 @@ object Spark_RDD_checkpoint {
 
 #### 缓存和检查点区别 
 
-- cache:将数据临时存储在内存中重用，会在血缘关系中添加新的依赖，一旦出现问题，可以从头读取数据
-- persist将数据临时存放在磁盘中进行数据重用，但是涉及到磁盘io操作，性能低，但是数据安全，如果作业执行完毕，临时保存的数据的数据文件就会消失
-- checkpoint可以将长久的保存在磁盘中进行重用，设计磁盘的io操作，效率比较低，但是数据安全，为了保证数据的安全，所以一般情况下，会独立执行作业(里面有触发作业执行的操作)，也就是单独在执行一遍作业，为了提高效率，所以一般和cache联合使用，先进行缓存操作，然后checkpoint()方法里面就不会触发作业的执行。
+- cache:将数据临时存储在内存中重用，会在血缘关系中添加新的依赖，一旦出现问题，可以从头读取数据。
+- persist将数据临时存放在磁盘中进行数据重用，但是涉及到磁盘Io操作，性能低，但是数据安全，如果作业执行完毕，临时保存的数据的数据文件就会消失。
+- checkpoint可以将长久的保存在磁盘中进行重用，涉及磁盘的Io操作，效率比较低，但是数据安全，为了保证数据的安全，所以一般情况下，会独立执行作业(里面有触发作业执行的操作)，也就是单独在执行一遍作业，为了提高效率，所以一般和cache联合使用，先进行缓存操作，然后checkpoint()方法里面就不会触发作业的执行。
 
 ~~~ java
 mapRdd.cache()
@@ -5487,6 +5631,22 @@ mapRdd.checkpoint()
 >
 > 建议对 checkpoint()的 RDD 使用 Cache 缓存，这样 checkpoint 的 job 只需从 Cache 缓存中读取数据即可，否则需要再从头计算一次 RDD。 
 
+**cache()与persist()：**
+
+会被重复使用的(但是)不能太大的RDD需要cache。cache 只使用 memory，写磁盘的话那就叫 checkpoint 了。
+
+哪些 RDD 需要 checkpoint？运算时间很长或运算量太大才能得到的 RDD，computing chain 过长或依赖其他 RDD 很多的RDD。 实际上，将 ShuffleMapTask 的输出结果存放到本地磁盘也算是 checkpoint，只不过这个 checkpoint 的主要目的是去 partition 输出数据。
+
+cache 机制是每计算出一个要 cache 的 partition 就直接将其 cache 到内存了。但 checkpoint 没有使用这种第一次计算得到就存储的方法，而是等到 job 结束后另外启动专门的 job 去完成 checkpoint 。 也就是说需要 checkpoint 的 RDD 会被计算两次。因此，在使用 rdd.checkpoint() 的时候，建议加上 rdd.cache()， 这样第二次运行的 job 就不用再去计算该 rdd 了，直接读取 cache 写磁盘。
+
+> cache 与 checkpoint 的区别:
+> 
+> 关于这个问题，Tathagata Das 有一段回答: There is a significant difference between cache and checkpoint. Cache materializes the RDD and keeps it in memory and/or disk（其实只有 memory）. But the lineage（也就是 computing chain） of RDD (that is, seq of operations that generated the RDD) will be remembered, so that if there are node failures and parts of the cached RDDs are lost, they can be regenerated. However, checkpoint saves the RDD to an HDFS file and actually forgets the lineage completely. This is allows long lineages to be truncated and the data to be saved reliably in HDFS (which is naturally fault tolerant by replication).
+
+**persist()与checkpoint():**
+
+深入一点讨论，rdd.persist(StorageLevel.DISK_ONLY) 与 checkpoint 也有区别。前者虽然可以将 RDD 的 partition 持久化到磁盘，但该 partition 由 blockManager 管理。一旦 driver program 执行结束，也就是 executor 所在进程 CoarseGrainedExecutorBackend stop，blockManager 也会 stop，被 cache 到磁盘上的 RDD 也会被清空（整个 blockManager 使用的 local 文件夹被删除）。而 checkpoint 将 RDD 持久化到 HDFS 或本地文件夹，如果不被手动 remove 掉（ 话说怎么 remove checkpoint 过的 RDD？ ），是一直存在的，也就是说可以被下一个 driver program 使用，而 cached RDD 不能被其他 dirver program 使用。
+
 ### RDD 分区器 
 
 Spark 目前支持 **Hash** 分区和 **Range** 分区，和**用户自定义分区**。 Hash 分区为当前的默认分区。分区器直接决定了 RDD 中分区的个数、 RDD 中每条数据经过 Shuffle 后进入哪个分区，进而决定了 Reduce 的个数。 
@@ -5498,26 +5658,25 @@ Spark 目前支持 **Hash** 分区和 **Range** 分区，和**用户自定义分
 
 ~~~ java
 class HashPartitioner(partitions: Int) extends Partitioner {
-			require(partitions >= 0, s"Number of partitions ($partitions) cannot be
-				negative.")
+	require(partitions >= 0, s"Number of partitions ($partitions) cannot be negative.")
 def numPartitions: Int = partitions
-				def getPartition (key: Any): Int = key match {
-				case null => 0
-				case _ => Utils.nonNegativeMod (key.hashCode, numPartitions)
-				}
+def getPartition (key: Any): Int = key match {
+	case null => 0
+	case _ => Utils.nonNegativeMod (key.hashCode, numPartitions)
+	}
 override def equals (other: Any): Boolean = other match {
-				case h: HashPartitioner =>
-				h.numPartitions == numPartitions
-				case _ =>
-				false
-				}
-				override def hashCode: Int = numPartitions
-				}
+		case h: HashPartitioner =>
+		h.numPartitions == numPartitions
+		case _ =>
+		false
+	}
+	override def hashCode: Int = numPartitions
+}
 ~~~
 
 ##### Range分区
 
-Range 分区：将一定范围内的数据映射到一个分区中，尽量保证每个分区数据均匀，而且分区间有序 
+Range 分区：将一定范围内的数据映射到一个分区中，**尽量保证每个分区数据均匀**，而且分区间有序 。
 
 ##### 自定义分区
 
@@ -5720,7 +5879,7 @@ object Spark_RDD_FileSave {
 }
 ~~~
 
-**sequence 文件 **
+**Sequence文件**
 
 SequenceFile 文件是 Hadoop 用来存储二进制形式的 key-value 对而设计的一种平面文件(Flat File)。 在 SparkContext 中，可以调用` sequenceFile [keyClass, valueClass](path)`。 
 
@@ -5752,7 +5911,7 @@ object Spark_RDD_FileSaveSeq {
 }
 ~~~
 
-**object 对象文件 **
+**Object对象文件**
 
 对象文件是将对象序列化后保存的文件，采用 Java 的序列化机制。 可以通过` objectFile[T:ClassTag](path)`函数接收一个路径， 读取对象文件， 返回对应的 RDD， 也可以通过调用saveAsObjectFile()实现对对象文件的输出。因为是序列化所以要指定类型。 
 
@@ -5816,7 +5975,7 @@ val value1: RDD[String] = context.textFile("path", 5)
 
 #### 重定义分区数
 
-coalesce()这个方法默认是不进行shuffle操作的，所以也就限制了在分区的时候只能把分区的个数变小，不能增大分区的个数，如果想要增大分区的个数，必须把shuffle操作设置为true,每一次调用这个方法都会生成新的rdd，改变分区也是在新的RDD上面改变分区的个数，不会再旧的分区上面改变RDD分区的个数。
+coalesce()这个方法默认是不进行shuffle操作的，所以也就限制了在分区的时候只能把分区的个数变小，不能增大分区的个数，如果想要增大分区的个数，必须把shuffle操作设置为true,每一次调用这个方法都会生成新的Rdd，改变分区也是在新的RDD上面改变分区的个数，不会再旧的分区上面改变RDD分区的个数。
 
 ![1622180675786](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/134436-379378.png)
 
@@ -5844,13 +6003,13 @@ groupByKey:也可以指定分区的个数
 
 joink（）：此方法也可以指定分区的个数
 
-很多方法都可以指定分区的个数，都有重载的方法，可以重新指定分区的个数。一般涉及shuffle操作的方法都可以重新指定分区的个数。如果没有指定分区的个数，那么就会从父级的RDD中继承分区个数。
+很多方法都可以指定分区的个数，都有重载的方法，可以重新指定分区的个数。**一般涉及shuffle操作的方法都可以重新指定分区的个数（因为shuffle操作会导致子RDD中的数据有多个数据源，所以一般可以重新设置分区个数）**。如果没有指定分区的个数，那么就会从父级的RDD中继承分区个数。
 
 **分区函数**
 
 ![1616981407434](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/133747-903556.png)
 
-默认使用的是Hash算法进行分区操作，首先获取key的哈希码，然后哈西莫对分区的个数取余，就可以存储到对应的分区当中，我们也可以重写partitoner函数自定义分区操作
+默认使用的是Hash算法进行分区操作，首先获取key的哈希码，然后哈希值对分区的个数取余，就可以存储到对应的分区当中，我们也可以重写partitoner函数自定义分区操作。
 
 **分区接口**
 
@@ -5866,7 +6025,7 @@ class HashPartitioner(partitions: Int) extends Partitioner{}
 
 #### RDD中的shuffle过程
 
-什么是shuffle。
+**什么是shuffle**
 
 ![1622182893936](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/28/142155-875814.png)
 
@@ -6015,7 +6174,7 @@ override def compute(theSplit: Partition, context: TaskContext): InterruptibleIt
 
 ![1622548963630](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/01/200735-527506.png)
 
-![1622549275990](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622549275990.png)
+![1622549275990](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/160325-681790.png)
 
 **flatMap算子**
 
