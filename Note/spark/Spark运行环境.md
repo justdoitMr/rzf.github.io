@@ -36,12 +36,21 @@
     - [两种模式详解](#两种模式详解)
       - [clint模式](#clint模式-1)
     - [Cluster模式](#cluster模式-1)
+    - [Spark集群角色](#spark集群角色)
+    - [spark-shell和spark-submit](#spark-shell和spark-submit)
+      - [spark-shell](#spark-shell)
+      - [应用提交语法](#应用提交语法)
+    - [基本参数设置](#基本参数设置)
+    - [Driver Program 参数配置](#driver-program-参数配置)
+    - [Executor 参数配置](#executor-参数配置)
+    - [官方案例](#官方案例)
   - [K8S & Mesos 模式](#k8s--mesos-模式)
   - [Windows 模式](#windows-模式)
     - [解压缩文件](#解压缩文件-2)
     - [启动本地环境](#启动本地环境)
     - [命令行提交应用](#命令行提交应用)
   - [部署模式对比](#部署模式对比)
+  - [思维导图](#思维导图)
 
 <!-- /TOC -->
 Spark应用程序可以运行在本地模式（Local Mode）、集群模式（Cluster Mode）和云服务（Cloud），方便开发测试和生产部署。
@@ -58,7 +67,7 @@ Spark 作为一个数据处理框架和计算引擎，被设计在所有常见�
 
 ![1621499638426](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/163403-107712.png)
 
-上面所说的工具就是集群管理器。Yarn,Mesos，StandAlone以及Kub都是spark可以使用的资源管理器。spark客户端提交过来的程序先由driver划分为多个**任务**（这里的任务是根据阶段进行划分的），然后将任务提交到集群资源管理器上面，最后由集群管理器提交到集群中去执行。我们只是和集群资源管理器打交道，对于我们，集群就是一整台计算器。
+上面所说的工具就是集群管理器。Yarn,Mesos，StandAlone以及Kub都是spark可以使用的资源管理器。spark客户端提交过来的程序先由driver划分为多个**任务(Task)**（这里的任务是根据阶段(Stage)进行划分的），然后将任务提交到集群资源管理器上面，最后由集群管理器调度Task到集群中去执行。我们只是和集群资源管理器打交道，对于我们，集群就是一整台计算器。
 
 ![1621499998230](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/170917-744495.png)
 
@@ -71,6 +80,11 @@ Driver划分我们提交的程序为多个任务。
 #### 程序运行过程
 
 ![1621500256981](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/164419-571619.png)
+
+driver负责执行我们的main方法，负责创建程序执行的环境spark Centsxt，运行在Yarn上面有两种模式，这两种模式的区别就是Driver的运行位置不同:
+
+- Clint模式：Driver运行在本地提交程序的客户端。
+- cluster模式：Driver运行在集群当中，和applicationMaster在一台机器上面。
 
 #### 拓展一
 
@@ -88,13 +102,19 @@ Driver划分我们提交的程序为多个任务。
 
 在standalone模式下面，分为两个组件，worker和master，而master就相当于集群管理器，也就是cluster manager，而worker就相当于worker node节点。master用于接收外部提交的任务，会把任务分发到不同的worker 中去执行，worker会启动相应的executor去执行任务。一个worker中可能会启动多个executor。因为这个集群是spark自己的，所以worker在集群启动的时候，就会被创建。
 
-Driver的启动分为两种模式，clint模式和cluster模式，如果是clint模式，也就是说driver运行在shell窗口或者命令行窗口中，在shell窗口中运行main方法就可以把程序划分为多个任务，然后在和集群进行交互，执行任务。问题就是不好管理资源。driver也可以运行在某一个worker当中，这种是cluster模式。
+Driver的启动分为两种模式，clint模式和cluster模式：
+
+- 如果是clint模式，也就是说driver运行在shell窗口或者命令行窗口中，在shell窗口中运行main方法就可以把程序划分为多个任务，然后在和集群进行交互，执行任务。问题就是不好管理资源。
+- driver也可以运行在某一个worker当中，这种是cluster模式。
 
 **Yarn模式**
 
 ![1621501156606](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/165921-134945.png)
 
-clint是spark带的客户端命令工具，当driver运行在这个命令行中的时候，是clint模式。当把任务提交到yarn当中运行的时候，首先还是和resourceManager进行交互，在yarn中运行程序，首先需要创建applicationMaster组件（作业的老大），这个applicationMaster来进行整个作业的资源申请和调度。此时，driver也有两种运行位置，第一种是运行在applicationMaster中（cluster模式），另一种也就是运行在命令行窗口中。其中cluster模式，driver运行在aplicationMaster当中。然后driver把程序划分为多个任务，application根据任务的个数，向resourcemanager申请资源运行任务。
+clint是spark带的客户端命令工具，当driver运行在这个命令行中的时候，是clint模式。当把任务提交到yarn当中运行的时候，首先还是和resourceManager进行交互，在yarn中运行程序，首先需要创建applicationMaster组件（作业的老大），这个applicationMaster来进行整个作业的资源申请和调度。
+
+- driver也有两种运行位置，第一种是运行在applicationMaster中（cluster模式），其中cluster模式，driver运行在aplicationMaster当中。然后driver把程序划分为多个任务，application根据任务的个数，向resourcemanager申请资源运行任务。
+- 另一种也就是运行在命令行窗口中。
 
 **小结**
 
@@ -149,9 +169,28 @@ bin/spark-shell
 
 ![1614129938413](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/24/092539-625717.png)
 
-2. 启动成功后，可以输入网址进行 Web UI 监控页面访问，默认的端口号是4040
+- sc：SparkContext实例对象：
+- spark：SparkSession实例对象
+- 4040：Web监控页面端口号
+
+
+1. 启动成功后，可以输入网址进行 Web UI 监控页面访问，默认的端口号是4040
 
 ![1614129986153](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/24/092627-5531.png)
+
+**spark shell说明**
+
+1. 直接使用./spark-shell，表示使用local 模式启动，在本机启动一个SparkSubmit进程。
+2. 还可指定参数 --master，如：
+> park-shell --master local[N] 表示在本地模拟N个线程来运行当前任务
+> spark-shell --master local[*] 表示使用当前机器上所有可用的资源
+3. 不携带参数默认就是
+
+>spark-shell --master local[*]
+
+4. 后续还可以使用--master指定集群地址，表示把任务提交到集群上运行，如
+
+> ./spark-shell --master spark://node01:7077,node02:7077
 
 #### 退出本地模式
 
@@ -175,11 +214,15 @@ bin/spark-submit \
 
 ![1614130382503](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/24/093303-148263.png)
 
+> spark程序的web监控页面端口是4040
+
 ### Standalone 模式
 
-local 本地模式毕竟只是用来进行练习演示的，真实工作中还是要将应用提交到对应的集群中去执行，这里我们来看看只使用 Spark 自身节点运行的集群模式，也就是我们所谓的独立部署（Standalone）模式。Spark 的 Standalone模式体现了经典的master-slave 模式（主从模式）。
+local 本地模式毕竟只是用来进行练习演示的，真实工作中还是要将应用提交到对应的集群中去执行，这里我们来看看只使用 Spark 自身节点运行的集群模式，也就是我们所谓的独立部署（Standalone）模式。
 
-master和worker是和资源有关的节点，driver和executor是和计算有关的节点。
+Spark 的 Standalone模式体现了经典的master-slave 模式（主从模式）。
+
+Master和Worker是和资源有关的节点，driver和executor是和计算有关的节点。
 
 Standalone模式是Spark自带的一种集群模式，不同于前面Local本地模式使用多线程模拟集群的环境，Standalone模式是真实地在多个机器之间搭建Spark集群的环境
 
@@ -622,26 +665,30 @@ bin/spark-submit \
 ##### 当一个MR应用提交运行到Hadoop YARN上时
 
 - 包含两个部分：
-  - 应用管理者ApplicationMaster
+
+
+  - 应用管理者ApplicationMaster(代表一个作业的老大)
   - 任务进程（如MapReduce程序MapTask和ReduceTask任务）
 
 ![1621520272501](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/143109-407670.png)
 
+> 注意：在一个节点上面可以启动多个Container，一个容器可以运行一个Executor进程。
+
 ##### **当一个Spark应用提交运行在集群上时，应用架构有两部分组成：**
 
-- Driver Program（资源申请和调度Job执行）
-- Executors（运行Job中Task任务和缓存数据），
+- Driver Program（资源申请和调度Job执行，负责将我们编写的代码分为多个任务Task）。
+- Executors（运行Job中Task任务和缓存数据）。
 
-他们都是jvm进程
+**他们都是jvm进程**
 
 ![1621520350334](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165718-295396.png)
 
-而Driver程序运行的位置可以通过--deploy-mode 来指定,
+> Executor是一个进程，运行Task是线程。
 
-值可以是:
+而Driver程序运行的位置可以通过--deploy-mode 来指定,值可以是:
 
-1. client:表示Driver运行在提交应用的Client上(默认)
-2. cluster表示Driver运行在集群中(YARN的NodeManager)
+1. **client:表示Driver运行在提交应用的Client上(默认)**
+2. **cluster表示Driver运行在集群中(YARN的NodeManager)**
 
 **Driver是什么:**
 
@@ -657,13 +704,28 @@ cluster和client模式最最本质的区别是：Driver程序运行在哪里。�
 
 client模式下:
 
-Spark 的Driver驱动程序, 运行在提交任务的客户端上,（也就是命令行窗口） 和集群的通信成本高!
+Spark 的Driver驱动程序, 运行在提交任务的客户端上,（也就是命令行窗口）， 和集群的通信成本高!因为在运行作业的过程中，Driver需要调度Task到集群的某一个具体节点上执行，并且在任务在执行完成后，还需要由Driver汇总最终的结果，所以会存在其他节点和Driver进程之间的通信。
 
 因为Driver在客户端,所以Driver中的程序结果输出可以在客户端控制台看到
 
+这种情况下Driver是在客户端，不受RM管理，所以job失败后灭有重试机制。
+
 ![1621520516573](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165721-344244.png)
 
+**Spark Yarn Client原理**
+
 ![1621520547085](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165723-88167.png)
+
+**详解**
+1. Yarn是通过ScheduleBackend来和向RM通信发送消息，告知RM申请启动一个ApplicationMaster。
+2. RM寻找一台空闲的NodeManager节点，然后在节点上面启动Container容器，容器启动后，在容器里面启动ApplicationMaster进程，启动后会去RM进程注册自己。
+3. 此时在client端的Driver已经把job分为多个Task，并且已经初始化好SparkContext环境。
+4. Driver和ApplicationMaster进行通信，把需要申请的资源告诉Application进程，包括数据，资源的位置。
+5. ApplicationMaster进程找到RM进行申请资源。
+6. RM根据资源请求的数量，找到一定数量的NodeManager，如果不够的话，会先分配一定数量的NodeManager，然后在NodeManager上面启动Container。
+7. 各个Container启动之后会在容器内启动Executor，然后各个 Executor进程会去Driver进程哪里注册自己，告诉Driver自己由多少资源，然后申请一定数量的Task.
+8. Driver根据情况把Task分配给Executor进程，并且监控各个Task的状态，Executor根据资源的状况，去hdfs上面加载数据然后执行。
+9. 等到任务执行完成后，Driver会向RM申请注销自己，job执行完成。
 
 运行圆周率PI程序，采用client模式，命令如下：
 
@@ -682,17 +744,34 @@ ${SPARK_HOME}/examples/jars/spark-examples_2.12-3.0.1.jar \
 10
 ```
 
+![20211107142558](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107142558.png)
+
+
 ##### Cluster模式
 
 cluster模式下:
 
 - Spark 的Driver驱动程序, 运行在Yarn集群上, 和集群的通信成本低!
-- 且Driver是交给Yarn管理的,如果失败会由Yarn重启
+- 且Driver是交给Yarn管理的,如果失败会由Yarn重启。
 - 因为Driver运行在Yarn上,所以Driver中的程序结果输出在客户端控制台看不到,在Yarn日志中看到。
+- cluster模式下，Driver进程和ApplicationMaster进程一般在同一个节点上，同受RM监控，所以作业失败会重试。
+
+**任务提交过程**
 
 ![1621520632306](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/143349-660520.png)
 
+**详细提交过程**
+
 ![1621520645732](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/143350-897842.png)
+
+**过程解释**
+1. 客户端提交作业到RM，RM找到一个空闲的节点，启动容器，然后在容器中启动ApplicationMaster进程。
+2. ApplicationMaster启动之后，会到RM上面去注册自己。
+3. 此时Driver已经在ApplicationMaster所在的节点上面启动，并且初始化运行环境，然后和ApplicationMaster进程通信，告诉ApplicationMaster进程自己所需要的资源，以及资源所在的路径。
+4. ApplicationMaster向RM申请启动一定数量的资源。
+5. RM找到空闲的NodeMnager并且启动一定的Container和Executor进程。
+6. Executor启动之后去Driver进程哪里注册自己，并申请起订数量的任务，Executor申请到任务之后，去hdfs上面加载所需要的数据，然后执行Task.在执行的过程中，Driver进程一直在监控各个任务的执行状态。
+7. 等到所有的任务全部执行完成，Driver向RM申请注销自己。作业完成。
 
 运行圆周率PI程序，采用cluster模式，命令如下：
 
@@ -708,6 +787,14 @@ ${SPARK_HOME}/bin/spark-submit \
 ${SPARK_HOME}/examples/jars/spark-examples_2.12-3.0.1.jar \
 10
 ```
+![20211107143826](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107143826.png)
+
+> 不管是哪一种模式，由两个组件在负责作业的执行：
+> Application可以认为是一个作业的老大，负责作业资源的申请。
+> 
+> Driver：负责划分我们的作业为多个Stage和Task，并且调度各个Task到Executor去执行，最后汇总结果。
+> 
+> 上面这两个进程，ApplicationMaster是属于Yarn的组件，所以是负责一个作业的资源分配，而Driver是属于Spark组件，主要是负责作业的执行监控和调度，这两者之间还需要通信，因为Driver需要根据资源的多少去分配Task执行。
 
 ##### 小结
 
@@ -727,7 +814,7 @@ Client模式和Cluster模式最最本质的区别是：Driver程序运行在哪�
 
 在YARN Client模式下，Driver在任务提交的本地机器上运行，示意图如下：
 
-![1621665347713](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/143549-964871.png)
+![20211107144652](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107144652.png)
 
 **具体流程**
 
@@ -747,7 +834,7 @@ Client模式和Cluster模式最最本质的区别是：Driver程序运行在哪�
 
 在YARN Cluster模式下，Driver运行在NodeManager Contanier中，此时**Driver与AppMaster合为一体**，示意图如下：
 
-![1621665677854](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165741-742795.png)
+![20211107144911](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107144911.png)
 
 **提交流程**
 
@@ -763,6 +850,177 @@ Client模式和Cluster模式最最本质的区别是：Driver程序运行在哪�
 4. Executor进程启动后会向Driver反向注册;
 5. Executor全部注册完成后Driver开始执行main函数，之后执行到Action算子时，触发一个job，并根据宽依赖开始划分stage，每个stage生成对应的taskSet，之后将task分发到各个Executor上执行;
 
+#### Spark集群角色
+
+当Spark Application运行在集群上时，主要有四个部分组成，如下示意图：
+
+![20211107145129](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107145129.png)
+
+1、Driver：是一个JVM Process 进程，编写的Spark应用程序就运行在Driver上，由Driver进程执行；
+
+2）、Master(ResourceManager)：是一个JVM Process 进程，主要负责资源的调度和分配，并进行集群的监控等职责；
+
+3）、Worker(NodeManager)：是一个JVM Process 进程，一个Worker运行在集群中的一台服务器上，主要负责两个职责，一个是用自己的内存存储RDD的某个或某些partition；另一个是启动其他进程和线程（Executor），对RDD上的partition进行并行的处理和计算。
+
+4）、Executor：是一个JVM Process 进程，一个Worker(NodeManager)上可以运行多个Executor，Executor通过启动多个线程（task）来执行对RDD的partition进行并行计算，也就是执行我们对RDD定义的例如map、flatMap、reduce等算子操作。
+
+#### spark-shell和spark-submit
+
+Spark支持多种集群管理器（Cluster Manager）,取决于传递给SparkContext的MASTER环境变量的值：local、spark、yarn，区别如下：
+
+![20211107145503](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107145503.png)
+
+##### spark-shell
+
+之前我们使用提交任务都是使用spark-shell提交，spark-shell是Spark自带的交互式Shell程序，方便用户进行交互式编程，用户可以在该命令行下可以用scala编写spark程序，适合学习测试时使用！
+
+**spark-shell可以携带参数**
+- spark-shell --master local[N] 数字N表示在本地模拟N个线程来运行当前任务
+- spark-shell --master local[*] *表示使用当前机器上所有可用的资源
+- 默认不携带参数就是--master local[*]
+- spark-shell --master spark://node01:7077,node02:7077 表示运行在集群上
+
+**spark-submit**
+
+spark-shell交互式编程确实很方便我们进行学习测试，但是在实际中我们一般是使用IDEA开发Spark应用程序打成jar包交给Spark集群/YARN去执行，所以我们还得学习一个spark-submit命令用来帮我们提交jar包给spark集群/YARN
+
+spark-submit命令是我们开发时常用的!
+
+```java
+SPARK_HOME=/export/server/spark
+${SPARK_HOME}/bin/spark-submit \
+--master local[2] \
+--class org.apache.spark.examples.SparkPi \
+${SPARK_HOME}/examples/jars/spark-examples_2.11-3.0.1.jar \
+10
+或提交任务到Standalone集群
+--master spark://node1:7077 \
+或提交任务到Standalone-HA集群
+--master spark://node1:7077,node2:7077 \
+```
+
+或使用SparkOnYarn的Client模式提交到Yarn集群：
+
+```java
+SPARK_HOME=/export/server/spark
+${SPARK_HOME}/bin/spark-submit \
+--master yarn  \
+--deploy-mode client \
+--driver-memory 512m \
+--executor-memory 512m \
+--num-executors 1 \
+--total-executor-cores 2 \
+--class org.apache.spark.examples.SparkPi \
+${SPARK_HOME}/examples/jars/spark-examples_2.12-3.0.1.jar \
+10
+
+或使用SparkOnYarn的Cluster模式提交到Yarn集群
+SPARK_HOME=/export/server/spark
+${SPARK_HOME}/bin/spark-submit \
+--master yarn \
+--deploy-mode cluster \
+--driver-memory 512m \
+--executor-memory 512m \
+--num-executors 1 \
+--total-executor-cores 2 \
+--class org.apache.spark.examples.SparkPi \
+${SPARK_HOME}/examples/jars/spark-examples_2.12-3.0.1.jar \
+10
+```
+##### 应用提交语法
+
+使用【spark-submit】提交应用语法如下：
+
+```java
+Usage: spark-submit [options] <app jar | python file> [app arguments]
+```
+如果使用Java或Scala语言编程程序，需要将应用编译后达成Jar包形式，提交运行。
+
+![20211107150111](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107150111.png)
+
+#### 基本参数设置
+
+提交运行Spark Application时，有些基本参数需要传递值，如下所示：
+
+![20211107150222](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107150222.png)
+
+动态加载Spark Applicaiton运行时的参数，通过--conf进行指定，如下使用方式：
+
+![20211107150301](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107150301.png)
+
+#### Driver Program 参数配置
+每个Spark Application运行时都有一个Driver Program，属于一个JVM Process进程，可以设置内存Memory和CPU Core核数。
+
+![20211107150416](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107150416.png)
+
+#### Executor 参数配置
+
+每个Spark Application运行时，需要启动Executor运行任务Task，需要指定Executor个数及每个Executor资源信息（内存Memory和CPU Core核数）。
+
+![20211107150514](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107150514.png)
+
+#### 官方案例
+
+```java
+# Run application locally on 8 cores
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master local[8] \
+  /path/to/examples.jar \
+  100
+# Run on a Spark standalone cluster in client deploy mode
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master spark://207.184.161.138:7077 \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  /path/to/examples.jar \
+  1000
+# Run on a Spark standalone cluster in cluster deploy mode with supervise
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master spark://207.184.161.138:7077 \
+  --deploy-mode cluster \
+  --supervise \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  /path/to/examples.jar \
+  1000
+# Run on a YARN clusterexport HADOOP_CONF_DIR=XXX
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master yarn \
+  --deploy-mode cluster \  # can be client for client mode
+  --executor-memory 20G \
+  --num-executors 50 \
+  /path/to/examples.jar \
+  1000
+# Run a Python application on a Spark standalone cluster
+./bin/spark-submit \
+  --master spark://207.184.161.138:7077 \
+  examples/src/main/python/pi.py \
+  1000
+# Run on a Mesos cluster in cluster deploy mode with supervise
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master mesos://207.184.161.138:7077 \
+  --deploy-mode cluster \
+  --supervise \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  http://path/to/examples.jar \
+  1000
+# Run on a Kubernetes cluster in cluster deploy mode
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master k8s://xx.yy.zz.ww:443 \
+  --deploy-mode cluster \
+  --executor-memory 20G \
+  --num-executors 50 \
+  http://path/to/examples.jar \
+  1000
+
+```
 ### K8S & Mesos 模式
 
 Mesos 是Apache 下的开源分布式资源管理框架，它被称为是分布式系统的内核,在Twitter 得到广泛使用,管理着Twitter 超过 30,0000 台服务器上的应用部署，但是在国内，依然使用着传统的Hadoop大数据框架，所以国内使用Mesos 框架的并不多，但是原理其实都差不多，这里我们就不做过多讲解了。
@@ -816,3 +1074,21 @@ spark-submit --class org.apache.spark.examples.SparkPi --master local[2] ../exam
 - Standalone 模式下，Spark Master Web 端口号：8080（资源）
 - Spark 历史服务器端口号：18080
 - Hadoop YARN 任务运行情况查看端口号：8088
+
+### 思维导图
+
+![20211107132323](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107132323.png)
+
+**运行在Yarn集群上**
+
+![20211107132409](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107132409.png)
+
+![20211107132616](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107132616.png)
+
+**运行在Mesos集群上**
+
+![20211107132703](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107132703.png)
+
+**在Cloud**
+
+![20211107132737](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107132737.png)

@@ -2,15 +2,16 @@
 <!-- TOC -->
 
 - [Spark概述](#spark概述)
-    - [Spark and Hadoop](#spark-and-hadoop)
-    - [Spark和Hadoop的对比](#spark和hadoop的对比)
-    - [Spark or Hadoop](#spark-or-hadoop)
-    - [Spark核心模块](#spark核心模块)
-        - [Spark Core](#spark-core)
-        - [Spark SQL](#spark-sql)
-        - [Spark Streaming](#spark-streaming)
-        - [Spark MLlib](#spark-mllib)
-        - [Spark GraphX](#spark-graphx)
+  - [Spark and Hadoop](#spark-and-hadoop)
+  - [Spark和Hadoop的对比](#spark和hadoop的对比)
+  - [Spark or Hadoop](#spark-or-hadoop)
+  - [Spark核心模块](#spark核心模块)
+    - [Spark Core](#spark-core)
+    - [Spark SQL](#spark-sql)
+    - [Spark Streaming](#spark-streaming)
+    - [Spark MLlib](#spark-mllib)
+    - [Spark GraphX](#spark-graphx)
+  - [思维导图](#思维导图)
 
 <!-- /TOC -->
 Spark 是一种基于内存的快速、通用、可扩展的大数据分析计算引擎。
@@ -69,7 +70,7 @@ RDD的三个特性
 
 ![1611807662937](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/05/081140-335630.png)
 
-基于Spark的迭代计算，中间的数据计算过程存储在内存中，减少io所花费的时间。
+基于Spark的迭代计算，中间的数据计算过程存储在内存中，减少io所花费的时间，下面是两者的对比说明：
 
 |              | Hadoop                                      | Spark                                        |
 | ------------ | ------------------------------------------- | -------------------------------------------- |
@@ -81,6 +82,10 @@ RDD的三个特性
 | 运行方式     | Task以进程方式维护, 任务启动慢              | Task以线程方式维护, 任务启动快               |
 
 ![1621517898557](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/20/213822-64349.png)
+
+
+> 这里提一点，hadoop中多个作业（job)之间数据需要落盘，而针对spark，在一个spark application中，每一个action算子都会触发一个job的执行，多个作业之间的数据交换不需要落盘，所以耗费在io上的时间不是很多，
+
 
 注意:
 
@@ -127,3 +132,26 @@ MLlib 是 Spark 提供的一个机器学习算法库。MLlib 不仅提供了模�
 #### Spark GraphX
 
 GraphX 是 Spark 面向图计算提供的框架与算法库。
+
+### 思维导图
+
+**整体导图**
+
+![20211107131235](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107131235.png)
+
+下面对这四部分展开说明：
+
+**Spark的发展**
+
+![20211107130709](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107130709.png)
+
+**Spark的介绍**
+
+![20211107131050](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107131050.png)
+
+**Spark内置模块**
+![20211107131022](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107131022.png)
+
+**Spark使用场景**
+
+![20211107131147](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107131147.png)
