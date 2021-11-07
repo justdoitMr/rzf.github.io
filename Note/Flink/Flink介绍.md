@@ -11,6 +11,10 @@
     - [Time](#time)
     - [Window](#window)
   - [组件栈](#组件栈)
+  - [Flink应用场景](#flink应用场景)
+    - [Event-driven Applications【事件驱动】](#event-driven-applications事件驱动)
+    - [Data Analytics Applications【数据分析】](#data-analytics-applications数据分析)
+    - [Data Pipeline Applications【数据管道】](#data-pipeline-applications数据管道)
   - [哪些行业需要处理流数据](#哪些行业需要处理流数据)
   - [传统数据处理架构](#传统数据处理架构)
   - [状态化流处理](#状态化流处理)
@@ -46,9 +50,9 @@ Apache Flink 是一个框架和分布式处理引擎，用于对**无界和有�
 
 我们的目标
 
-- 低延迟
-- 高吞吐
-- 结果的准确性和良好的容错性
+- **低延迟**
+- **高吞吐**
+- **结果的准确性和良好的容错性**
 
 ### Flink流处理的特征
 
@@ -65,9 +69,17 @@ Flink 流处理特性：
 - 支持迭代计算
 - 支持程序自动优化：避免特定情况下 Shuffle、排序等昂贵操作，中间结果有必要进行缓存
 
+
 ### Flink的基石
 
-Flink之所以能这么流行，离不开它最重要的四个基石：**Checkpoint（检查点）、State（状态）、Time（时间语义）、Window（窗口函数）。**
+Flink之所以能这么流行，离不开它最重要的四个基石：
+
+- **Checkpoint（检查点）**
+- **State（状态）**
+- **Time（时间语义）**
+- **Window（窗口函数）**
+
+![20211107153219](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107153219.png)
 
 #### Checkpoint
 
@@ -85,22 +97,107 @@ Spark最近在实现Continue streaming，Continue streaming的目的是为了降
 
 #### Time
 
-除此之外，Flink还实现了Watermark的机制，能够支持基于事件的时间的处理，能够容忍迟到/乱序的数据。
+除此之外，Flink还实现了Watermark的机制，能够支持基于事件的时间的处理，能够容忍**迟到/乱序**的数据。
 
 #### Window
 
-另外流计算中一般在对流数据进行操作之前都会先进行开窗，即基于一个什么样的窗口上做这个计算。Flink提供了开箱即用的各种窗口，比如滑动窗口、滚动窗口、会话窗口以及非常灵活的自定义的窗口。
+另外流计算中一般在对流数据进行操作之前都会先进行开窗，即基于一个什么样的窗口上做这个计算。Flink提供了开箱即用的各种窗口，比如**滑动窗口、滚动窗口、会话窗口以及非常灵活的自定义的窗口**。
 
 ### 组件栈
 
-![1621563860910](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621563860910.png)
+![1621563860910](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/07/153427-665799.png)
 
 **各层详细介绍：**
+
+![20211107153025](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107153025.png)
 
 - 物理部署层：Flink 支持本地运行、能在独立集群或者在被 YARN 管理的集群上运行， 也能部署在云上，该层主要涉及Flink的部署模式，目前Flink支持多种部署模式：本地、集群(Standalone、YARN)、云(GCE/EC2)、Kubenetes。Flink能够通过该层能够支持不同平台的部署，用户可以根据需要选择使用对应的部署模式。
 - Runtime核心层：Runtime层提供了支持Flink计算的全部核心实现，为上层API层提供基础服务，该层主要负责对上层不同接口提供基础服务，也是Flink分布式计算框架的核心实现层，支持分布式Stream作业的执行、JobGraph到ExecutionGraph的映射转换、任务调度等。将DataSteam和DataSet转成统一的可执行的Task Operator，达到在流式引擎下同时处理批量计算和流式计算的目的。
 - API&Libraries层：Flink 首先支持了 Scala 和 Java 的 API，Python 也正在测试中。DataStream、DataSet、Table、SQL API，作为分布式数据处理框架，Flink同时提供了支撑计算和批计算的接口，两者都提供给用户丰富的数据处理高级API，例如Map、FlatMap操作等，也提供比较低级的Process Function API，用户可以直接操作状态和时间等底层数据。
 - 扩展库：Flink 还包括用于复杂事件处理的CEP，机器学习库FlinkML，图处理库Gelly等。Table 是一种接口化的 SQL 支持，也就是 API 支持(DSL)，而不是文本化的SQL 解析和执行。
+
+
+### Flink应用场景
+
+#### Event-driven Applications【事件驱动】
+
+事件驱动型应用是一类具有**状态**的应用，它从一个或多个事件流提取数据，并根据到来的事件触发计算、状态更新或其他外部动作。
+
+事件驱动型应用是在计算存储分离的传统应用基础上进化而来。
+在传统架构中，应用需要读写远程事务型数据库。
+
+相反，事件驱动型应用是基于状态化流处理来完成。在该设计中，数据和计算不会分离，应用只需访问本地(内存或磁盘)即可获取数据。
+
+系统容错性的实现依赖于定期向远程持久化存储写入 checkpoint。下图描述了传统应用和事件驱动型应用架构的区别。
+
+![20211107154139](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107154139.png)
+
+
+从某种程度上来说，所有的实时的数据处理或者是流式数据处理都应该是属于Data Driven，流计算本质上是Data Driven 计算。应用较多的如风控系统，当风控系统需要处理各种各样复杂的规则时，Data Driven 就会把处理的规则和逻辑写入到Datastream 的API 或者是ProcessFunction 的API 中，然后将逻辑抽象到整个Flink 引擎，当外面的数据流或者是事件进入就会触发相应的规则，这就是Data Driven 的原理。在触发某些规则后，Data Driven 会进行处理或者是进行预警，这些预警会发到下游产生业务通知，这是Data Driven 的应用场景，Data Driven 在应用上更多应用于复杂事件的处理。
+
+**典型实例：**
+
+- 欺诈检测(Fraud detection)
+- 异常检测(Anomaly detection)
+- 基于规则的告警(Rule-based alerting)
+- 业务流程监控(Business process monitoring)
+- Web应用程序(社交网络)
+
+#### Data Analytics Applications【数据分析】
+
+数据分析任务需要从原始数据中提取有价值的信息和指标。
+
+如下图所示，Apache Flink 同时支持流式及批量分析应用。
+
+![20211107154344](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107154344.png)
+
+
+Data Analytics Applications包含Batch analytics(批处理分析)和Streaming analytics(流处理分析)
+Batch analytics可以理解为周期性查询：Batch Analytics 就是传统意义上使用类似于Map Reduce、Hive、Spark Batch 等，对作业进行分析、处理、生成离线报表。比如Flink应用凌晨从Recorded Events中读取昨天的数据，然后做周期查询运算，最后将数据写入Database或者HDFS，或者直接将数据生成报表供公司上层领导决策使用。
+
+Streaming analytics可以理解为连续性查询：比如实时展示双十一天猫销售GMV(Gross Merchandise Volume成交总额)，用户下单数据需要实时写入消息队列，Flink 应用源源不断读取数据做实时计算，然后不断的将数据更新至Database或者K-VStore，最后做大屏实时展示。
+
+**典型实例**
+
+- 电信网络质量监控
+- 移动应用中的产品更新及实验评估分析
+- 消费者技术中的实时数据即席分析
+- 大规模图分析
+
+#### Data Pipeline Applications【数据管道】
+什么是数据管道？
+
+提取-转换-加载(ETL)是一种在存储系统之间进行数据转换和迁移的常用方法。
+
+ETL 作业通常会周期性地触发，将数据从事务型数据库拷贝到分析型数据库或数据仓库。
+
+数据管道和 ETL 作业的用途相似，都可以转换、丰富数据，并将其从某个存储系统移动到另一个。
+
+但数据管道是以持续流模式运行，而非周期性触发。
+
+因此数据管道支持从一个不断生成数据的源头读取记录，并将它们以低延迟移动到终点。
+
+例如：数据管道可以用来监控文件系统目录中的新文件，并将其数据写入事件日志；另一个应用可能会将事件流物化到数据库或增量构建和优化查询索引。
+
+和周期性 ETL 作业相比，持续数据管道可以明显降低将数据移动到目的端的延迟。
+
+此外，由于它能够持续消费和发送数据，因此用途更广，支持用例更多。
+
+下图描述了周期性ETL作业和持续数据管道的差异。
+
+![20211107154555](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211107154555.png)
+
+Periodic ETL：比如每天凌晨周期性的启动一个Flink ETL Job，读取传统数据库中的数据，然后做ETL，最后写入数据库和文件系统。
+
+Data Pipeline：比如启动一个Flink 实时应用，数据源(比如数据库、Kafka)中的数据不断的通过Flink Data Pipeline流入或者追加到数据仓库(数据库或者文件系统)，或者Kafka消息队列。
+Data Pipeline 的核心场景类似于数据搬运并在搬运的过程中进行部分数据清洗或者处理，而整个业务架构图的左边是Periodic ETL，它提供了流式ETL 或者实时ETL，能够订阅消息队列的消息并进行处理，清洗完成后实时写入到下游的Database或File system 中。
+
+**典型实例**
+
+- 电子商务中的持续 ETL(实时数仓)
+当下游要构建实时数仓时，上游则可能需要实时的Stream ETL。这个过程会进行实时清洗或扩展数据，清洗完成后写入到下游的实时数仓的整个链路中，可保证数据查询的时效性，形成实时数据采集、实时数据处理以及下游的实时Query。
+- 电子商务中的实时查询索引构建(搜索引擎推荐)
+搜索引擎这块以淘宝为例，当卖家上线新商品时，后台会实时产生消息流，该消息流经过Flink 系统时会进行数据的处理、扩展。然后将处理及扩展后的数据生成实时索引，写入到搜索引擎中。这样当淘宝卖家上线新商品时，能在秒级或者分钟级实现搜索引擎的搜索。
 
 ### 哪些行业需要处理流数据
 
@@ -128,7 +225,7 @@ Spark最近在实现Continue streaming，Continue streaming的目的是为了降
 
 ![1614254351391](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/25/195911-165114.png)
 
-上面一层是计算层，下面层是存储层，数据计算和数据存储分开，事务处理就是当前应对的是一个一个的事务，但是事务性数据处理应对不了数据量很大的情况。但是这种情况实时性比较好，但是不能应对高并发，大数据量的情况。
+上面一层是计算层，下面层是存储层，**数据计算和数据存储**分开，事务处理就是当前应对的是一个一个的事务，但是事务性数据处理应对不了数据量很大的情况。但是这种情况实时性比较好，但是不能应对高并发，大数据量的情况。
 
 **分析处理**
 
@@ -180,7 +277,7 @@ Apache Flink 会将应用状态存储在本地内存或嵌入式数据库中。�
 
 #### Dataflow 图
 
-Dataflow 程序描述了数据如何在不同操作之间流动。Dataflow 程序通常表示为有向图。图中**顶点称为算子，表示计算**， **而边表示数据依赖关系。**算子是Dataflow 程序的基本功能单元，它们从输入获取数据，对其进行计算，然后产生数据并发往输出以供后续处理。没有输入端的算子称为数据源，没有输出端的算子称为数据汇。一个Dataflow 图至少要有一个数据源和一个数据汇
+Dataflow 程序描述了数据如何在不同操作之间流动。Dataflow 程序通常表示为有向图。图中**顶点称为算子，表示计算**， 而边表示数据依赖关系。算子是Dataflow 程序的基本功能单元，它们从输入获取数据，对其进行计算，然后产生数据并发往输出以供后续处理。没有输入端的算子称为数据源，没有输出端的算子称为数据汇。一个Dataflow 图至少要有一个数据源和一个数据汇
 
 **逻辑图**
 
@@ -236,11 +333,11 @@ Dataflow 图的并行性可以通过多种方式加以利用。首先，你可�
 
 #### 时间语义
 
-**处理时间 **
+**处理时间**
 
 处理时间是当前流处理算子所在机器上的本地时钟时间 
 
-**事件时间 **
+**事件时间**
 
 事件时间是数据流中事件实际发生的时间，它以附加在数据流中事件的时间戳为依据 
 
@@ -484,7 +581,7 @@ Flink以缓存块为单位进行网络数据传输,用户可以设置缓存块�
 
 ### 计算框架发展史
 
-![1621660996990](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621660996990.png)
+![1621660996990](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/07/154941-974650.png)
 
 这几年大数据的飞速发展，出现了很多热门的开源社区，其中著名的有Hadoop、Storm，以及后来的 Spark，他们都有着各自专注的应用场景。Spark 掀开了内存计算的先河，也以内存为赌注，赢得了内存计算的飞速发展。Spark 的火热或多或少的掩盖了其他分布式计算的系统身影。就像Flink，也就在这个时候默默的发展着。
 
@@ -505,7 +602,7 @@ Flink以缓存块为单位进行网络数据传输,用户可以设置缓存块�
 - 1个Tez = MR(1) + MR(2) + ... + MR(n)
 - 相比MR效率有所提升
 
-![1621661167571](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621661167571.png)
+![1621661167571](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/07/154943-879952.png)
 
 3. 第3代——Spark
 
