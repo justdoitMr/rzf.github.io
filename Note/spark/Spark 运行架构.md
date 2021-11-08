@@ -4,6 +4,7 @@
 - [Spark 运行架构](#spark-运行架构)
   - [Spark集群角色](#spark集群角色)
   - [spark-shell和spark-submit](#spark-shell和spark-submit)
+      - [Standalone的两种模式](#standalone的两种模式)
     - [Spark-Shell](#spark-shell)
     - [Spark-Submit](#spark-submit)
     - [应用提交的语法](#应用提交的语法)
@@ -25,6 +26,7 @@
   - [提交流程](#提交流程)
     - [Yarn Client 模式](#yarn-client-模式)
     - [Yarn Cluster 模式](#yarn-cluster-模式)
+  - [Spark运行流程](#spark运行流程)
 
 <!-- /TOC -->
 
@@ -385,3 +387,17 @@ Cluster 模式将用于监控和调度的 Driver 模块启动在Yarn 集群资�
 - Driver 启动后向 ResourceManager 申请Executor 内存，ResourceManager 接到ApplicationMaster 的资源申请后会分配container，然后在合适的NodeManager 上启动Executor 进程
 - Executor 进程启动后会向Driver 反向注册，Executor 全部注册完成后Driver 开始执行main 函数，
 - 之后执行到 Action 算子时，触发一个 Job，并根据宽依赖开始划分 stage，每个stage 生成对应的TaskSet，之后将 task 分发到各个Executor 上执行。
+
+### Spark运行流程
+
+**spark运行流程图**
+
+![20211108123858](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108123858.png)
+
+**通用执行流程**
+
+![20211108124326](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108124326.png)
+
+**Spark基本使用**
+
+![20211108124433](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108124433.png)
