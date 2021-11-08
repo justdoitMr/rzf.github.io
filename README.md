@@ -97,7 +97,8 @@
 7. [Spark调优](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Spark%E8%B0%83%E4%BC%98.md)
 8. [Spark 的 Yarn-cluster 模式和 Yarn-client 模式](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%20%E7%9A%84%20Yarn-cluster%20%E6%A8%A1%E5%BC%8F%E5%92%8C%20Yarn-client%20%E6%A8%A1%E5%BC%8F.md)
 9.  [深入理解Spark原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Spark%E5%8E%9F%E7%90%86.md)
-10. [Spark面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E9%9D%A2%E8%AF%95.md)
+10. [Spark内核原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E5%86%85%E6%A0%B8%E5%8E%9F%E7%90%86.md)
+11. [Spark面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E9%9D%A2%E8%AF%95.md)
 
 ### Flink
 1. [Flink介绍](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%BB%8B%E7%BB%8D.md)
