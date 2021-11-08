@@ -75,6 +75,9 @@
 					- [cogroup](#cogroup)
 					- [获取键值集合](#获取键值集合)
 					- [面试题](#面试题)
+				- [关联算子](#关联算子)
+				- [排序函数/算子-求TopKey](#排序函数算子-求topkey)
+				- [排序算法总结](#排序算法总结)
 				- [项目练手](#项目练手)
 					- [数据准备](#数据准备)
 					- [需求描述](#需求描述)
@@ -167,6 +170,12 @@
 			- [service层](#service层)
 		- [思维导图](#思维导图)
 			- [RDD基础](#rdd基础)
+			- [RDD算子](#rdd算子)
+			- [RDD函数传递](#rdd函数传递)
+			- [RDD依赖关系](#rdd依赖关系)
+			- [RDD缓存和检查点](#rdd缓存和检查点)
+			- [数据的存储和读取](#数据的存储和读取)
+			- [RDD编程进阶](#rdd编程进阶)
 
 <!-- /TOC -->
 Spark计算框架为了能够进行高并发和高吞吐的数据处理，封装了三大数据结构，用于处理不同的应用场景。三大数据结构分别是：
@@ -1211,9 +1220,13 @@ object RDDDemo01_Create {
 
 #### RDD方法分类
 
-转换：功能的补充和封装，将旧的RDD包装为新的RDD，比如map,flatmap，这一步会生成一个图
+**转换**：功能的补充和封装，将旧的RDD包装为新的RDD，比如map,flatmap。多个转换动作相互依赖就形成了一条依赖链。转换算子不会触发iob的执行，多个转换算子相互依赖会形成一个数据流图。
 
-行动：触发任务的调度和作业的执行，比如collect，触发生成的图的执行。
+行动：触发任务的调度和作业的执行，比如collect，触发生成的图的执行。调用一次行动算子，就会形成一个job。在一个Application中，如果有多个行动算子的话，就会形成多个job，所以一个application中可能会包含多个job。
+
+> application-->job--->stage--->Task
+> 
+> 其中他们是包含关系，并且是一对多的包含关系，application和job的包含关系是通过Action算子进行划分的，而job和stage的包含关系是通过宽shuffle进行划分的，stage和Task的包含关系是通过并行度或者说是分区的个数进行划分。
 
 RDD方法=>算子
 
@@ -1224,7 +1237,7 @@ RDD方法=>算子
 
 **RDD存放数据类型分类**
 
-- String,对象类型
+- String，对象类型
 - key-value类型
 - 数值类型
 
@@ -1264,7 +1277,7 @@ implicit def rddToPairRDDFunctions[K, V](rdd: RDD[(K, V)])
 
 ![1616723901576](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/29/080724-389059.png)
 
-最初的所有转换仅仅是形成一条数据流，不会真正的做计算操作，而是在真正的行动算子触发之后，才会去做计算操作。
+多个转换操作仅仅是形成一条数据流，形成一条依赖链，不会真正的做计算操作，而是在真正的行动算子触发之后，才会去做计算操作。
 
 - RDD可以进行分区，因为spark是一个分布式的并行计算框架，只有进行分区操作后，才可以进行并行计算
 
@@ -1274,21 +1287,26 @@ implicit def rddToPairRDDFunctions[K, V](rdd: RDD[(K, V)])
 
 ![1616723714723](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/26/095552-537657.png)
 
-RDD一旦生成，就无法改变。如果支持次改，那么很明显是需要保存数据的，这明显违背RDD设计的初衷。
+RDD一旦生成，就无法改变。如果支持修改，那么很明显是需要保存数据的，这明显违背RDD设计的初衷，所以想要修改RDD，只能产生一个新的RDD然后修改。
 
 - RDD是可以容错的
 
 ![1621748272365](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/133756-221332.png)
 
+RDD的容错方式：
+- 保存RDD依赖链之间的依赖关系。
+- checkpoint，将某一个RDD的数据存储在外部系统中，定期左备份，出错时候，直接加载外部数据。
+
 ##### 什么是弹性分布式数据集
 
 ![1616725004784](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/26/102723-7165.png)
+
 
 ##### RDD属性小结
 
 ![1616725674853](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/125122-945542.png)
 
-- 为什么RDD要有分区？因为RDD要进行并行计算
+- 为什么RDD要有分区？因为RDD要进行并行计算，分区是RDD进行并行计算的最小单位。
 - RDD要记录依赖关系？因为要进行容错，有了算子之间的依赖关系，如何从一个RDD转换到另一个RDD，这就需要使用到计算函数，所以要记录计算函数。
 - Partitioner是为了进行shuffed，只有在键值对类型的数据级中才有Partitioiner。
 - 尽量把RDD的分区调度到数据存放的位置，这是一个简单的优化，移动数据不如移动计算。
@@ -1304,19 +1322,20 @@ RDD 的操作主要可以分为 Transformation 和 Action
 ![1621766949865](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/165959-547361.png)
 
 - Transformation转换操作：
-  - 返回一个新的RDD,which create a new dataset from an existing one
-  - 所有Transformation函数都是Lazy，不会立即执行，需要Action函数触发
+  - 返回一个新的RDD,which create a new dataset from an existing one。
+  - **所有Transformation函数都是Lazy，不会立即执行，需要Action函数触发**。
 - Action动作操作：返回值不是RDD(无返回值或返回其他的)
   - which return a value to the driver program after running a computation on the datase
-  - 所有Action函数立即执行（Eager），比如count、first、collect、take等
+  - 所有Action函数立即执行（Eager），比如count、first、collect、take等。
+  - 行动算子会触发生成一个job。有几个行动算子，就会生成几个job。
 
 ![1621767065273](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/170003-975656.png)
 
-> Notice
+> Notice：
 >
-> 1. RDD不实际存储真正要计算的数据，而是记录了数据的位置在哪里，数据的转换关系(调用了什么方法，传入什么函数)；
+> 1. RDD不实际存储真正要计算的数据，而是记录了数据的位置在哪里，数据的转换关系(调用了什么方法，传入什么函数)，所以我们也说RDD是封装了计算过程。
 >
-> 2. RDD中的所有转换都是惰性求值/延迟执行的，也就是说并不会直接计算。只有当发生Action动作时，这些转换才会真正运行。之所以这样，是因为这样可以在Action时对RDD操作形成DAG有向无环图进行Stage的划分和并行优化，这种设计可以让Spark更加高效地运行。
+> 2. RDD中的所有转换都是**惰性求值/延迟执行**的，也就是说并不会直接计算。只有当发生Action动作时，这些转换才会真正运行。之所以这样，是因为这样可以在Action时对RDD操作形成DAG有向无环图进行Stage的划分和并行优化，这种设计可以让Spark更加高效地运行。
 
 ##### 转换算子
 
@@ -1327,6 +1346,8 @@ RDD 的操作主要可以分为 Transformation 和 Action
 **常用Transformation转换函数：**
 
 ![1621767227097](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/170011-695081.png)
+
+![20211108135116](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108135116.png)
 
 **算子说明**
 
@@ -1355,7 +1376,7 @@ RDD 的操作主要可以分为 Transformation 和 Action
 
 ##### 行动算子
 
-- 不同于Transformation操作，Action操作代表一次计算的结束，不再产生新的 RDD，将结果返回到Driver程序或者输出到外部。
+- 不同于Transformation操作，Action操作代表一次计算的结束，不再产生新的 RDD，**将结果返回到Driver程序或者输出到外部。**
 
 - 所以Transformation操作只是建立计算关系，而Action 操作才是实际的执行者。
 
@@ -1389,7 +1410,7 @@ RDD 的操作主要可以分为 Transformation 和 Action
 
 #### RDD 转换算子
 
-RDD 根据数据处理方式的不同将算子整体上分为Value 类型、双 Value 类型和Key-Value类型
+RDD 根据数据处理方式的不同将算子整体上分为**Value 类型、双 Value 类型和Key-Value类型**。
 
 RDD中map、filter、flatMap及foreach等函数为最基本函数，都是对RDD中每个元素进行操作，将元素传递到函数中进行转换。
 
@@ -1550,12 +1571,16 @@ def testMapValue():Unit={
 
 ###### mapPartitions 
 
-每个RDD由多分区组成的，实际开发中如果涉及到资源相关操作建议对每个分区进行操作，即使用mapPartitions代替map函数使用foreachPartition代替foreache函数
+每个RDD由多分区组成的，实际开发中如果涉及到资源相关操作建议对每个分区进行操作。
+
+即使用mapPartitions代替map函数使用foreachPartition代替foreache函数
 
 - mapPartitions 操作是在内存中进行操作，所以性能比较高，并且mapPartitions 方法会把一个分区中的数据全部加载完成之后全部进行处理，所以效率比map函数高很多，而map是对每一条数据进行操作。比如访问数据库操作，如果使用map的话，每次访问都需要建立链接，很浪费资源，如果使用mapPartitions （）算子，就可以以分区为单位进行建立链接访问数据。
 - mapPartitions 可以以分区为单位进行数据的转换操作，会将整个分区中的数据加载到内存中引用，但是使用完的数据不会被释放掉，当数据量比较多，内存较小的情况下，容易出现内存溢出，这种情况使用map函数比较好。
 - 有时候可以以分区为单位对数据进行访问操作，减少内存的开销，比如访问数据库中的数据，如果对单条数据进行访问，那么每一条数据都要建立一个链接，但是如果对数据进行分区操作，那么每一个分区建立一个链接即可。
 - map和mapPartitions 之间最大的区别是，map操作数据最小的粒度是每一条数据，而mapPartitions 操作数据的最小粒度是分区。
+
+![20211108135819](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108135819.png)
 
 **函数签名**
 
@@ -1757,7 +1782,7 @@ object Spark_RDD_transform_mappartition {
 
 ~~~
 
-**map 和 mapPartitions 的区别 **
+**map和mapPartitions的区别**
 
 - 数据处理角度
   - Map 算子是分区内一个数据一个数据的执行，类似于串行操作。而 mapPartitions 算子是以分区为单位进行批处理操作。 map中参数是单条数据，mapPartitions参数中的是一个分区的数据，每一次针对一个分区的数据进行操作，效率比较高
@@ -2594,6 +2619,21 @@ object Test07 {
 }
 ~~~
 
+**面试题目**
+
+在实际的开发中，什么时候对RDD进行重新分区？
+
+1. 当处理的数据很多的时候，可以考虑增加RDD的分区数以提高并行度
+
+![20211108140214](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108140214.png)
+
+2. 当对RDD数据进行过滤操作（filter函数）后，考虑减少分区数
+
+![20211108140301](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108140301.png)
+
+3. 当对结果RDD存储到外部系统，考虑减少分区数
+
+![20211108140333](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108140333.png)
 
 
 ###### sortBy 
@@ -3230,9 +3270,9 @@ reduceByKey 在map端有combiner，但是groupByKey 在map端没有combiner
 
 groupByKey会按照key把数据分组，但是每一个分区的数据量不一样，所以可能存在有的分组等待没有处理完数据的分区，这样在内存会积累大量的数据，可能存在内存溢出，所以中间要经过落盘操作，然后在加载到内存处理，所以有io操作，有损性能。只有分组，没有聚合操作，最终的聚合是通过map进行操作。
 
-**reduceByKey **
+**reduceByKey**
 
-![1614765385356](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614765385356.png)
+![1614765385356](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/08/140845-18864.png)
 
 最后又聚合操作，
 
@@ -4036,6 +4076,159 @@ groupByKey和reduceByKey
 
 ![1621944380034](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/170539-17376.png)
 
+##### 关联算子
+
+当两个RDD的数据类型为二元组Key/Value对时，可以依据Key进行关联Join。
+
+![1636351875081](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1636351875081.png)
+
+首先回顾一下SQL JOIN，用Venn图表示如下：
+
+![1636351916704](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/08/141218-506967.png)
+
+RDD中关联JOIN函数都在PairRDDFunctions中，具体截图如下：
+
+![1636351963455](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1636351963455.png)
+
+具体看一下join（等值连接）函数说明：
+
+![1636352008391](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/08/141334-625018.png)
+
+**代码演示**
+
+~~~ java
+object RDDDemo06_Join {
+  def main(args: Array[String]): Unit = {
+    //1.准备环境(Env)sc-->SparkContext
+    val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+    val sc: SparkContext = new SparkContext(sparkConf)
+    sc.setLogLevel("WARN")
+
+    //2.加载数据
+    // 模拟数据集
+    //员工集合:RDD[(部门编号, 员工姓名)]
+    val empRDD: RDD[(Int, String)] = sc.parallelize(
+      Seq((1001, "zhangsan"), (1002, "lisi"), (1003, "wangwu"), (1004, "zhaoliu"))
+    )
+    //部门集合:RDD[(部门编号, 部门名称)]
+    val deptRDD: RDD[(Int, String)] = sc.parallelize(
+      Seq((1001, "销售部"), (1002, "技术部"))
+    )
+
+    //需求:求出员工所属的部门名称
+    //RDD的join直接按照key进行join
+    val result1: RDD[(Int, (String, String))] = empRDD.join(deptRDD)
+    result1.foreach(println)
+    println("============================")
+    val result2: RDD[(Int, (String, Option[String]))] = empRDD.leftOuterJoin(deptRDD)
+    result2.foreach(println)
+
+    sc.stop()
+  }
+}
+~~~
+
+##### 排序函数/算子-求TopKey
+
+RDD中关于排序函数有如下三个：
+
+1. sortBy：针对RDD中数据指定排序规则
+![20211108141557](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108141557.png)
+
+2. sortByKey：针对RDD中数据类型key/value对时，按照Key进行排序
+
+![20211108141659](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108141659.png)
+
+3. top：按照RDD中数据采用降序方式排序，如果是Key/Value对，按照Key降序排序
+
+![20211108141728](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108141728.png)
+
+**代码实例**
+
+``` java
+object RDDDemo07_Sort {
+  def main(args: Array[String]): Unit = {
+    val sparkConf: SparkConf = new SparkConf().setAppName("wc").setMaster("local[*]")
+    val sc: SparkContext = new SparkContext(sparkConf)
+    sc.setLogLevel("WARN")
+
+    //RDD[(单词, 数量)]
+    val result: RDD[(String, Int)] = sc.textFile("data/input/words.txt")
+      .flatMap(_.split(" "))
+      .map((_, 1))
+      .reduceByKey(_ + _)
+    result.foreach(println)
+    println("============sortBy:适合大数据量排序====================")
+    val sortedResult1: RDD[(String, Int)] = result.sortBy(_._2,false)//false表示逆序
+   /* println("--------------------------")
+    sortedResult1.foreach(println)
+    println("--------------------------")*/
+    sortedResult1.take(3).foreach(println)
+    
+    println("============sortByKey:适合大数据量排序====================")
+    //val sortedResult2: RDD[(Int, String)] = result.map(t=>(t._2,t._1)).sortByKey(false)
+    val sortedResult2: RDD[(Int, String)] = result.map(_.swap).sortByKey(false)//swap表示交换位置
+    sortedResult2.take(3).foreach(println)
+    
+    println("============top:适合小数据量排序====================")
+    //@note
+    // This method should only be used if the resulting array is expected to be small,
+    // as all the data is loaded into the driver's memory.
+    val sortedResult3: Array[(String, Int)] = result.top(3)(Ordering.by(_._2))//注意:top本身就是取最大的前n个
+    sortedResult3.foreach(println)
+
+    sc.stop()
+  }
+}
+
+```
+
+> 分布式排序底层使用的归并排序
+> 
+> Java中的Arrays.sort用的啥?---插入+快排+归并
+> 
+> **注意：行动算子在Driver端执行，而转换算子在Executor端执行**
+> 
+> 每调用一次行动算子，就会调用执行一次runjob()方法，也就是生成一个JOB，然后转换为DAG图开始执行。
+
+
+![20211108141950](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108141950.png)
+
+##### 排序算法总结
+
+![20211108142108](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108142108.png)
+
+![20211108142136](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108142136.png)
+
+**关于时间复杂度**
+
+平方阶 (O(n2)) 排序各类简单排序：直接插入、直接选择和冒泡排序。
+
+线性对数阶 (O(nlog2n)) 排序：快速排序、堆排序和归并排序；
+
+O(n1+§)) 排序，§ 是介于 0 和 1 之间的常数。 希尔排序
+
+线性阶 (O(n)) 排序：基数排序，此外还有桶、箱排序。
+
+**关于稳定性**
+
+稳定的排序算法：冒泡排序、插入排序、归并排序和基数排序。
+
+不稳定的排序算法：选择排序、快速排序、希尔排序、堆排序。
+
+**名词解释：**
+
+n：数据规模
+
+k："桶"的个数
+
+In-place：占用常数内存，不占用额外内存
+
+Out-place：占用额外内存
+
+稳定性：排序后 2 个相等键值的顺序和排序之前它们的顺序相同
+
+
 ##### 项目练手
 
 ###### 数据准备
@@ -4137,7 +4330,9 @@ object ExerTest {
 
 #### 行动算子
 
-上面的转换算子的执行难都是惰性的，在执行的时候，并不会去调度执行，而是只生成对应的RDD，只有在触发行动算子之后，才会真正的求得最终的结果。
+上面的转换算子在没有调用行动算子之前是不会执行的，转换之间只会形成一条依赖链，并不会真正的去执行，只有在触发行动算子之后，才会调用runjob()方法形成一个job然后对转换算子形成一个DAG图，进行调度执行。
+
+另外，形成DAG图的过程是在Driver端进行的，在Driver端还会把图划分为stage和Task,然后在调度到Executor节点上执行，所以说，行动算子是在Driver端执行的，转换算子在Executor端执行的。
 
 ##### reduce
 
@@ -4933,6 +5128,10 @@ object Test16 {
 ![1622103206865](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/27/161336-470579.png)
 
 #### RDD 序列化 
+
+**RDD函数传递**
+
+在实际开发中我们往往需要自己定义一些对于RDD的操作,那么此时需要注意的是,初始化工作是在Drⅳer中进行的,而实际运行是在 Executor端进行的,这就涉及到了跨进程通信,是需要序列化的。
 
 **闭包检查**
 
@@ -7206,6 +7405,8 @@ class WordCountService extends Tservice{
 
 ### 思维导图
 
+![20211108145120](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108145120.png)
+
 #### RDD基础
 
 **什么是RDD**
@@ -7253,3 +7454,51 @@ class WordCountService extends Tservice{
 从外部存储系统中创建：
 
 ![20211108131102](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108131102.png)
+
+**RDD的保存**
+
+![20211108133206](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108133206.png)
+
+
+#### RDD算子
+
+**RDD算子的分类**
+
+- 转换算子
+  - 基本算子
+  - 分区操作算子
+  - 重分区算子
+  - 聚合算子
+  - 关联算子
+  - 排序算子
+- 行动算子
+
+**转换算子支持的数据类型**
+
+- Value类型
+- 双Value类型
+- key-Value类型
+
+#### RDD函数传递
+
+![20211108144601](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108144601.png)
+
+#### RDD依赖关系
+
+![20211108144640](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108144640.png)
+
+![20211108144655](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108144655.png)
+
+![20211108144738](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108144738.png)
+
+#### RDD缓存和检查点
+
+![20211108144911](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108144911.png)
+
+#### 数据的存储和读取
+
+![20211108144940](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108144940.png)
+
+#### RDD编程进阶
+
+![20211108145043](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108145043.png)
