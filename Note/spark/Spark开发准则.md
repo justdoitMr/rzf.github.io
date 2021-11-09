@@ -1,5 +1,88 @@
 
+<!-- TOC -->
 
+- [Spark性能调优](#spark性能调优)
+- [九项基本原则](#九项基本原则)
+  - [原则一：避免创建重复的RDD](#原则一避免创建重复的rdd)
+    - [案例](#案例)
+  - [原则二：尽可能复用同一个RDD](#原则二尽可能复用同一个rdd)
+    - [案例](#案例-1)
+  - [原则三：对多次使用的RDD进行持久化](#原则三对多次使用的rdd进行持久化)
+    - [案例](#案例-2)
+    - [如何选择一种最合适的持久化策略](#如何选择一种最合适的持久化策略)
+  - [原则四：尽量避免使用shuffle类算子](#原则四尽量避免使用shuffle类算子)
+  - [原则五：使用map-side预聚合的shuffle操作](#原则五使用map-side预聚合的shuffle操作)
+  - [原则六：使用高性能的算子](#原则六使用高性能的算子)
+    - [广播变量案例](#广播变量案例)
+  - [原则七：广播中等规模的变量](#原则七广播中等规模的变量)
+  - [原则八：使用Kryo优化序列化性能](#原则八使用kryo优化序列化性能)
+  - [原则九：优化数据结构](#原则九优化数据结构)
+- [参数配置](#参数配置)
+  - [Spark作业运行原理](#spark作业运行原理)
+  - [提交参数](#提交参数)
+    - [num-executors](#num-executors)
+    - [executor-memory](#executor-memory)
+    - [executor-cores](#executor-cores)
+    - [driver-memory](#driver-memory)
+  - [常用conf参数](#常用conf参数)
+    - [spark.default.parallelism](#sparkdefaultparallelism)
+    - [spark.storage.memoryFraction](#sparkstoragememoryfraction)
+    - [spark.shuffle.memoryFraction--淘汰了](#sparkshufflememoryfraction--淘汰了)
+    - [spark.sql.codegen](#sparksqlcodegen)
+    - [spark.sql.inMemoryColumnStorage.compressed](#sparksqlinmemorycolumnstoragecompressed)
+    - [spark.sql.inMemoryColumnStorage.batchSize](#sparksqlinmemorycolumnstoragebatchsize)
+    - [spark.sql.parquet.compressed.codec](#sparksqlparquetcompressedcodec)
+    - [spark.speculation](#sparkspeculation)
+  - [SparkShuffle参数](#sparkshuffle参数)
+    - [spark.shuffle.consolidateFiles](#sparkshuffleconsolidatefiles)
+    - [spark.shuffle.file.buffer](#sparkshufflefilebuffer)
+    - [spark.reducer.maxSizeInFlight](#sparkreducermaxsizeinflight)
+    - [spark.shuffle.io.maxRetries](#sparkshuffleiomaxretries)
+    - [spark.shuffle.io.retryWait](#sparkshuffleioretrywait)
+    - [spark.shuffle.memoryFraction](#sparkshufflememoryfraction)
+    - [spark.shuffle.manager](#sparkshufflemanager)
+    - [spark.shuffle.sort.bypassMergeThreshold](#sparkshufflesortbypassmergethreshold)
+    - [spark.shuffle.consolidateFiles](#sparkshuffleconsolidatefiles-1)
+  - [SparkStreaming Back Pressure参数](#sparkstreaming-back-pressure参数)
+    - [资源参数案例](#资源参数案例)
+- [数据倾斜](#数据倾斜)
+  - [什么是数据倾斜](#什么是数据倾斜)
+  - [数据倾斜的危害](#数据倾斜的危害)
+  - [数据倾斜产生原因](#数据倾斜产生原因)
+  - [避免数据源的数据倾斜-读Kafka](#避免数据源的数据倾斜-读kafka)
+  - [避免数据源的数据倾斜-读文件](#避免数据源的数据倾斜-读文件)
+    - [原理](#原理)
+    - [总结](#总结)
+  - [调整并行度分散同一个Task的不同Key](#调整并行度分散同一个task的不同key)
+    - [原理](#原理-1)
+    - [总结](#总结-1)
+  - [自定义Partitioner](#自定义partitioner)
+    - [原理](#原理-2)
+    - [总结](#总结-2)
+  - [将Reduce side Join转变为Map side Join](#将reduce-side-join转变为map-side-join)
+    - [原理](#原理-3)
+    - [总结](#总结-3)
+  - [为skew倾斜的key增加随机前/后缀](#为skew倾斜的key增加随机前后缀)
+    - [原理](#原理-4)
+    - [总结](#总结-4)
+  - [大表随机添加N种随机前缀，小表扩大N倍](#大表随机添加n种随机前缀小表扩大n倍)
+    - [原理](#原理-5)
+    - [总结](#总结-5)
+- [Shuffle优化](#shuffle优化)
+  - [Spark Shuffle](#spark-shuffle)
+  - [Hash Shuffle-淘汰](#hash-shuffle-淘汰)
+  - [Sort-based Shuffle](#sort-based-shuffle)
+- [Spark内存管理](#spark内存管理)
+  - [堆内内存和堆外内存](#堆内内存和堆外内存)
+  - [堆内内存(on-heap)](#堆内内存on-heap)
+    - [堆外内存(off-heap):](#堆外内存off-heap)
+    - [Driver和Executor内存](#driver和executor内存)
+  - [内存空间分配](#内存空间分配)
+    - [静态内存管理--淘汰](#静态内存管理--淘汰)
+    - [统一内存管理-1.6之后,更先进](#统一内存管理-16之后更先进)
+    - [小结](#小结)
+
+<!-- /TOC -->
 ## Spark性能调优
 
 ## 九项基本原则
@@ -180,6 +263,22 @@ rdd1.map(list1...)
 rdd1.map(list1Broadcast...)
 ```
 
+### 原则七：广播中等规模的变量
+
+有时在开发过程中，会遇到需要在算子函数中使用外部变量的场景（尤其是大变量，比如100M以上的大集合），那么此时就应该使用Spark的广播（Broadcast）功能来提升性能。
+
+在算子函数中使用到外部变量时，默认情况下，Spark会将该变量复制多个副本，通过网络传输到task中，此时每个task都有一个变量副本。如果变量本身比较大的话（比如100M，甚至1G），那么大量的变量副本在网络中传输的性能开销，以及在各个节点的Executor中占用过多内存导致的频繁GC，都会极大地影响性能。
+
+因此对于上述情况，如果使用的外部变量比较大，建议使用Spark的广播功能，对该变量进行广播。广播后的变量，会保证每个Executor的内存中，只驻留一份变量副本，而Executor中的task执行时共享该Executor中的那份变量副本。这样的话，可以大大减少变量副本的数量，从而减少网络传输的性能开销，并减少对Executor内存的占用开销，降低GC的频率。
+
+```java
+// 以下代码在算子函数中，使用了外部的变量。// 此时没有做任何特殊操作，每个task都会有一份list1的副本。val list1 = ...
+rdd1.map(list1...)
+// 以下代码将list1封装成了Broadcast类型的广播变量。// 在算子函数中，使用广播变量时，首先会判断当前task所在Executor内存中，是否有变量副本。// 如果有则直接使用；如果没有则从Driver或者其他Executor节点上远程拉取一份放到本地Executor内存中。// 每个Executor内存中，就只会驻留一份广播变量副本。val list1 = ...val list1Broadcast = sc.broadcast(list1)
+rdd1.map(list1Broadcast...)
+```
+
+
 ### 原则八：使用Kryo优化序列化性能
 
 在Spark中，主要有三个地方涉及到了序列化：
@@ -208,7 +307,7 @@ conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
 conf.registerKryoClasses(Array(classOf[MyClass], classOf[MyClass2]))
 ```
 
-**原则九：优化数据结构**
+### 原则九：优化数据结构
 
 能用简单类型就不要用复杂类型
 
@@ -427,4 +526,503 @@ spark streaming的消费数据源方式有两种：
 
 当然，在事先经过压测，且流量高峰不会超过预期的情况下，设置这些参数一般没什么问题。但最大值不代表是最优值，最好还能根据每个批次处理情况来动态预估下个批次最优速率。
 
-在Spark 1.5.0以上，就可通过背压机制来实现。开启反压机制，即设置spark.streaming.backpressure.enabled为true，Spark Streaming会自动根据处理能力来调整输入速率，从而在流量高峰时仍能保证最大的吞吐和性能
+在Spark 1.5.0以上，就可通过背压机制来实现。开启反压机制，即设置spark.streaming.backpressure.enabled为true，Spark Streaming会自动根据处理能力来调整输入速率，从而在流量高峰时仍能保证最大的吞吐和性能.
+
+**Spark Streaming的反压机制中，有以下几个重要的组件：**
+
+RateController
+
+RateController 组件是 JobScheduler 的监听器，主要监听集群所有作业的提交、运行、完成情况，并从 BatchInfo 实例中获取以下信息，交给速率估算器（RateEstimator）做速率的估算:
+
+- 当前批次任务处理完成的时间戳 （processingEndTime）
+- 该批次从第一个 job 到最后一个 job 的实际处理时⻓ （processingDelay）
+- 该批次的调度时延，即从被提交到 JobScheduler 到第一个 job 开始处理的时⻓
+（schedulingDelay）
+- 该批次输入数据的总条数（numRecords）
+
+RateEstimator
+
+Spark 2.x 只支持基于 PID 的速率估算器，这里只讨论这种实现。基于 PID 的速率估算器简单地说就是它把收集到的数据（当前批次速率）和一个设定值（上一批次速率）进行比较，然后用它们 之间的差计算新的输入值，估算出一个合适的用于下一批次的流量阈值。这里估算出来的值就是流 量的阈值，用于更新每秒能够处理的最大记录数
+
+RateLimiter
+
+RateController和RateEstimator组件都是在Driver端用于更新最大速度的，而RateLimiter是用于接收到Driver的更新通知之后更新Executor的最大处理速率的组件。RateLimiter是一个抽象类，它并不是Spark本身实现 的，而是借助了第三方Google的GuavaRateLimiter来产生的。它实质上是一个限流器，也可以叫做令牌，如果Executor中task每秒计算的速度大于该值则阻塞，如果小于该值则通过，将流数据加入缓存中进行计算。
+
+> 注意
+> 
+> 反压机制真正起作用时需要至少处理一个批：由于反压机制需要根据当前批的速率，预估新批的速率，所以反压，机制真正起作用前，应至少保证处理一个批。
+> 
+> 如何保证反压机制真正起作用前应用不会崩溃：要保证反压机制真正起作用前应用不会崩溃,需要控制每个批次
+> 
+> 最大摄入速率。若为Direct Stream，如Kafka Direct Stream,则可以通过spark.streaming.kafka.maxRatePerPartition参数来控制。此参数代表了每秒每个分区最大摄入的数据条数。假设BatchDuration为10秒,spark.streaming.kafka.maxRatePerPartition为12条,kafka topic分区数为3个，则一个批(Batch)最大读取的数据条数为360条(3*12*10=360)。同时，需要注意，该参数也代表了整个应用生命周期中的最大速率，即使是背压调整的最大值也不会超过该参数。
+
+使用SparkStreaming时有几个比较重要的参数
+
+![20211109101942](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109101942.png)
+![20211109102006](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109102006.png)
+![20211109102020](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109102020.png)
+
+> 注意：
+> 
+> spark.streaming.kafka.maxRatePerPartition 
+> 
+> 限制每秒每个消费线程读取每个kafka分区最大的数据量
+> 
+> 默认直接读取所有，可以设置为整数
+> 
+> 举例说明：
+> 
+> BatchInterval：5s、Topic-Partition：3、maxRatePerPartition： 10000
+> 最大消费数据量：10000 * 3 * 5 = 150000 条
+
+#### 资源参数案例
+
+以下是一份spark-submit命令的示例，大家可以参考一下，并根据自己的实际情况进行调节：
+
+```java
+./bin/spark-submit \
+  --master yarn-cluster \
+  --num-executors 100 \
+  --executor-memory 6G \
+  --executor-cores 4 \
+  --driver-memory 1G \
+  --conf spark.default.parallelism=1000 \
+  --conf spark.storage.memoryFraction=0.5 \
+  --conf spark.shuffle.memoryFraction=0.3 \
+
+  Run application locally on 8 cores
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master local[8] \
+  /path/to/examples.jar \
+  100
+# Run on a Spark standalone cluster in client deploy mode
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master spark://207.184.161.138:7077 \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  /path/to/examples.jar \
+  1000
+# Run on a Spark standalone cluster in cluster deploy mode with supervise
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master spark://207.184.161.138:7077 \
+  --deploy-mode cluster \
+  --supervise \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  /path/to/examples.jar \
+  1000
+# Run on a YARN clusterexport HADOOP_CONF_DIR=XXX
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master yarn \
+  --deploy-mode cluster \  # can be client for client mode
+  --executor-memory 20G \
+  --num-executors 50 \
+  /path/to/examples.jar \
+  1000
+# Run a Python application on a Spark standalone cluster
+./bin/spark-submit \
+  --master spark://207.184.161.138:7077 \
+  examples/src/main/python/pi.py \
+  1000
+# Run on a Mesos cluster in cluster deploy mode with supervise
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master mesos://207.184.161.138:7077 \
+  --deploy-mode cluster \
+  --supervise \
+  --executor-memory 20G \
+  --total-executor-cores 100 \
+  http://path/to/examples.jar \
+  1000
+# Run on a Kubernetes cluster in cluster deploy mode
+./bin/spark-submit \
+  --class org.apache.spark.examples.SparkPi \
+  --master k8s://xx.yy.zz.ww:443 \
+  --deploy-mode cluster \
+  --executor-memory 20G \
+  --num-executors 50 \
+  --driver-memory 1g \
+  http://path/to/examples.jar \
+  1000
+```
+
+## 数据倾斜
+
+对于数据倾斜，并无一个统一的一劳永逸的方法。更多的时候，是结合数据特点（数据集大小，倾斜Key的多少等）综合使用多种方法。
+
+### 什么是数据倾斜
+
+对Spark/Hadoop这样的大数据系统来讲，数据量大并不可怕，可怕的是数据倾斜。
+
+何谓数据倾斜？数据倾斜指的是，并行处理的数据集中，某一部分（如Spark或Kafka的一个Partition）的数据显著多于其它部分，从而使得该部分的处理速度成为整个数据集处理的瓶颈。
+
+对于分布式系统而言，理想情况下，随着系统规模（节点数量）的增加，应用整体耗时线性下降。如果一台机器处理一批大量数据需要120分钟，当机器数量增加到三时，理想的耗时为120 / 3 = 40分钟，如下图所示
+
+![20211109102429](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109102429.png)
+
+但是，上述情况只是理想情况，实际上将单机任务转换成分布式任务后，会有overhead开销，使得总的任务量较之单机时有所增加，所以每台机器的执行时间加起来比单台机器时更大。这里暂不考虑这些overhead，假设单机任务转换成分布式任务后，总任务量不变。
+
+但即使如此，想做到分布式情况下每台机器执行时间是单机时的1 / N，就必须保证每台机器的任务量相等。不幸的是，很多时候，任务的分配是不均匀的，甚至不均匀到大部分任务被分配到个别机器上，其它大部分机器所分配的任务量只占总得的小部分。比如一台机器负责处理80%的任务，另外两台机器各处理10%的任务，如下图所示
+
+![20211109102522](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109102522.png)
+
+在上图中，机器数据增加为三倍，但执行时间只降为原来的80%，远低于理想值。
+
+### 数据倾斜的危害
+
+从上图可见，当出现数据倾斜时，小量任务耗时远高于其它任务，从而使得整体耗时过大，未能充分发挥分布式系统的并行计算优势。
+
+另外，当发生数据倾斜时，部分任务处理的数据量过大，可能造成内存不足使得任务失败，并进而引进整个应用失败。　
+
+### 数据倾斜产生原因
+
+在Spark中，同一个Stage的不同Partition可以并行处理，而具有依赖关系的不同Stage之间是串行处理的。
+
+假设某个Spark Job分为Stage 0和Stage 1两个Stage，且Stage 1依赖于Stage 0，那Stage 0完全处理结束之前不会处理Stage 1。而Stage 0可能包含N个Task，这N个Task可以并行进行。如果其中N-1个Task都在10秒内完成，而另外一个Task却耗时1分钟，那该Stage的总时间至少为1分钟。换句话说，一个Stage所耗费的时间，主要由最慢的那个Task决定。
+
+由于同一个Stage内的所有Task执行相同的计算，在排除不同计算节点计算能力差异的前提下，不同Task之间耗时的差异主要由该Task所处理的数据量决定。
+
+Stage的数据来源主要分为如下两类
+
+1. 从数据源直接读取。如读取HDFS，Kafka
+2. 读取上一个Stage的Shuffle数据
+
+### 避免数据源的数据倾斜-读Kafka
+
+以Spark Stream通过DirectStream方式读取Kafka数据为例。由于Kafka的每一个Partition对应Spark的一个Task（Partition），所以Kafka内相关Topic的各Partition之间数据是否平衡，直接决定Spark处理该数据时是否会产生数据倾斜。
+
+Kafka某一Topic内消息在不同Partition之间的分布，主要由Producer端所使用的Partition实现类决定。如果使用随机Partitioner，则每条消息会随机发送到一个Partition中，从而从概率上来讲，各Partition间的数据会达到平衡。此时源Stage（直接读取Kafka数据的Stage）不会产生数据倾斜。
+
+但很多时候，业务场景可能会要求将具备同一特征的数据顺序消费，此时就需要将具有相同特征的数据放于同一个Partition中。一个典型的场景是，需要将同一个用户相关的PV信息置于同一个Partition中。此时，如果产生了数据倾斜，则需要通过后面的其它方式处理。
+
+### 避免数据源的数据倾斜-读文件
+
+#### 原理
+
+Spark以通过textFile(path, minPartitions)方法读取文件时，使用TextFileFormat。
+
+对于不可切分的文件，每个文件对应一个Split从而对应一个Partition。此时各文件大小是否一致，很大程度上决定了是否存在数据源侧的数据倾斜。另外，对于不可切分的压缩文件，即使压缩后的文件大小一致，它所包含的实际数据量也可能差别很多，因为源文件数据重复度越高，压缩比越高。反过来，即使压缩文件大小接近，但由于压缩比可能差距很大，所需处理的数据量差距也可能很大。
+
+此时可通过在数据生成端将不可切分文件存储为可切分文件，或者保证各文件包含数据量相同的方式避免数据倾斜。
+
+对于可切分的文件，每个Split大小由如下算法决定。
+
+其中goalSize等于所有文件总大小除以minPartitions。
+而blockSize，如果是HDFS文件，由文件本身的block大小决定；如果是Linux本地文件，且使用本地模式，由fs.local.block.size决定。
+
+```java
+protected long computeSplitSize(long goalSize, long minSize, long blockSize){    
+	return Math.max(minSize, Math.min(goalSize, blockSize));
+}
+```
+默认情况下各Split的大小不会太大，一般相当于一个Block大小（在Hadoop 2中，默认值为128MB），所以数据倾斜问题不明显。如果出现了严重的数据倾斜，可通过上述参数调整。
+
+#### 总结
+
+**适用场景**
+
+数据源侧存在不可切分文件，且文件内包含的数据量相差较大。
+
+**解决方案**
+
+尽量使用可切分的格式代替不可切分的格式，或者保证各文件实际包含数据量大致相同。
+
+**优势**
+
+可撤底消除数据源侧数据倾斜，效果显著。
+
+**劣势**
+
+数据源一般来源于外部系统，需要外部系统的支持。
+
+### 调整并行度分散同一个Task的不同Key
+
+#### 原理
+
+Spark在做Shuffle时，默认使用HashPartitioner（非Hash Shuffle）对数据进行分区。如果并行度设置的不合适，可能造成大量不相同的Key对应的数据被分配到了同一个Task上，造成该Task所处理的数据远大于其它Task，从而造成数据倾斜。
+
+#### 总结
+
+**适用场景**
+
+大量不同的Key被分配到了相同的Task造成该Task数据量过大。
+
+**解决方案**
+
+调整并行度。一般是增大并行度，但有时减小并行度也可达到效果。
+
+**优势**
+
+实现简单，可在需要Shuffle的操作算子上直接设置并行度或者使用spark.default.parallelism设置。如果是Spark SQL，还可通过SET spark.sql.shuffle.partitions=[num_tasks]设置并行度。可用最小的代价解决问题。一般如果出现数据倾斜，都可以通过这种方法先试验几次，如果问题未解决，再尝试其它方法。
+
+**劣势**
+
+适用场景少，只能将分配到同一Task的不同Key分散开，但对于同一Key倾斜严重的情况该方法并不适用。并且该方法一般只能缓解数据倾斜，没有彻底消除问题。从实践经验来看，其效果一般。
+
+### 自定义Partitioner
+
+```java
+reduceByKey(new MyPartition(3),_+_)
+
+class MyPartition(num:Int) extends Partitioner{
+  override def numPartitions: Int = num
+
+  override def getPartition(key: Any): Int = {
+    val str: String = key.asInstanceOf[String]
+    if(str.equals("北京")){
+      Random.nextInt(2)
+    }else{
+      2
+    }
+  }
+}
+```
+#### 原理
+
+使用自定义的Partitioner（默认为HashPartitioner），将原本被分配到同一个Task的不同Key分配到不同Task。
+
+#### 总结
+
+**适用场景**
+
+大量不同的Key被分配到了相同的Task造成该Task数据量过大。
+
+**解决方案**
+
+使用自定义的Partitioner实现类代替默认的HashPartitioner，尽量将所有不同的Key均匀分配到不同的Task中。
+
+**优势**
+
+不影响原有的并行度设计。如果改变并行度，后续Stage的并行度也会默认改变，可能会影响后续Stage。
+
+**劣势**
+
+适用场景有限，只能将不同Key分散开，对于同一Key对应数据集非常大的场景不适用。效果与调整并行度类似，只能缓解数据倾斜而不能完全消除数据倾斜。而且需要根据数据特点自定义专用的Partitioner，不够灵活。
+
+
+### 将Reduce side Join转变为Map side Join
+
+#### 原理
+
+通过Spark的Broadcast机制，将Reduce侧Join转化为Map侧Join，避免Shuffle从而完全消除Shuffle带来的数据倾斜。
+
+#### 总结
+
+**适用场景**
+
+参与Join的一边数据集足够小，可被加载进Driver并通过Broadcast方法广播到各个Executor中。
+
+**解决方案**
+
+在Java/Scala代码中将小数据集数据拉取到Driver，然后通过Broadcast方案将小数据集的数据广播到各Executor。或者在使用SQL前，将Broadcast的阈值调整得足够大，从而使用Broadcast生效。进而将Reduce侧Join替换为Map侧Join。
+
+当数据集的大小小于spark.sql.autoBroadcastJoinThreshold 所设置的阈值的时候，使用广播join来代替hash join来优化join查询。广播join可以非常有效地用于具有相对较小的表和大型表之间的连接，它可以避免通过网络发送大表的所有数据
+
+**优势**
+
+避免了Shuffle，彻底消除了数据倾斜产生的条件，可极大提升性能。
+
+**劣势**
+
+要求参与Join的一侧数据集足够小，并且主要适用于Join的场景，不适合聚合的场景，适用条件有限。
+
+
+### 为skew倾斜的key增加随机前/后缀
+
+#### 原理
+
+为数据量特别大的Key增加随机前/后缀，使得原来Key相同的数据变为Key不相同的数据，从而使倾斜的数据集分散到不同的Task中，彻底解决数据倾斜问题。
+
+首先，通过map算子给每个数据的key添加随机数前缀，对key进行打散，将原先一样的key变成不一样的key，然后进行第一次聚合，这样就可以让原本被一个task处理的数据分散到多个task上去做局部聚合；随后，去除掉每个key的前缀，再次进行聚合。此方法对于由groupByKey、reduceByKey这类算子造成的数据倾斜由比较好的效果，仅仅适用于聚合类的shuffle操作，适用范围相对较窄。双重聚合:
+
+![20211109103330](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109103330.png)
+
+如果是join类的shuffle操作可以将Join另一则的数据中，与倾斜Key对应的部分数据，与随机前缀集作笛卡尔乘积，从而保证无论数据倾斜侧倾斜Key如何加前缀，都能与之正常Join。如:
+
+将leftRDD中倾斜的key对应的数据单独过滤出来，且加上1到n的随机前缀，并将前缀与原数据用逗号分隔（以方便之后去掉前缀）形成单独的leftSkewRDD
+
+将rightRDD中倾斜key对应的数据抽取出来，并通过flatMap操作将该数据集中每条数据均转换为n条数据（每条分别加上1到n的随机前缀），形成单独的rightSkewRDD
+
+将leftSkewRDD与rightSkewRDD进行Join，并将并行度设置为n，且在Join过程中将随机前缀去掉，得到倾斜数据集的Join结果skewedJoinRDD
+将leftRDD中不包含倾斜Key的数据抽取出来作为单独的leftUnSkewRDD
+
+对leftUnSkewRDD与原始的rightRDD进行Join，并行度也设置为n，得到Join结果unskewedJoinRDD，通过union算子将skewedJoinRDD与unskewedJoinRDD进行合并，从而得到完整的Join结果集
+
+![20211109103405](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109103405.png)
+
+#### 总结
+
+**适用场景**
+
+两张表都比较大，无法使用Map则Join。其中一个RDD有少数几个Key的数据量过大，另外一个RDD的Key分布较为均匀。
+
+**解决方案**
+
+将有数据倾斜的RDD中倾斜Key对应的数据集单独抽取出来加上随机前缀，另外一个RDD每条数据分别与随机前缀结合形成新的RDD（相当于将其数据增到到原来的N倍，N即为随机前缀的总个数），然后将二者Join并去掉前缀。然后将不包含倾斜Key的剩余数据进行Join。最后将两次Join的结果集通过union合并，即可得到全部Join结果。
+
+**优势**
+
+相对于Map则Join，更能适应大数据集的Join。如果资源充足，倾斜部分数据集与非倾斜部分数据集可并行进行，效率提升明显。且只针对倾斜部分的数据做数据扩展，增加的资源消耗有限。
+
+**劣势**
+
+如果倾斜Key非常多，则另一侧数据膨胀非常大，此方案不适用。而且此时对倾斜Key与非倾斜Key分开处理，需要扫描数据集两遍，增加了开销。
+
+### 大表随机添加N种随机前缀，小表扩大N倍
+
+#### 原理
+
+如果出现数据倾斜的Key比较多，上一种方法将这些大量的倾斜Key分拆出来，意义不大。此时更适合直接对存在数据倾斜的数据集全部加上随机前缀，然后对另外一个不存在严重数据倾斜的数据集整体与随机前缀集作笛卡尔乘积（即将数据量扩大N倍）。
+
+#### 总结
+
+**适用场景**
+
+一个数据集存在的倾斜Key比较多，另外一个数据集数据分布比较均匀。
+
+**优势**
+
+对大部分场景都适用，效果不错。
+
+**劣势**
+
+需要将一个数据集整体扩大N倍，会增加资源消耗。
+
+## Shuffle优化
+
+### Spark Shuffle
+
+很多算子都会引起 RDD 中的数据进行重分区，新的分区被创建，旧的分区被合并或者被打碎，在重分区的过程中，如果数据发生了跨节点移动，就被称为 Shuffle，
+
+在 Spark 中， Shuffle 负责将 Map 端（这里的 Map 端可以理解为宽依赖的左侧）的处理的中间结果传输到 Reduce 端供 Reduce 端聚合（这里的 Reduce 端可以理解为宽依赖的右侧），它是 MapReduce 类型计算框架中最重要的概念，同时也是很消耗性能的步骤。	Spark 对 Shuffle 的实现方式有两种：Hash Shuffle 与 Sort-based Shuffle，这其实是一个优化的过程。在较老的版本中，Spark Shuffle 的方式可以通过 spark.shuffle.manager 配置项进行配置，而在最新的 Spark 版本中，已经去掉了该配置，统一称为 Sort-based Shuffle。
+
+![20211109103642](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109103642.png)
+
+### Hash Shuffle-淘汰
+
+在 Spark 1.6.3 之前， Hash Shuffle 都是 Spark Shuffle 的解决方案之一。 Shuffle 的过程一般分为两个部分：Shuffle Write 和 Shuffle Fetch，前者是 Map 任务划分分区、输出中间结果，而后者则是 Reduce 任务获取到的这些中间结果。Hash Shuffle 的过程如下图所示：
+
+![20211109103713](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109103713.png)
+
+在图中，Shuffle Write 发生在一个节点上，该节点用来执行 Shuffle 任务的 CPU 核数为 2，每个核可以同时执行两个任务，每个任务输出的分区数与 Reducer（这里的 Reducer 指的是 Reduce 端的 Executor）数相同，即为 3，每个分区都有一个缓冲区（bucket）用来接收结果，每个缓冲区的大小由配置 spark.shuffle.file.buffer.kb 决定。这样每个缓冲区写满后，就会输出到一个文件段（filesegment），而 Reducer 就会去相应的节点拉取文件。这样的实现很简单，但是问题也很明显。主要有两个：
+
+1. 生成的中间结果文件数太大。理论上，每个 Shuffle 任务输出会产生 R 个文件（ R为Reducer 的个数），而 Shuffle 任务的个数往往由 Map 任务个数 M 决定，所以总共会生成 M * R 个中间结果文件，而往往在一个作业中 M 和 R 都是很大的数字，在大型作业中，经常会出现文件句柄数突破操作系统限制。
+
+2. 缓冲区占用内存空间过大。单节点在执行 Shuffle 任务时缓存区大小消耗为 m * R * spark.shuffle.file.buffer.kb，m 为该节点运行的 Shuffle 任务数，如果一个核可以执行一个任务，m 就与 CPU 核数相等。这对于动辄有 32、64 物理核的服务器来说，是比不小的内存开销。
+
+![20211109103750](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109103750.png)
+
+每当 Shuffle 任务输出时，同一个 CPU 核心处理的 Map 任务的中间结果会输出到同分区的一个文件中，然后 Reducer 只需一次性将整个文件拿到即可。这样，Shuffle 产生的文件数为 C（CPU 核数）* R。 Spark 的 FileConsolidation 机制默认开启，可以通过 spark.shuffle.consolidateFiles 配置项进行配置。
+
+### Sort-based Shuffle
+
+在 Spark 先后引入了 Hash Shuffle 与 FileConsolidation 后，还是无法根本解决中间文件数太大的问题，所以 Spark 在 1.2 之后又推出了与 MapReduce 一样的 Shuffle 机制： Sort-based Shuffle，才真正解决了 Shuffle 的问题，再加上 Tungsten 计划的优化， Spark 的 Sort-based Shuffle 比 MapReduce 的 Sort-based Shuffle 青出于蓝。如下图所示：
+
+![20211109103825](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109103825.png)
+
+每个 Map 任务会最后只会输出两个文件（其中一个是索引文件），其中间过程采用的是与 MapReduce 一样的归并排序，但是会用索引文件记录每个分区的偏移量，输出完成后，Reducer 会根据索引文件得到属于自己的分区，在这种情况下，Shuffle 产生的中间结果文件数为 2 * M（M 为 Map 任务数）。
+
+**Bypass Sort-based**
+
+在基于排序的 Shuffle 中， Spark 还提供了一种折中方案——Bypass Sort-based Shuffle，当 Reduce 任务小于 spark.shuffle.sort.bypassMergeThreshold 配置（默认 200）时，Spark Shuffle 开始按照 Hash Shuffle 的方式处理数据，而不用进行归并排序，只是在 Shuffle Write 步骤的最后，将其合并为 1 个文件，并生成索引文件。这样实际上还是会生成大量的中间文件，只是最后合并为 1 个文件并省去排序所带来的开销，该方案的准确说法是 Hash Shuffle 的Shuffle Fetch 优化版。
+
+Spark 在1.5 版本时开始了 Tungsten 计划，也在 1.5.0、 1.5.1、 1.5.2 的时候推出了一种 tungsten-sort 的选项，这是一种成果应用，类似于一种实验，该类型 Shuffle 本质上还是基于排序的 Shuffle，只是用 UnsafeShuffleWriter 进行 Map 任务输出，并采用了要在后面介绍的 BytesToBytesMap 相似的数据结构，把对数据的排序转化为对指针数组的排序，能够基于二进制数据进行操作，对 GC 有了很大提升。但是该方案对数据量有一些限制，随着 Tungsten 计划的逐渐成熟，该方案在 1.6 就消失不见了。
+
+Tungsten号称Spark有史以来最大的改动，其致力于提升Spark程序对内存和CPU的利用率，使性能达到硬件的极限，主要工作包含以下三个方面
+
+Memory Management and Binary Processing 内存管理和二进制处理，降低对象的开销和消除JVM GC带来的延时。
+
+1. 避免使用非transient的Java对象（它们以二进制格式存储），这样可以减少GC的开销。
+2. 通过使用基于内存的密集数据格式，这样可以减少内存的使用情况。
+3. 更好的内存计算（字节的大小），而不是依赖启发式。
+4. 对于知道数据类型的操作（比如DataFrame和SQL），我们可以直接对二进制格式进行操作，这样我们就不需要进行系列化和反系列化的操作。
+
+Cache-aware Computation缓存感知计算.，优化存储，提升CPU L1/ L2/L3缓存命中率。
+
+1. 对aggregations, joins和shuffle操作进行快速排序和hash操作。
+
+Code Generation代码生成，优化Spark SQL的代码生成部分，提升CPU利用率
+
+1. 更快的表达式求值和DataFrame/SQL操作。
+2. 快速序列化
+
+
+## Spark内存管理
+
+### 堆内内存和堆外内存
+
+![20211109104149](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109104149.png)
+
+### 堆内内存(on-heap)
+
+在JVM堆上分配的内存，在JVM垃圾回收GC范围内
+
+1. Driver堆内存：通过--driver-memory 或者spark.driver.memory指定，默认大小1G；
+2. Executor堆内存：通过--executor-memory 或者spark.executor.memory指定，默认大小1G
+3. 
+在提交一个Spark Application时，Spark集群会启动Driver和Executor两种JVM进程。
+
+Driver为主控进程，负责创建Context，提交Job，并将Job转化成Task，协调Executor间的Task执行
+
+Executor主要负责执行具体的计算任务，将结果返回Driver
+
+#### 堆外内存(off-heap):
+
+在JVM之外分配的内存，不在JVM垃圾回收GC范围内
+
+1. Driver堆外内存：通过spark.driver.memoryOverhead指定，默认是Driver堆内存的0.1倍，最小是384MB；
+
+2. Executor堆外内存 :通过spark.executor.memoryOverhead指定，默认是Executor堆内存的0.1倍，最小是384MB；
+
+#### Driver和Executor内存
+
+1. Driver内存大小：Driver的堆内存 + Driver的堆外内存
+
+2. Executor内存大小：Executor的堆内存 + Executor的堆外内存
+
+### 内存空间分配
+
+#### 静态内存管理--淘汰
+
+在静态内存管理机制下，存储内存，执行内存和其它内存三部分的大小在Spark应用运行期间是固定的，但是用户可以在提交Spark应用之前进行配置。
+
+![20211109104425](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109104425.png)
+
+![20211109104440](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109104440.png)
+
+#### 统一内存管理-1.6之后,更先进
+
+如果开发者不熟悉Spark的存储机制，或没有根据具体的数据规模和计算任务做相应的配置，很容易会造成资源没有得到合理的分配导致Spark任务失败。
+
+所以Spark 1.6之后引入了统一内存管理机制
+
+统一内存管理机制与静态内存管理的区别在于存储和执行内存共享同一块空间，可以动态占用对方的空闲区域。也就说存储占用多少内存和执行占用多少内存是不固定的,Spark自身可以根据运行的情况动态调整!
+
+**堆内动态占用**
+
+![20211109104601](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109104601.png)
+
+**堆外动态占用**
+
+![20211109104624](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211109104624.png)
+
+spark.memory.storageFraction Storage内存所占堆外内存的比例，默认为0.5
+
+凭借统一内存管理机制，Spark 在一定程度上提高了堆内和堆外内存资源的利用率，降低了开发者维护 Spark 内存的难度，但并不意味着开发者可以高枕无忧。譬如，所以如果存储内存的空间太大或者说缓存的数据过多，反而会导致频繁的全量垃圾回收GC，降低任务执行时的性能，因为缓存的 RDD 数据通常都是长期驻留内存的
+
+#### 小结
+
+Spark的内存管理的特点: 
+
+1. 使用了统一内存管理,可以在运行时根据运行状态实时的动态调整堆内内存和堆外内存中的存储和计算所需内存的占比
+2. 有个问题:使用了堆内内存受JVM的GC影响!
+
+
+而堆内内存的大小是堆外内存的10倍,那么如果JVM在进行GC垃圾回收,那么占用绝大部分内存空间的堆内内存将受影响
+
+因为JVM发生full GC的时候会出现短暂暂停,不能工作,那么就会影响到正在运行的Spark任务
+
