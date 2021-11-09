@@ -2,52 +2,52 @@
 <!-- TOC -->
 
 - [Spark内核概述](#spark内核概述)
-    - [Spark核心组件](#spark核心组件)
-    - [Spark通用运行流程概述](#spark通用运行流程概述)
+  - [Spark核心组件](#spark核心组件)
+  - [Spark通用运行流程概述](#spark通用运行流程概述)
 - [Spark部署模式](#spark部署模式)
-    - [YARN Cluster 模式](#yarn-cluster-模式)
-    - [YARN Client模式](#yarn-client模式)
-    - [Standalone 模式运行机制](#standalone-模式运行机制)
-    - [Standalone Cluster 模式](#standalone-cluster-模式)
-    - [Standalone Client 模式](#standalone-client-模式)
+  - [YARN Cluster 模式](#yarn-cluster-模式)
+  - [YARN Client模式](#yarn-client模式)
+  - [Standalone 模式运行机制](#standalone-模式运行机制)
+  - [Standalone Cluster 模式](#standalone-cluster-模式)
+  - [Standalone Client 模式](#standalone-client-模式)
 - [Spark通讯架构](#spark通讯架构)
-    - [Spark通信架构概述](#spark通信架构概述)
-    - [Spark 通讯架构解析](#spark-通讯架构解析)
+  - [Spark通信架构概述](#spark通信架构概述)
+  - [Spark 通讯架构解析](#spark-通讯架构解析)
 - [Spark 任务调度机制](#spark-任务调度机制)
-    - [Spark 任务调度概述](#spark-任务调度概述)
-    - [Spark Stage 级调度](#spark-stage-级调度)
-    - [Spark Task 级调度](#spark-task-级调度)
-    - [调度策略](#调度策略)
-    - [本地化调度](#本地化调度)
-    - [失败重试与黑名单机制](#失败重试与黑名单机制)
+  - [Spark 任务调度概述](#spark-任务调度概述)
+  - [Spark Stage 级调度](#spark-stage-级调度)
+  - [Spark Task 级调度](#spark-task-级调度)
+  - [调度策略](#调度策略)
+  - [本地化调度](#本地化调度)
+  - [失败重试与黑名单机制](#失败重试与黑名单机制)
 - [Spark Shuffle 解析](#spark-shuffle-解析)
-    - [Shuffle 的核心要点](#shuffle-的核心要点)
-    - [HashShuffle 解析](#hashshuffle-解析)
-        - [未优化的 HashShuffle](#未优化的-hashshuffle)
-        - [优化后的 HashShuffle](#优化后的-hashshuffle)
-    - [SortShuffle 解析](#sortshuffle-解析)
-        - [普通 SortShuffle](#普通-sortshuffle)
-        - [bypass SortShuffle](#bypass-sortshuffle)
+  - [Shuffle 的核心要点](#shuffle-的核心要点)
+  - [HashShuffle 解析](#hashshuffle-解析)
+    - [未优化的 HashShuffle](#未优化的-hashshuffle)
+    - [优化后的 HashShuffle](#优化后的-hashshuffle)
+  - [SortShuffle 解析](#sortshuffle-解析)
+    - [普通 SortShuffle](#普通-sortshuffle)
+    - [bypass SortShuffle](#bypass-sortshuffle)
 - [Spark 内存管理](#spark-内存管理)
-    - [堆内和堆外内存规划](#堆内和堆外内存规划)
-        - [堆内内存](#堆内内存)
-        - [堆外内存](#堆外内存)
-    - [内存空间分配](#内存空间分配)
-        - [静态内存管理](#静态内存管理)
-        - [堆外内存管理](#堆外内存管理)
-    - [存储内存管理](#存储内存管理)
-        - [RDD持久化机制](#rdd持久化机制)
-        - [RDD缓存过程](#rdd缓存过程)
-        - [淘汰与落盘](#淘汰与落盘)
-    - [执行内存管理](#执行内存管理)
-        - [Shuffle Write](#shuffle-write)
-        - [Shuffle Read](#shuffle-read)
+  - [堆内和堆外内存规划](#堆内和堆外内存规划)
+    - [堆内内存](#堆内内存)
+    - [堆外内存](#堆外内存)
+  - [内存空间分配](#内存空间分配)
+    - [静态内存管理](#静态内存管理)
+    - [堆外内存管理](#堆外内存管理)
+  - [存储内存管理](#存储内存管理)
+    - [RDD持久化机制](#rdd持久化机制)
+    - [RDD缓存过程](#rdd缓存过程)
+    - [淘汰与落盘](#淘汰与落盘)
+  - [执行内存管理](#执行内存管理)
+    - [Shuffle Write](#shuffle-write)
+    - [Shuffle Read](#shuffle-read)
 
 <!-- /TOC -->
 
 ## Spark内核概述
 
-Spark 内核泛指 Spark 的核心运行机制，包括 Spark 核心组件的运行机制、Spark 任务调度机制、Spark 内存管理机制、Spark 核心功能的运行原理等，熟练掌握 Spark 内核原理，能够帮助我们更好地完成 Spark 代码设计，并能够帮助我们准确锁定项目运行过程中出现的问题的症结所在。
+Spark 内核泛指 Spark 的核心运行机制，包括 **Spark 核心组件的运行机制、Spark 任务调度机制、Spark 内存管理机制、Spark 核心功能的运行原理**等，熟练掌握 Spark 内核原理，能够帮助我们更好地完成 Spark 代码设计，并能够帮助我们准确锁定项目运行过程中出现的问题的症结所在。
 
 ### Spark核心组件
 
@@ -57,7 +57,7 @@ Spark 驱动器节点，用于执行 Spark 任务中的 main 方法，负责实�
 
 Driver 在 Spark 作业执行时主要负责：
 
-1. 将用户程序转化为作业（Job）；
+1. 将用户程序转化为作业（Job）；这个由行动算子决定。
 
 2. 在 Executor 之间调度任务（Task）；
 
@@ -67,7 +67,7 @@ Driver 在 Spark 作业执行时主要负责：
 
 **Executor**
 
-Spark Executor 对象是负责在 Spark 作业中运行具体任务，任务彼此之间相互独立。Spark 应用启动时，ExecutorBackend 节点被同时启动，ExecutorBackend是用来管理Executor进程的，也就是说资源管理器通过ExecutorBackend来管理Executor进程，并且始终伴随着整个 Spark 应用的生命周期而存在。如果有 ExecutorBackend 节点发生了故障或崩溃，Spark 应用也可以继续执行， 会将出错节点上的任务调度到其他Executor 节点上继续运行。
+Spark Executor 对象是负责在 Spark 作业中运行具体任务，任务彼此之间相互独立。Spark 应用启动时，ExecutorBackend 节点被同时启动，ExecutorBackend是用来管理Executor进程的，也就是说资源管理器通过ExecutorBackend来管理Executor进程，并且始终伴随着整个 Spark 应用的生命周期而存在。如果有 ExecutorBackend 节点发生了故障或崩溃，Spark 应用也可以继续执行， 会将出错节点上的任务调度到其他Executor 节点上继续运行。一个Spark应用程序就是application，Driver创建好SparkContext后，就代表创建了一个Spark application,可以简单理解为一个SparkContext就代表一个spark Application。
 
 Executor 有两个核心功能：
 
@@ -85,11 +85,11 @@ Executor 有两个核心功能：
 
 上图为 Spark 通用运行流程图，体现了基本的 Spark 应用程序在部署中的基本提交流程。这个流程是按照如下的核心步骤进行工作的：
 
-1. 任务提交后，都会先启动 Driver 程序；
+1. 任务提交后，都会先启动 Driver 程序，Driver创建SparkContext就代表一个Spark Application创建好了；
 
-2. 随后Driver 向集群管理器注册应用程序；
+2. 随后Driver 向集群管理器注册应用程序，注册其实就是告诉RM自己需要资源的情况以及数据资源的位置。
 
-3. 之后集群管理器根据此任务的配置文件分配Executor 并启动；
+3. 之后集群管理器根据此任务的配置文件分配Executor 并启动，Executor启动之后，还会去Driver进程处进行注册；
 
 4. Driver 开始执行 main 函数，Spark 查询为懒执行，当执行到 Action 算子时开始反向推算，根据宽依赖进行 Stage 的划分，随后每一个 Stage 对应一个Taskset，Taskset 中有多个 Task，查找可用资源Executor 进行调度；
    
