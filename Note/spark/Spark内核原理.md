@@ -97,6 +97,11 @@ Executor 有两个核心功能：
 
 6. Executor 也会不断与Driver 进行通信，报告任务运行情况。
 
+**具体执行细节**
+
+![20211113092905](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211113092905.png)
+![20211113092926](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211113092926.png)
+
 ## Spark部署模式
 
 ### YARN Cluster 模式

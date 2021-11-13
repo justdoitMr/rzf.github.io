@@ -1,42 +1,42 @@
 <!-- TOC -->
 
 - [Spark性能调优](#spark性能调优)
-    - [常规性能调优](#常规性能调优)
-        - [常规性能调优一：最优资源配置](#常规性能调优一最优资源配置)
-        - [常规性能调优二：RDD 优化](#常规性能调优二rdd-优化)
-        - [常规性能调优三：并行度调节](#常规性能调优三并行度调节)
-        - [常规性能调优四：广播大变量](#常规性能调优四广播大变量)
-        - [常规性能调优五：Kryo 序列化](#常规性能调优五kryo-序列化)
-        - [常规性能调优六：调节本地化等待时长](#常规性能调优六调节本地化等待时长)
-    - [算子调优](#算子调优)
-        - [算子调优一：mapPartitions](#算子调优一mappartitions)
-        - [算子调优二：foreachPartition 优化数据库操作](#算子调优二foreachpartition-优化数据库操作)
-        - [算子调优三：filter 与 coalesce 的配合使用](#算子调优三filter-与-coalesce-的配合使用)
-        - [算子调优四：repartition 解决 SparkSQL 低并行度问题](#算子调优四repartition-解决-sparksql-低并行度问题)
-        - [算子调优五：reduceByKey 预聚合](#算子调优五reducebykey-预聚合)
-    - [Shuffle调优](#shuffle调优)
-        - [Shuffle 调优一：调节 map 端缓冲区大小](#shuffle-调优一调节-map-端缓冲区大小)
-        - [Shuffle 调优二：调节 reduce 端拉取数据缓冲区大小](#shuffle-调优二调节-reduce-端拉取数据缓冲区大小)
-        - [Shuffle 调优三：调节 reduce 端拉取数据重试次数](#shuffle-调优三调节-reduce-端拉取数据重试次数)
-        - [Shuffle 调优四：调节 reduce 端拉取数据等待间隔](#shuffle-调优四调节-reduce-端拉取数据等待间隔)
-        - [Shuffle 调优五：调节 SortShuffle 排序操作阈值](#shuffle-调优五调节-sortshuffle-排序操作阈值)
-    - [JVM调优](#jvm调优)
-        - [JVM 调优一：降低 cache 操作的内存占比](#jvm-调优一降低-cache-操作的内存占比)
-        - [JVM 调优二：调节 Executor 堆外内存](#jvm-调优二调节-executor-堆外内存)
-        - [JVM 调优三：调节连接等待时长](#jvm-调优三调节连接等待时长)
+  - [常规性能调优](#常规性能调优)
+    - [常规性能调优一：最优资源配置](#常规性能调优一最优资源配置)
+    - [常规性能调优二：RDD 优化](#常规性能调优二rdd-优化)
+    - [常规性能调优三：并行度调节](#常规性能调优三并行度调节)
+    - [常规性能调优四：广播大变量](#常规性能调优四广播大变量)
+    - [常规性能调优五：Kryo 序列化](#常规性能调优五kryo-序列化)
+    - [常规性能调优六：调节本地化等待时长](#常规性能调优六调节本地化等待时长)
+  - [算子调优](#算子调优)
+    - [算子调优一：mapPartitions](#算子调优一mappartitions)
+    - [算子调优二：foreachPartition 优化数据库操作](#算子调优二foreachpartition-优化数据库操作)
+    - [算子调优三：filter 与 coalesce 的配合使用](#算子调优三filter-与-coalesce-的配合使用)
+    - [算子调优四：repartition 解决 SparkSQL 低并行度问题](#算子调优四repartition-解决-sparksql-低并行度问题)
+    - [算子调优五：reduceByKey 预聚合](#算子调优五reducebykey-预聚合)
+  - [Shuffle调优](#shuffle调优)
+    - [Shuffle 调优一：调节 map 端缓冲区大小](#shuffle-调优一调节-map-端缓冲区大小)
+    - [Shuffle 调优二：调节 reduce 端拉取数据缓冲区大小](#shuffle-调优二调节-reduce-端拉取数据缓冲区大小)
+    - [Shuffle 调优三：调节 reduce 端拉取数据重试次数](#shuffle-调优三调节-reduce-端拉取数据重试次数)
+    - [Shuffle 调优四：调节 reduce 端拉取数据等待间隔](#shuffle-调优四调节-reduce-端拉取数据等待间隔)
+    - [Shuffle 调优五：调节 SortShuffle 排序操作阈值](#shuffle-调优五调节-sortshuffle-排序操作阈值)
+  - [JVM调优](#jvm调优)
+    - [JVM 调优一：降低 cache 操作的内存占比](#jvm-调优一降低-cache-操作的内存占比)
+    - [JVM 调优二：调节 Executor 堆外内存](#jvm-调优二调节-executor-堆外内存)
+    - [JVM 调优三：调节连接等待时长](#jvm-调优三调节连接等待时长)
 - [Spark数据倾斜](#spark数据倾斜)
-    - [数据倾斜的表现](#数据倾斜的表现)
-    - [定位数据倾斜问题](#定位数据倾斜问题)
-    - [解决方案一：聚合原数据](#解决方案一聚合原数据)
-    - [解决方案二：过滤导致倾斜的 key](#解决方案二过滤导致倾斜的-key)
-    - [解决方案三：提高 shuffle 操作中的 reduce 并行度](#解决方案三提高-shuffle-操作中的-reduce-并行度)
-    - [解决方案五：将 reduce join 转换为 map join](#解决方案五将-reduce-join-转换为-map-join)
-        - [核心思想](#核心思想)
-        - [不适用场景](#不适用场景)
-    - [解决方案六：sample 采样对倾斜 key 单独进行 join](#解决方案六sample-采样对倾斜-key-单独进行-join)
-    - [解决方案七：使用随机数扩容进行 join](#解决方案七使用随机数扩容进行-join)
-        - [核心思想](#核心思想-1)
-        - [局限性](#局限性)
+  - [数据倾斜的表现](#数据倾斜的表现)
+  - [定位数据倾斜问题](#定位数据倾斜问题)
+  - [解决方案一：聚合原数据](#解决方案一聚合原数据)
+  - [解决方案二：过滤导致倾斜的 key](#解决方案二过滤导致倾斜的-key)
+  - [解决方案三：提高 shuffle 操作中的 reduce 并行度](#解决方案三提高-shuffle-操作中的-reduce-并行度)
+  - [解决方案五：将 reduce join 转换为 map join](#解决方案五将-reduce-join-转换为-map-join)
+    - [核心思想](#核心思想)
+    - [不适用场景](#不适用场景)
+  - [解决方案六：sample 采样对倾斜 key 单独进行 join](#解决方案六sample-采样对倾斜-key-单独进行-join)
+  - [解决方案七：使用随机数扩容进行 join](#解决方案七使用随机数扩容进行-join)
+    - [核心思想](#核心思想-1)
+    - [局限性](#局限性)
 
 <!-- /TOC -->
 
@@ -153,7 +153,7 @@ Spark 作业中的并行度指各个 stage 的 task 的数量。
 
 理想的并行度设置，应该是让并行度与资源相匹配，简单来说就是在资源允许的前提下， 并行度要设置的尽可能大，达到可以充分利用集群资源。合理的设置并行度，可以提升整个Spark 作业的性能和运行速度。
 
-Spark 官方推荐，task 数量应该设置为 Spark 作业总CPU core 数量的 2~3 倍。之所以没有推荐 task 数量与CPU core 总数相等，是因为 task 的执行时间不同，有的task 执行速度快而有的 task 执行速度慢，如果 task 数量与CPU core 总数相等，那么执行快的 task 执行完成后，会出现 CPU core 空闲的情况。如果 task 数量设置为CPU core 总数的 2~3 倍，那么一个task 执行完毕后，CPU core 会立刻执行下一个task，降低了资源的浪费，同时提升了 Spark作业运行的效率。
+Spark 官方推荐，**task 数量应该设置为 Spark 作业总CPU core 数量的 2~3 倍**。之所以没有推荐 task 数量与CPU core 总数相等，是因为 task 的执行时间不同，有的task 执行速度快而有的 task 执行速度慢，如果 task 数量与CPU core 总数相等，那么执行快的 task 执行完成后，会出现 CPU core 空闲的情况。如果 task 数量设置为CPU core 总数的 2~3 倍，那么一个task 执行完毕后，CPU core 会立刻执行下一个task，降低了资源的浪费，同时提升了 Spark作业运行的效率。
 
 Spark 作业并行度的设置如下所示：
 
@@ -166,7 +166,7 @@ val conf = new SparkConf()
 
 默认情况下，task 中的算子中如果使用了外部的变量，每个 task 都会获取一份变量的复本，这就造成了内存的极大消耗。一方面，如果后续对 RDD 进行持久化，可能就无法将 RDD 数据存入内存，只能写入磁盘，磁盘 IO 将会严重消耗性能；另一方面，task 在创建对象的时候，也许会发现堆内存无法存放新创建的对象，这就会导致频繁的 GC，GC 会导致工作线程停止，进而导致 Spark 暂停工作一段时间，严重影响 Spark 性能。
 
-假设当前任务配置了 20 个 Executor，指定 500 个 task，有一个 20M 的变量被所有 task 共用，此时会在 500 个 task 中产生 500 个副本，耗费集群 10G 的内存，如果使用了广播变量， 那么每个Executor 保存一个副本，一共消耗 400M 内存，内存消耗减少了 5 倍。
+假设当前任务配置了 20 个 Executor，指定 500 个 task，有一个 20M 的变量被所有 task 共用，此时会在 500 个 task 中产生 500 个副本，耗费集群 10G 的内存，如果使用了广播变量， 那么每个Executor 保存一个副本，一共消耗 400M 内存，内存消耗减少了 5 倍。（使用这种方法相当于在多个线程之间共享Executor进程的数据）
 
 广播变量在每个 Executor 保存一个副本，此 Executor 的所有 task 共用此广播变量，这让变量产生的副本数量大大减少。
 
@@ -200,9 +200,7 @@ conf.set("spark.kryo.registrator", "atguigu.com.MyKryoRegistrator");
 
 #### 常规性能调优六：调节本地化等待时长
 
-Spark 作业运行过程中，Driver 会对每一个 stage 的 task 进行分配。根据 Spark 的task 分配算法，Spark 希望 task 能够运行在它要计算的数据算在的节点（数据本地化思想），这样就可以避免数据的网络传输。通常来说，task 可能不会被分配到它处理的数据所在的节点， 因为这些节点可用的资源可能已经用尽，此时，Spark 会等待一段时间，默认 3s，如果等待指定时间后仍然无法在指定节点运行，那么会自动降级，尝试将 task 分配到比较差的本地
- 
-化级别所对应的节点上，比如将 task 分配到离它要计算的数据比较近的一个节点，然后进行计算，如果当前级别仍然不行，那么继续降级。
+Spark 作业运行过程中，Driver 会对每一个 stage 的 task 进行分配。根据 Spark 的task 分配算法，Spark 希望 task 能够运行在它要计算的数据算在的节点（数据本地化思想），这样就可以避免数据的网络传输。通常来说，task 可能不会被分配到它处理的数据所在的节点， 因为这些节点可用的资源可能已经用尽，此时，Spark 会等待一段时间，默认 3s，如果等待指定时间后仍然无法在指定节点运行，那么会自动降级，尝试将 task 分配到比较差的本地化级别所对应的节点上，比如将 task 分配到离它要计算的数据比较近的一个节点，然后进行计算，如果当前级别仍然不行，那么继续降级。
 
 当 task 要处理的数据不在 task 所在节点上时，会发生数据的传输。task 会通过所在节点的BlockManager 获取数据，BlockManager 发现数据不在本地时，户通过网络传输组件从数据所在节点的BlockManager 处获取数据。
 
@@ -214,9 +212,7 @@ Spark 的本地化等级如表所示：
 
 在 Spark 项目开发阶段，可以使用 client 模式对程序进行测试，此时，可以在本地看到比较全的日志信息， 日志信息中有明确的 task 数据本地化的级别， 如果大部分都是PROCESS_LOCAL，那么就无需进行调节，但是如果发现很多的级别都是 NODE_LOCAL、ANY，那么需要对本地化的等待时长进行调节，通过延长本地化等待时长，看看 task 的本地化级别有没有提升，并观察 Spark 作业的运行时间有没有缩短。
 
-注意，过犹不及，不要将本地化等待时长延长地过长，导致因为大量的等待时长，使得
-
-Spark 作业的运行时间反而增加了。
+注意，过犹不及，不要将本地化等待时长延长地过长，导致因为大量的等待时长，使得Spark 作业的运行时间反而增加了。
 
 Spark 本地化等待时长的设置如代码所示：
 
@@ -309,9 +305,7 @@ repartition 与 coalesce 都可以用来进行重分区，其中 repartition 只
 
 Spark SQL 的并行度不允许用户自己指定，Spark SQL 自己会默认根据 hive 表对应的
 
-HDFS  文件的 split  个数自动设置 Spark SQL  所在的那个 stage  的并行度，用户自己通
-
-spark.default.parallelism 参数指定的并行度，只会在没 Spark SQL 的 stage 中生效。
+HDFS  文件的 split  个数自动设置 Spark SQL  所在的那个 stage  的并行度，用户自己通spark.default.parallelism 参数指定的并行度，只会在没 Spark SQL 的 stage 中生效。
 
 由于 Spark SQL 所在 stage 的并行度无法手动设置，如果数据量较大，并且此 stage 中后续的 transformation 操作有着复杂的业务逻辑，而 Spark SQL 自动设置的 task 数量很少， 这就意味着每个 task 要处理为数不少的数据量，然后还要执行非常复杂的处理逻辑，这就可能表现为第一个有 Spark SQL 的 stage 速度很慢，而后续的没有 Spark SQL 的 stage 运行速度非常快。
 
