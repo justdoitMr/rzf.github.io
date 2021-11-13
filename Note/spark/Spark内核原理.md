@@ -264,7 +264,7 @@ TransportServer：Netty 通信服务端，一个 RpcEndpoint 对应一个 Transp
 ## Spark 任务调度机制
 
 在生产环境下，Spark 集群的部署方式一般为 YARN-Cluster 模式，之后的内核分析内容中我们默认集群的部署方式为 YARN-Cluster  模式。在上一章中我们讲解了 Spark YARN-
-Cluster 模式下的任务提交流程，但是我们并没有具体说明 Driver 的工作流程， Driver 线程主要是初始化 SparkContext  对象， 准备运行所需的上下文， 然后一方面保持与ApplicationMaster 的 RPC 连接，通过ApplicationMaster 申请资源，另一方面根据用户业务逻辑开始调度任务，将任务下发到已有的空闲 Executor 上。
+Cluster 模式下的任务提交流程，但是我们并没有具体说明 Driver 的工作流程， Driver 线程主要是初始化 SparkContext  对象， 准备运行所需的上下文， 然后一方面保持与ApplicationMaster 的 RPC 连接，通过ApplicationMaster 申请资源，另一方面根据用户业务逻辑开始调度任务，将任务下发到已有的空闲 Executor 上，调度任务是由Driver负责进行的。
 
 当 ResourceManager 向ApplicationMaster 返回Container 资源时，ApplicationMaster 就尝试在对应的Container 上启动 Executor 进程，Executor 进程起来后，会向Driver 反向注册， 注册成功后保持与 Driver 的心跳，同时等待 Driver 分发任务，当分发的任务执行完毕后， 将任务状态上报给Driver。
 
@@ -351,10 +351,18 @@ FAIR 模式中有一个 rootPool 和多个子 Pool，各个子 Pool 中存储着
 
 > 注意，minShare、weight 的值均在公平调度配置文件 fairscheduler.xml 中被指定，调度池在构建阶段会读取此文件的相关配置。
 
-1. 如果A 对象的runningTasks大于它的minShare，B 对象的runningTasks 小于它的minShare，那么B 排在 A 前面；（runningTasks 比 minShare 小的先执行）
+1. 如果A 对象的runningTasks大于它的minShare，B 对象的runningTasks 小于它的minShare，那么B 排在 A 前面；（**runningTasks 比 minShare 小的先执行**）
 2. 如果 A、B 对象的 runningTasks 都小于它们的 minShare，那么就比较 runningTasks 与minShare 的比值（minShare 使用率），谁小谁排前面；（minShare 使用率低的先执行）
 3. 如果 A、B 对象的 runningTasks 都大于它们的 minShare，那么就比较 runningTasks 与weight 的比值（权重使用率），谁小谁排前面。（权重使用率低的先执行）
 4. 如果上述比较均相等，则比较名字。
+
+> 首先比较runningTasks 和 minShare，谁小谁先执行。
+> 
+> 如果多个Task Set的runningTasks 都小于 minShare，那么就比较这两个参数的比值，谁小谁先执行，也就是比较使用率。
+> 
+> 如果 A、B 对象的 runningTasks 都大于它们的 minShare，那么就比较 runningTasks 与weight 的比值（权重使用率），谁小谁先执行。
+> 
+> 最后是基于名字的比较。
 
 整体上来说就是通过minShare和weight 这两个参数控制比较过程，可以做到让minShare 使用率和权重使用率少（实际运行 task 比例较少）的先运行。
 
@@ -474,7 +482,7 @@ Spark 对堆内内存的管理是一种逻辑上的”规划式”的管理，�
 
 对于 Spark 中序列化的对象，由于是字节流的形式，其占用的内存大小可直接计算，而对于非序列化的对象，其占用的内存是通过周期性地采样近似估算而得，即并不是每次新增的数据项都会计算一次占用的内存大小，这种方法降低了时间开销但是有可能误差较大，导致某一时刻的实际内存有可能远远超出预期。此外，在被 Spark 标记为释放的对象实例，很有可能在实际上并没有被 JVM 回收，导致实际可用的内存小于 Spark 记录的可用内存。所以 Spark 并不能准确记录实际可用的堆内内存，从而也就无法完全避免内存溢出（OOM, Out of Memory）的异常。
 
-虽然不能精准控制堆内内存的申请和释放，但 Spark 通过对存储内存和执行内存各自独立的规划管理，可以决定是否要在存储内存里缓存新的 RDD，以及是否为新的任务分配执行内存，在一定程度上可以提升内存的利用率，减少异常的出现。
+虽然不能精准控制堆内内存的申请和释放，但 Spark 通过对**存储内存和执行内存**各自独立的规划管理，可以决定是否要在存储内存里缓存新的 RDD，以及是否为新的任务分配执行内存，在一定程度上可以提升内存的利用率，减少异常的出现。
 
 #### 堆外内存
 
@@ -490,7 +498,7 @@ Spark 对堆内内存的管理是一种逻辑上的”规划式”的管理，�
 
 #### 静态内存管理
 
-在 Spark 最初采用的静态内存管理机制下，存储内存、执行内存和其他内存的大小在Spark 应用程序运行期间均为固定的，但用户可以应用程序启动前进行配置，堆内内存的分配如图所示：
+在 Spark 最初采用的静态内存管理机制下，**存储内存、执行内存和其他内存**的大小在Spark 应用程序运行期间均为固定的，但用户可以应用程序启动前进行配置，堆内内存的分配如图所示：
 
 ![20211108161751](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108161751.png)
 
@@ -557,8 +565,10 @@ RDD 的持久化由 Spark 的 Storage 模块负责，实现了 RDD 与物理存�
 ```java
 class StorageLevel private(
 private var _useDisk: Boolean, //磁盘
-private var _useMemory: Boolean, //这里其实是指堆内内存private var _useOffHeap: Boolean, //堆外内存
-private var _deserialized: Boolean, //是否为非序列化private var _replication: Int = 1 //副本个数
+private var _useMemory: Boolean, //这里其实是指堆内内存
+private var _useOffHeap: Boolean, //堆外内存
+private var _deserialized: Boolean, //是否为非序列化
+private var _replication: Int = 1 //副本个数
 )
 ```
 
