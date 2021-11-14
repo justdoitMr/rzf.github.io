@@ -2,1139 +2,108 @@
 <!-- TOC -->
 
 - [Flink专题](#flink专题)
-  - [Flink 基础篇](#flink-基础篇)
-    - [1、什么是Flink？描述一下](#1什么是flink描述一下)
-    - [2、能否详细解释一下其中的 数据流、流批一体、容错能力等概念？](#2能否详细解释一下其中的-数据流流批一体容错能力等概念)
-    - [3、Flink 和 Spark Streaming的区别？](#3flink-和-spark-streaming的区别)
-    - [4、Flink的架构包含哪些？](#4flink的架构包含哪些)
-    - [5、简单介绍一下技术架构](#5简单介绍一下技术架构)
-    - [6、详细介绍一下Flink的运行架构](#6详细介绍一下flink的运行架构)
-    - [7、Flink的并行度介绍一下？](#7flink的并行度介绍一下)
-    - [8、Flink的并行度的怎么设置的？](#8flink的并行度的怎么设置的)
-    - [9、Flink编程模型了解不？](#9flink编程模型了解不)
-    - [10、Flink作业中的DataStream，Transformation介绍一下](#10flink作业中的datastreamtransformation介绍一下)
-    - [11、Flink的分区策略了解吗？](#11flink的分区策略了解吗)
-    - [12、描述一下Flink wordcount执行包含的步骤有哪些？](#12描述一下flink-wordcount执行包含的步骤有哪些)
-    - [13、Flink常用的算子有哪些？](#13flink常用的算子有哪些)
-- [Flink 核心篇](#flink-核心篇)
-    - [14、Flink的四大基石包含哪些？](#14flink的四大基石包含哪些)
-    - [15、说说Flink窗口，以及划分机制](#15说说flink窗口以及划分机制)
-    - [16、看你基本概念讲的还是很清楚的，那你介绍下Flink的窗口机制以及各组件之间是如何相互工作的](#16看你基本概念讲的还是很清楚的那你介绍下flink的窗口机制以及各组件之间是如何相互工作的)
-    - [17、讲一下Flink的Time概念](#17讲一下flink的time概念)
-    - [18、那在API调用时，应该怎么使用？](#18那在api调用时应该怎么使用)
-    - [19、在流数据处理中，有没有遇到过数据延迟等问题，通过什么处理呢？](#19在流数据处理中有没有遇到过数据延迟等问题通过什么处理呢)
-    - [20、WaterMark原理讲解一下？](#20watermark原理讲解一下)
-    - [21、如果数据延迟非常严重呢？只使用WaterMark可以处理吗？那应该怎么解决？](#21如果数据延迟非常严重呢只使用watermark可以处理吗那应该怎么解决)
-    - [22、刚才提到State，那你简单说一下什么是State。](#22刚才提到state那你简单说一下什么是state)
-    - [23、Flink 状态包括哪些？](#23flink-状态包括哪些)
-    - [24、Flink广播状态了解吗？](#24flink广播状态了解吗)
-    - [25、Flink 状态接口包括哪些？](#25flink-状态接口包括哪些)
-    - [26、Flink 状态如何存储](#26flink-状态如何存储)
-    - [27、Flink 状态如何持久化？](#27flink-状态如何持久化)
-    - [28、Flink 状态过期后如何清理？](#28flink-状态过期后如何清理)
-    - [29、Flink 通过什么实现**可靠的容错机制**。](#29flink-通过什么实现可靠的容错机制)
-- [**1 集群架构剖析**](#1-集群架构剖析)
-- [](#)
-- [2 Slot与资源管理](#2-slot与资源管理)
-- [**3 应用执行**](#3-应用执行)
+    - [41、要实现Exactly-Once,需具备什么条件？](#41要实现exactly-once需具备什么条件)
+    - [42、什么是两阶段提交协议？](#42什么是两阶段提交协议)
+    - [43、Flink 如何保证 Exactly-Once 语义？](#43flink-如何保证-exactly-once-语义)
+    - [44、对Flink 端到端 严格一次Exactly-Once 语义做个总结](#44对flink-端到端-严格一次exactly-once-语义做个总结)
+    - [45、Flink广播机制了解吗？](#45flink广播机制了解吗)
+    - [46、Flink反压了解吗？](#46flink反压了解吗)
+    - [47、Flink反压的影响有哪些？](#47flink反压的影响有哪些)
+    - [48、Flink反压如何解决？](#48flink反压如何解决)
+    - [49、Flink支持的数据类型有哪些？](#49flink支持的数据类型有哪些)
+    - [50、Flink如何进行序列和反序列化的？](#50flink如何进行序列和反序列化的)
+    - [51、为什么Flink使用自主内存而不用JVM内存管理？](#51为什么flink使用自主内存而不用jvm内存管理)
+    - [52、那Flink自主内存是如何管理对象的？](#52那flink自主内存是如何管理对象的)
+    - [53、Flink内存模型介绍一下？](#53flink内存模型介绍一下)
+    - [54、Flink如何进行资源管理的？](#54flink如何进行资源管理的)
+  - [1、集群架构剖析](#1集群架构剖析)
+  - [2、Slot与资源管理](#2slot与资源管理)
+  - [3、应用执行](#3应用执行)
+  - [03、Flink 源码篇](#03flink-源码篇)
+    - [55、FLink作业提交流程应该了解吧？](#55flink作业提交流程应该了解吧)
+    - [56、FLink作业提交分为几种方式？](#56flink作业提交分为几种方式)
+    - [57、FLink JobGraph是在什么时候生成的？](#57flink-jobgraph是在什么时候生成的)
+    - [58、那在jobGraph提交集群之前都经历哪些过程？](#58那在jobgraph提交集群之前都经历哪些过程)
+    - [59、看你提到PipeExecutor，它有哪些实现类？](#59看你提到pipeexecutor它有哪些实现类)
+    - [60、Local提交模式有啥特点，怎么实现的？](#60local提交模式有啥特点怎么实现的)
+    - [61、远程提交模式都有哪些？](#61远程提交模式都有哪些)
+    - [62、Standalone模式简单介绍一下？](#62standalone模式简单介绍一下)
+    - [63、yarn集群提交方式介绍一下？](#63yarn集群提交方式介绍一下)
+    - [64、yarn - session模式特点？](#64yarn---session模式特点)
+    - [65、yarn - perJob模式特点？](#65yarn---perjob模式特点)
+    - [66、yarn - application模式特点？](#66yarn---application模式特点)
+    - [67、yarn - session 提交流程详细介绍一下？](#67yarn---session-提交流程详细介绍一下)
+    - [68、yarn - perjob 提交流程详细介绍一下？](#68yarn---perjob-提交流程详细介绍一下)
+    - [69、流图、作业图、执行图三者区别？](#69流图作业图执行图三者区别)
+    - [70、流图介绍一下？](#70流图介绍一下)
+    - [71、作业图介绍一下？](#71作业图介绍一下)
+    - [72、执行图介绍一下？](#72执行图介绍一下)
+    - [73、Flink调度器的概念介绍一下？](#73flink调度器的概念介绍一下)
+    - [74、Flink调度行为包含几种？](#74flink调度行为包含几种)
+    - [75、Flink调度模式包含几种？](#75flink调度模式包含几种)
+    - [76、Flink调度策略包含几种？](#76flink调度策略包含几种)
+    - [80、Flink的任务槽是什么意思？](#80flink的任务槽是什么意思)
+    - [81、Flink 槽共享又是什么意思？](#81flink-槽共享又是什么意思)
+  - [04、Flink SQL篇](#04flink-sql篇)
+    - [82、Flink SQL有没有使用过？](#82flink-sql有没有使用过)
+    - [83、Flink被称作流批一体，那从哪个版本开始，真正实现流批一体的？](#83flink被称作流批一体那从哪个版本开始真正实现流批一体的)
+    - [84、Flink SQL 使用哪种解析器？](#84flink-sql-使用哪种解析器)
+    - [85、Calcite主要功能包含哪些？](#85calcite主要功能包含哪些)
+    - [86、Flink SQL 处理流程说一下？](#86flink-sql-处理流程说一下)
+    - [87、Flink SQL包含哪些优化规则？](#87flink-sql包含哪些优化规则)
+    - [88、Flink SQL中涉及到哪些operation？](#88flink-sql中涉及到哪些operation)
+    - [89、Flink Hive有没有使用过？](#89flink-hive有没有使用过)
+    - [90、Flink与Hive集成时都做了哪些操作？](#90flink与hive集成时都做了哪些操作)
+    - [91、HiveCatalog类包含哪些方法？](#91hivecatalog类包含哪些方法)
+    - [92、Flink SQL1.11新增了实时数仓功能，介绍一下？](#92flink-sql111新增了实时数仓功能介绍一下)
+    - [93、Flink -Hive实时写数据介绍下？](#93flink--hive实时写数据介绍下)
+    - [94、Flink -Hive实时读数据介绍下？](#94flink--hive实时读数据介绍下)
+    - [95、Flink -Hive实时写数据时，如何保证已经写入分区的数据何时才能对下游可见呢？](#95flink--hive实时写数据时如何保证已经写入分区的数据何时才能对下游可见呢)
+    - [96、源码中分区提交的PartitionCommitTrigger介绍一下？](#96源码中分区提交的partitioncommittrigger介绍一下)
+    - [97、PartitionTimeCommitTigger 是如何知道该提交哪些分区的呢？（源码分析）](#97partitiontimecommittigger-是如何知道该提交哪些分区的呢源码分析)
+    - [98、如何保证已经写入分区的数据对下游可见的标志问题（源码分析）](#98如何保证已经写入分区的数据对下游可见的标志问题源码分析)
+    - [99、Flink SQL CEP有没有接触过？](#99flink-sql-cep有没有接触过)
+    - [100、Flink SQL CEP了解的参数介绍一下？](#100flink-sql-cep了解的参数介绍一下)
+    - [101、编写一个CEP SQL案例，如银行卡盗刷](#101编写一个cep-sql案例如银行卡盗刷)
+    - [102、Flink CDC了解吗？什么是 Flink SQL CDC Connectors？](#102flink-cdc了解吗什么是-flink-sql-cdc-connectors)
+    - [103、Flink CDC原理介绍一下](#103flink-cdc原理介绍一下)
+    - [104、通过CDC设计一种Flink SQL 采集+计算+传输(ETL)一体化的实时数仓](#104通过cdc设计一种flink-sql-采集计算传输etl一体化的实时数仓)
+    - [105、Flink SQL CDC如何实现一致性保障（源码分析）](#105flink-sql-cdc如何实现一致性保障源码分析)
+    - [106、Flink SQL GateWay了解吗？](#106flink-sql-gateway了解吗)
+    - [107、Flink SQL GateWay创建会话讲解一下？](#107flink-sql-gateway创建会话讲解一下)
+    - [108、Flink SQL GateWay如何处理并发请求？多个提交怎么处理？](#108flink-sql-gateway如何处理并发请求多个提交怎么处理)
+    - [109、如何维护多个SQL之间的关联性？](#109如何维护多个sql之间的关联性)
+    - [110、sql字符串如何提交到集群成为代码？](#110sql字符串如何提交到集群成为代码)
 
 <!-- /TOC -->
-![1636187001608](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/162322-998621.png)
 
-### Flink 基础篇
 
-#### 1、什么是Flink？描述一下
 
-![1636187061647](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/162427-436982.png)
-
-Flink是一个以 **流** 为核心的**高可用、高性能**的分布式计算引擎。具备 **流批一体，高吞吐、低延迟，容错能力，大规模复杂计算等特点，在数据流上提供 数据分发、通信**等功能。
-
-#### 2、能否详细解释一下其中的 数据流、流批一体、容错能力等概念？
-
-**数据流：**
-
-所有产生的 **数据** 都天然带有 **时间概念**，把事件按照时间顺序排列起来，就形成了一个事件流，也被称作数据流。
-
-**流批一体：**
-
-首先必须先明白什么是 **有界数据**  和 **无界数据**
-
-![1636187149097](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/162550-893040.png)
-
-**有界数据**，就是在一个确定的时间范围内的数据流，有开始，有结束，一旦确定就不会再改变，一般**批**处理用来处理有界数据，如上图的 bounded stream。
-
-**无界数据**，就是持续产生的数据流，数据是无限的，有开始，无结束，一般 **流处理** 用来处理无界数据。如图 unbounded stream。
-
-Flink的设计思想是以 **流** 为核心，批是流的特例，擅长处理 无界 和 有界 数据， Flink 提供 精确的时间控制能力 和 有状态 计算机制，可以轻松应对无界数据流，同时 提供 **窗口** 处理有界数据流。所以被成为流批一体。
-
-**容错能力：**
-
-在分布式系统中，硬件故障、进程异常、应用异常、网络故障等异常无处不在，Flink引擎必须保证故障发生后 不仅可以 **重启** 应用程序，还要 **确保** 其内部状态保持一致，从最后一次正确的时间点重新出发
-
-Flink提供 **集群级容错** 和 **应用级容错** 能力
-
-**集群级容错:** Flink 与 集群管理器紧密连接，如YARN、Kubernetes，当进程挂掉后，自动重启新进程接管之前的工作。同时具备 **高可用**性 ，可消除所有单点故障，
-
-**应用级容错**:Flink 使用 轻量级分布式快照，设计检查点（**checkpoint**）实现可靠容错。
-
-Flink 利用检查点特性，在框架层面 提供 **Exactly-once** 语义，即端到端的一致性，确保数据仅处理一次，不会重复也不会丢失，即使出现故障，也能保证数据只写一次。
-
-#### 3、Flink 和 Spark Streaming的区别？
-
-
-
-**Flink** 和 **Spark Sreaming** **最大的区别**在于：Flink 是标准的实时处理引擎，基于事件驱动，**以流为核心**，而 Spark Streaming 的RDD 实际是一组小批次的RDD集合，是微批（Micro-Batch）的模型，**以批为核心**。
-
-**下面我们介绍两个框架的主要区别：**
-
-**1.  架构模型**
-
-Spark Streaming 在运行时的主要角色包括：
-
-服务架构集群和资源管理 Master / Yarn Application Master；
-
-工作节点 Work / Node Manager；
-
-任务调度器 Driver；任务执行器 Executor
-
-![1636187343712](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/162904-16015.png)
-
-Flink 在运行时主要包含：
-- 客户端 Client
-- 作业管理 Jobmanager
-- 任务管理Taskmanager
-
-![1636187379141](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/162939-818557.png)
-
-**2. 任务调度**
-
-Spark Streaming 连续不断的生成微小的数据批次，构建有向无环图DAG，Spark Streaming 会依次创建 DStreamGraph、JobScheduler。
-
-![1636187417974](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163018-432015.png)
-
-Flink 根据用户提交的代码生成 **StreamGraph**，经过优化生成 **JobGraph**，然后提交给 JobManager进行处理，JobManager 会根据 JobGraph 生成 **ExecutionGraph**，ExecutionGraph 是 Flink 调度最核心的数据结构，JobManager 根据 ExecutionGraph 对 Job 进行调度，根据物理执行图部署到Taskmanager上形成具体的Task执行。 
-
-![1636187460754](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163101-293797.png)
-
-**3. 时间机制**
-
-Spark Streaming 支持的时间机制有限，只支持**处理时间**。
-
-Flink 支持了流处理程序在时间上的三个定义：**事件时间 EventTime**、**摄入时间 IngestionTime** 、**处理时间 ProcessingTime**。同时也支持 watermark 机制来处理滞后数据。
-
-![1636187492849](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163133-942618.png)
-
-**4. 容错机制**
-
-**对于 Spark Streaming 任务，我们可以设置 checkpoint**，然后假如发生故障并重启，我们可以从上次 checkpoint 之处恢复，但是这个行为只能使得数据不丢失，可能会重复处理，不能做到恰好一次处理语义。
-
-Flink 则使用两阶段提交协议来解决这个问题。
-
-#### 4、Flink的架构包含哪些？
-
-Flink 架构分为 **技术架构** 和 **运行架构** 两部分。
-
-#### 5、简单介绍一下技术架构
-
-如下图为Flink技术架构：
-
-![1636187547240](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163227-129663.png)
-
-Flink 作为流批一体的分布式计算引擎，必须提供面向开发人员的**API层**，同时还需要跟外部数据存储进行交互，需要**连接器**，作业开发、测试完毕后，需要提交集群执行，需要**部署层**，同时还需要运维人员能够管理和监控，还提供图计算、机器学习、SQL等，需要**应用框架层**。
-
-#### 6、详细介绍一下Flink的运行架构
-
-如下图为Flink运行架构：
-
-![1636187604969](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163326-355173.png)
-
-Flink 集群采取 Master - Slave 架构，Master的角色为 **JobManager**，负责集群和作业管理，Slave的角色是 **TaskManager**，负责执行计算任务，同时，Flink 提供客户端 Client 来管理集群和提交任务，**JobManager** 和 **TaskManager** 是集群的进程。
-
-**（1）Client**
-
-Flink 客户端是F1ink 提供的 CLI 命令行工具，用来提交 Flink 作业到 Flink 集群，在客户端中负责 StreamGraph (流图)和 Job Graph (作业图)的构建。
-
-**（2）JobManager**
-
-JobManager 根据并行度将 Flink 客户端提交的Flink 应用分解为子任务，从资源管理器 ResourceManager 申请所需的计算资源，资源具备之后，开始分发任务到 TaskManager 执行 Task，并负责应用容错，跟踪作业的执行状态，发现异常则恢复作业等。
-
-**（3）TaskManager**
-
-TaskManager 接收 JobManage 分发的子任务，根据自身的资源情况 管理子任务的启动、 停止、销毁、异常恢复等生命周期阶段。Flink程序中必须有一个TaskManager。
-
-#### 7、Flink的并行度介绍一下？
-
-Flink程序在执行的时候，会被映射成一个**Streaming Dataflow。**一个Streaming Dataflow是由一组Stream和Transformation Operator组成的。在启动时从一个或多个Source Operator开始，结束于一个或多个Sink Operator。 
-
-**Flink程序本质上是并行的和分布式的**，在执行过程中，**一个流(stream)包含一个或多个流分区**，而每一个operator包含一个或多个operator子任务。操作子任务间彼此独立，在不同的线程中执行，甚至是在不同的机器或不同的容器上。
-
-**operator子任务的数量是这一特定operator的并行度**。相同程序中的不同operator有不同级别的并行度。
-
-![1636187725405](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163526-978331.png)
-
-一个Stream可以被分成多个Stream的分区，也就是Stream Partition。**一个Operator也可以被分为多个Operator Subtask**。如上图中，Source被分成Source1和Source2，它们分别为Source的Operator Subtask。每一个Operator Subtask都是在不同的线程当中独立执行的。**一个Operator的并行度，就等于Operator Subtask的个数**。
-
-上图Source的并行度为2。而一个Stream的并行度就等于它生成的Operator的并行度。数据在两个operator之间传递的时候有两种模式：
-
-1. **One to One模式：**两个operator用此模式传递的时候，会保持数据的分区数和数据的 排序；如上图中的Source1到Map1，它就保留的Source的分区特性，以及分区元素处 理的有序性。
-2. **Redistributing （重新分配）模式**：这种模式会改变数据的分区数；每个operator subtask会根据选择transformation把数据发送到不同的目标subtasks，比如keyBy()会通过hashcode重新分区，broadcast()和rebalance()方法会随机重新分区；
-
-#### 8、Flink的并行度的怎么设置的？
-
-我们在实际生产环境中可以从四个不同层面设置并行度：
-
-- 操作算子层面(Operator Level)
-- 执行环境层面(Execution Environment Level)
-- 客户端层面(Client Level)
-- 系统层面(System Level)
-
-需要注意的优先级：**算子层面>环境层面>客户端层面>系统层面。**
-
-#### 9、Flink编程模型了解不？
-
-Flink 应用程序主要由三部分组成，**源** Source、**转换** transformation、**目的地** sink。这些流式 dataflows 形成了有向图，以一个或多个源（source）开始，并以一个或多个目的地（sink）结束。
-
-![1636188867842](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/165428-381085.png)
-
-#### 10、Flink作业中的DataStream，Transformation介绍一下
-
-
-
-Flink作业中，包含两个基本的块：**数据流（DataStream）**和 **转换（Transformation）**。
-
-DataStream是逻辑概念，为开发者提供API接口，**Transformation**是处理行为的抽象，包含了数据的读取、计算、写出。所以Flink 作业中的DataStream API 调用，实际上构建了多个由 Transformation组成的数据处理流水线（Pipeline）
-
-DataStream API 和 Transformation 的转换如下图：
-
-![1636188914611](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/165516-285794.png)
-
-#### 11、Flink的分区策略了解吗？
-
-目前 Flink 支持**8种分区策略**的实现，数据分区体系如下图：
-
-![1636188968937](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/165609-125426.png)
-
-**（1）GlobalPartitioner**
-
-数据会被分发到下游算子的第一个实例中进行处理。
-
-**（2）ForwardPartitioner**
-
-在API层面上**ForwardPartitioner**应用在DataStream上，生成一个新的 DataStream。
-
-该Partitioner 比较特殊，用于在同一个 OperatorChain 中上下游算子之间的数据转发，实际上数据是直接传递给下游的，要求上下游并行度一样。
-
-**（3）ShufflePartitioner**
-
-随机的将元素进行分区，可以确保下游的Task能够均匀地获得数据，使用代码如下：
-
-```java
-dataStream.shuffle();
-```
-
-**（4）RebalancePartitioner**
-
-以**Round-robin** 的方式为每个元素分配分区，确保下游的 Task 可以均匀地获得数据，避免数据倾斜。使用代码如下：
-
-```java
-dataStream.rebalance();
-```
-
-**（5）RescalePartitioner**
-
-根据上下游 Task 的数量进行分区， 使用 **Round-robin** 选择下游的一个Task 进行数据分区，如上游有2个 Source.，下游有6个 Map，那么每个 Source 会分配3个固定的下游 Map，不会向未分配给自己的分区写人数据。这一点与 ShufflePartitioner 和 RebalancePartitioner 不同， 后两者会写入下游所有的分区。
-
-![1636189039077](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/165720-924160.png)
-
-运行代码如下：
-
-```java
-dataStream.rescale();
-```
-
-**（6）BroadcastPartitioner**
-
-将该记录广播给所有分区，即有N个分区，就把数据复制N份，每个分区1份，其使用代码如下：
-
-```java
-dataStream.broadcast();
-```
-
-**（7）KeyGroupStreamPartitioner**
-
-在API层面上，**KeyGroupStreamPartitioner**应用在 **KeyedStream**上，生成一个新的 KeyedStream。
-
-KeyedStream根据keyGroup索引编号进行分区，会将数据按 Key 的 Hash 值输出到下游算子实例中。该分区器不是提供给用户来用的。
-
-KeyedStream在构造**Transformation**的时候默认使用KeyedGroup分区形式，从而在底层上支持作业Rescale功能。
-
-**（8）CustomPartitionerWrapper**
-
-用户自定义分区器。需要用户自己实现Partitioner接口，来定义自己的分区逻辑。
-
-#### 12、描述一下Flink wordcount执行包含的步骤有哪些？
-
-主要包含以下几步：
-
-（1）获取运行环境  **StreamExecutionEnvironment**
-
-（2）**接入**source源
-
-（3）执行转换操作，如map()、flatmap()、keyby（）、sum()
-
-（4）**输出sink源** 如print()
-
-（5） **执行 execute**
-
-提供一个示例：
-
-```java
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.windowing.time.Time;
-import org.apache.flink.util.Collector;
-
-
-public class WordCount {
-
-public static void main(String[] args) throws Exception {
-//定义socket的端口号
-int port;
-try{
-            ParameterTool parameterTool = ParameterTool.fromArgs(args);
-            port = parameterTool.getInt("port");
-        }catch (Exception e){
-            System.err.println("没有指定port参数，使用默认值9000");
-            port = 9000;
-        }
-//获取运行环境
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-//连接socket获取输入的数据
-        DataStreamSource<String> text = env.socketTextStream("10.192.12.106", port, "\n");
-//计算数据
-        DataStream<WordWithCount> windowCount = text.flatMap(new FlatMapFunction<String, WordWithCount>() {
-public void flatMap(String value, Collector<WordWithCount> out) throws Exception {
-                String[] splits = value.split("\\s");
-for (String word:splits) {
-                    out.collect(new WordWithCount(word,1L));
-                }
-            }
-        })//打平操作，把每行的单词转为<word,count>类型的数据
-                .keyBy("word")//针对相同的word数据进行分组
-                .timeWindow(Time.seconds(2),Time.seconds(1))//指定计算数据的窗口大小和滑动窗口大小
-                .sum("count");               
-//把数据打印到控制台
-        windowCount.print()
-                .setParallelism(1);//使用一个并行度
-//注意：因为flink是懒加载的，所以必须调用execute方法，上面的代码才会执行
-        env.execute("streaming word count");
-    }
-/**
-     * 主要为了存储单词以及单词出现的次数
-     */
-public static class WordWithCount{
-public String word;
-public long count;
-public WordWithCount(){}
-public WordWithCount(String word, long count) {
-this.word = word;
-this.count = count;
-        }
-@Override
-public String toString() {
-return "WordWithCount{" +
-"word='" + word + '\'' +
-", count=" + count +
-'}';
-        }
-    }
-}
-```
-
-#### 13、Flink常用的算子有哪些？
-
-分两部分：
-
-（1）**数据读取**，这是Flink流计算应用的起点，常用算子有：
-
-- 从内存读：fromElements
-
-- 从文件读：readTextFile
-
-- Socket 接入 ：socketTextStream
-
-- 自定义读取：createInput
-
-（2）处理数据的算子，主要用于 **转换** 过程
-
-常用的算子包括：Map（单输入单输出）、FlatMap（单输入、多输出）、Filter（过滤）、KeyBy（分组）、Reduce（聚合）、Window（窗口）、Connect（连接）、Split（分割）等。
-
-## Flink 核心篇
-
-![1636189297842](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/170139-609920.png)
-
-核心篇主要涉及以上知识点，下面让我们详细了解一下。
-
-#### 14、Flink的四大基石包含哪些？
-
-**Flink四大基石分别是：Checkpoint（检查点）、State（状态）、Time（时间）、Window（窗口）**。
-
-#### 15、说说Flink窗口，以及划分机制
-
-**窗口概念：**将无界流的数据，按时间区间，划分成多份数据，分别进行统计**(聚合)**
-
-Flink支持两种划分窗口的方式(time和count)
-
-- 第一种，**按时间驱动进行划分**
-- 另一种按**数据驱动进行划分**。
-
-![1636189394362](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/170315-37042.png)
-
-1. 按时间驱动Time Window 划分可以分为 
-   1. 滚动窗口 Tumbling Window 
-   2. 滑动窗口 Sliding Window。
-
-2. 按数据驱动Count Window也可以划分为
-   1. 滚动窗口 Tumbling Window 
-   2. 滑动窗口 Sliding Window。
-
-3. Flink支持窗口的两个重要属性(**窗口长度size和滑动间隔interval**)，通过窗口长度和滑动间隔来区分滚动窗口和滑动窗口。
-
-如果size=interval,那么就会形成tumbling-window(无重叠数据)--滚动窗口
-
-如果size(1min)>interval（30s）,那么就会形成sliding-window(有重叠数据)--滑动窗口
-
-通过组合可以得出四种基本窗口：
-
-（1）**time-tumbling-window** 无重叠数据的时间窗口，设置方式举例：timeWindow(Time.seconds(5))---基于时间的滚动窗口
-
-![1636193976828](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/181937-400401.png)
-
-![1636193996712](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/181957-226272.png)
-
-（2）**time-sliding-window**  有重叠数据的时间窗口，设置方式举例：timeWindow(Time.seconds(10), Time.seconds(5))---基于时间的滑动窗口
-
-![1636194022004](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/182023-612342.png)
-
-![1636194035291](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/182036-264829.png)
-
-（3）**count-tumbling-window**无重叠数据的数量窗口，设置方式举例：countWindow(5)---基于数量的滚动窗口
-
-![1636194057814](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/182058-334221.png)
-
-（4）**count-sliding-window** 有重叠数据的数量窗口，设置方式举例：countWindow(10,5)---基于数量的滑动窗口
-
-![1636194075279](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/182115-993906.png)
-
-**Flink中还支持一个特殊的窗口:会话窗口SessionWindows**
-
-session窗口分配器通过session活动来对元素进行分组，session窗口跟滚动窗口和滑动窗口相比，不会有重叠和固定的开始时间和结束时间的情况
-
-session窗口在一个固定的时间周期内不再收到元素，即非活动间隔产生，那个这个窗口就会关闭。
-
-一个session窗口通过一个session间隔来配置，这个session间隔定义了非活跃周期的长度，当这个非活跃周期产生，那么当前的session将关闭并且后续的元素将被分配到新的session窗口中去,如下图所示：
-
-![1636194090767](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/182131-680149.png)
-
-#### 16、看你基本概念讲的还是很清楚的，那你介绍下Flink的窗口机制以及各组件之间是如何相互工作的
-
-以下为窗口机制的流程图：
-
-![1636194645247](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/183045-90472.png)
-
-**WindowAssigner**
-
-1、窗口算子负责处理窗口，数据流源源不断地进入算子（window operator）时，每一个到达的元素首先会被交给 WindowAssigner。**WindowAssigner 会决定元素被放到哪个或哪些窗口（window）**，可能会创建新窗口。因为一个元素可以被放入多个窗口中（个人理解是滑动窗口，滚动窗口不会有此现象），所以同时存在多个窗口是可能的。注意，`Window`**本身只是一个ID标识符**，其内部可能存储了一些元数据，如`TimeWindow`中有开始和结束时间，但是并不会存储窗口中的元素。窗口中的元素实际存储在 Key/Value State 中，key为`Window`，value为元素集合（或聚合值）。为了保证窗口的容错性，该实现依赖了 Flink 的 State 机制。
-
-**WindowTrigger**
-
-2、每一个Window都拥有一个属于自己的 Trigger，Trigger上会有定时器，**用来决定一个窗口何时能够被计算或清除**。每当有元素加入到该窗口，或者之前注册的定时器超时了，那么Trigger都会被调用。Trigger的返回结果可以是 ：
-
-（1）continue（继续、不做任何操作），
-
-（2）Fire（触发计算，处理窗口数据），
-
-（3）Purge（触发清理，移除窗口和窗口中的数据），
-
-（4）Fire + purge（触发计算+清理，处理数据并移除窗口和窗口中的数据）。
-
-当数据到来时，调用**Trigger**判断是否需要触发计算，如果调用结果只是Fire的话，那么会计算窗口并保留窗口原样，也就是说窗口中的数据不清理，等待下次Trigger fire的时候再次执行计算。窗口中的数据会被反复计算，直到触发结果清理。在清理之前，窗口和数据不会释放没所以窗口会一直占用内存。
-
-**Trigger 触发流程：**
-
-3、当Trigger Fire了，窗口中的元素集合就会交给`Evictor`（如果指定了的话）。**Evictor 主要用来遍历窗口中的元素列表，并决定最先进入窗口的多少个元素需要被移除**。剩余的元素会交给用户指定的函数进行窗口的计算。如果没有 Evictor 的话，窗口中的所有元素会一起交给函数进行计算。
-
-4、计算函数收到了窗口的元素（可能经过了 Evictor 的过滤），并计算出窗口的结果值，并发送给下游。窗口的结果值可以是一个也可以是多个。DataStream API 上可以接收不同类型的计算函数，包括预定义的`sum()`,`min()`,`max()`，还有 `ReduceFunction`，`FoldFunction`，还有`WindowFunction`。WindowFunction 是最通用的计算函数，其他的预定义的函数基本都是基于该函数实现的。
-
-5、Flink 对于一些聚合类的窗口计算（如sum,min）做了优化，因为聚合类的计算不需要将窗口中的所有数据都保存下来，只需要保存一个result值就可以了。每个进入窗口的元素都会执行一次聚合函数并修改result值。这样可以大大降低内存的消耗并提升性能。但是如果用户定义了 Evictor，则不会启用对聚合窗口的优化，因为 Evictor 需要遍历窗口中的所有元素，必须要将窗口中所有元素都存下来。
-
-#### 17、讲一下Flink的Time概念
-
-在Flink的流式处理中，会涉及到时间的不同概念，主要分为三种时间机制，如下图所示：
-
-![1636194679508](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/183120-867375.png)
-
-**- EventTime[事件时间]**
-
- 事件发生的时间，例如：点击网站上的某个链接的时间，每一条日志都会记录自己的生成时间。
-
-如果以EventTime为基准来定义时间窗口那将形成EventTimeWindow,要求消息本身就应该携带EventTime
-
-**- IngestionTime[摄入时间]**
-
- 数据进入Flink的时间，如某个Flink节点的**sourceoperator**接收到数据的时间，例如：某个source消费到kafka中的数据
-
-如果以**IngesingtTime**为基准来定义时间窗口那将形成IngestingTimeWindow,以source的systemTime为准
-
-**- ProcessingTime[处理时间]**
-
- 某个Flink节点执行某个operation的时间，例如：timeWindow处理数据时的系统时间，默认的时间属性就是Processing Time
-
-如果以**ProcessingTime**基准来定义时间窗口那将形成ProcessingTimeWindow，以operator的systemTime为准
-
-在Flink的流式处理中，绝大部分的业务都会使用EventTime，一般只在EventTime无法使用时，才会被迫使用ProcessingTime或者IngestionTime。
-
-如果要使用EventTime，那么需要引入EventTime的时间属性，引入方式如下所示：
-
-#### 18、那在API调用时，应该怎么使用？
-
-使用方式如下：
-
-```java
-final StreamExecutionEnvironment env      = StreamExecutionEnvironment.getExecutionEnvironrnent();// 使用处理时间env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime) ; // 使用摄入时间
-env.setStrearnTimeCharacteristic(TimeCharacteristic.IngestionTime);
-// 使用事件时间env.setStrearnTimeCharacteristic(TimeCharacteri stic Eve~tTime);
-```
-
-#### 19、在流数据处理中，有没有遇到过数据延迟等问题，通过什么处理呢？
-
-有遇到过数据延迟问题。举个例子：
-
-**案例1：** 假你正在去往地下停车场的路上，并且打算用手机点一份外卖。
-
-选好了外卖后，你就用在线支付功能付款了，这个时候是11点50分。恰好这时，你走进了地下停车库，而这里并没有手机信号。因此外卖的在线支付并没有立刻成功，而支付系统一直在Retry重试“支付”这个操作。
-
-当你找到自己的车并且开出地下停车场的时候，已经是12点05分了。这个时候手机重新有了信号，手机上的支付数据成功发到了外卖在线支付系统，支付完成。
-
-在上面这个场景中你可以看到，**支付数据的事件时间是11点50分**，而**支付数据的处理时间是12点05分**
-
-**案例2：** 如上图所示，某App 会记录用户的所有点击行为，并回传日志（在网络不好的情况下，先保存在本地，延后回传）。
-
-A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
-
-但是A 用户的网络不太稳定，回传日志延迟了，导致我们在服务端先接受到B 用户11:03 的消息，然后再接受到A 用户11:02 的消息，**消息乱序**了。
-
-
-**一般处理数据延迟、消息乱序等问题，通过WaterMark水印来处理。**
-
-**水印是用来解决数据延迟、数据乱序等问题，总结如下图所示：**
-
-![1636194765986](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/183246-966984.png)
-
-水印就是一个时间戳（timestamp），Flink可以给数据流添加水印
-
-- 水印并不会影响原有Eventtime事件时间
-- 当数据流添加水印后，会按照水印时间来触发窗口计算,也就是说watermark水印是用来触发窗口计算的
-- 设置水印时间，会比事件时间小几秒钟,表示最大允许数据延迟达到多久
-- 水印时间 = 事件时间 - 允许延迟时间 (例如：10:09:57 =  10:10:00 - 3s )
-
-#### 20、WaterMark原理讲解一下？
-
-如下图所示：
-
-![1636194822886](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/183343-882294.png)
-
-窗口是10分钟触发一次，现在在12:00 - 12:10 有一个窗口，本来有一条数据是在12:00 - 12:10这个窗口被计算，但因为延迟，12:12到达，这时12:00 - 12:10 这个窗口就会被关闭，只能将数据下发到下一个窗口进行计算，这样就产生了数据延迟，造成计算不准确。
-
-现在添加一个水位线：数据时间戳为2分钟。这时用数据产生的事件时间 12:12 -允许延迟的水印 2分钟 = 12:10 >= 窗口结束时间 。窗口触发计算，该数据就会被计算到这个窗口里。
-
-在DataStream  API 中使用 TimestampAssigner 接口定义时间戳的提取行为，包含两个子接口 **AssignerWithPeriodicWatermarks** 接口和 **AssignerWithPunctuatedWaterMarks**接口
-
-![1636194853674](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/183415-868803.png)
-
-#### 21、如果数据延迟非常严重呢？只使用WaterMark可以处理吗？那应该怎么解决？
-
-使用 WaterMark+ EventTimeWindow 机制可以在一定程度上解决数据乱序的问题，但是，WaterMark 水位线也不是万能的，在某些情况下，数据延迟会非常严重，即使通过Watermark + EventTimeWindow也无法等到数据全部进入窗口再进行处理，因为窗口触发计算后，**对于延迟到达的本属于该窗口的数据，Flink默认会将这些延迟严重的数据进行丢弃**
-
-那么如果想要让一定时间范围的延迟数据不会被丢弃，可以使用Allowed Lateness(允许迟到机制/侧道输出机制)设定一个允许延迟的时间和侧道输出对象来解决
-
-即使用**WaterMark + EventTimeWindow + Allowed Lateness方案**（包含侧道输出），可以做到数据不丢失。
-
-**API调用**
-
-- allowedLateness(lateness:Time)---设置允许延迟的时间
-
-该方法传入一个Time值，设置允许数据迟到的时间，这个时间和watermark中的时间概念不同。再来回顾一下，
-
-**watermark=数据的事件时间-允许乱序时间值**
-
-随着新数据的到来，watermark的值会更新为最新数据事件时间-允许乱序时间值，但是如果这时候来了一条历史数据，watermark值则不会更新。
-
-**总的来说，watermark永远不会倒退它是为了能接收到尽可能多的乱序数据。**
-
-那这里的Time值呢？主要是为了等待迟到的数据，如果属于该窗口的数据到来，仍会进行计算，后面会对计算方式仔细说明
-
-注意：该方法只针对于基于event-time的窗口 
-
-- sideOutputLateData(outputTag:OutputTag[T])--保存延迟数据
-
-该方法是将迟来的数据保存至给定的outputTag参数，而OutputTag则是用来标记延迟数据的一个对象。
-
-- DataStream.getSideOutput(tag:OutputTag[X])--获取延迟数据
-
-通过window等操作返回的DataStream调用该方法，传入标记延迟数据的对象来获取延迟的数据
-
-#### 22、刚才提到State，那你简单说一下什么是State。
-
-![1636195849710](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185051-765132.png)
-
- 在Flink中，状态被称作state，是用来 **保存** 中间的 **计算结果** 或者 **缓存数据。**
-
-根据状态是否需要保存中间结果，分为 **无状态计算** 和 **有状态计算。**
-
-对于流计算而言，事件持续产生，如果每次计算**相互独立**，不依赖上下游的事件，则相同输入，可以得到相同输出，**是无状态计算**。
-
-如果计算需要**依赖**于之前或者后续事件，则被称**为有状态计算**。
-
-![1636195898516](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185139-675902.png)
-
-有状态计算如 sum求和，数据类加等。
-
-![1636195915335](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185155-448055.png)
-
-
-
-#### 23、Flink 状态包括哪些？
-
-**（1）** 按照由 Flink管理 还是 用户管理，状态可以分为 **原始状态（Raw State）**和 **托管状态（ManagedState）**
-
-**托管状态（ManagedState）**:由Flink 自行进行管理的State。
-
-**原始状态（Raw State）**：由用户自行进行管理。
-
-**两者区别：**
-
-1. 从状态管理方式的方式来说，**Managed State** 由**Flink Runtime** 管理，自动存储，自动恢复，在内存管理上有优化；而 **Raw State** 需要用户自己管理，需要自己序列化，Flink 不知道 State 中存入的数据是什么结构，只有用户自己知道，需要最终序列化为可存储的数据结构。
-
-2. 从状态数据结构来说，Managed State 支持已知的数据结构，如Value、List、Map等。而 Raw State **只支持**字节数组，所有状态都要转换为二进制字节数组才可以。
-
-3. 从推荐使用场景来说，Managed State 大多数情况下均可使用，而Raw State 是当 Managed State 不够用时，比如需要自定义Operator 时，才会使用 Raw State。**在实际生产过程中，只推荐使用 Managed State 。**
-
-**（2）**State 按照是否有 key 划分为 **KeyedState** 和 **OperatorState** 两种。
-
-**keyedState特点：**
-
-1. 只能用在keyedStream上的算子中，状态跟特定的key绑定。
-
-2. keyStream流上的每一个key 对应一个state 对象。若一个operator 实例处理多个key，访问相应的多个State，**可对应多个state。**
-
-3. keyedState 保存在StateBackend中
-
-4. 通过RuntimeContext访问，实现Rich Function接口。
-
-5. 支持多种数据结构：ValueState、ListState、ReducingState、AggregatingState、MapState.
-
-   ![1636196036675](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185357-402239.png)
-
-Operator State特点：
-
-1. 可以用于所有算子，但整个算子只对应一个state。
-
-2. 并发改变时有多种重新分配的方式可选：均匀分配；
-
-3. 实现CheckpointedFunction或者 ListCheckpointed 接口。
-
-4. 目前只支持 ListState数据结构。          
-
-![1636196080594](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185441-552390.png)
-
-这里的fromElements会调用**FromElementsFunction**的类，其中就使用了类型为List state 的 operator state
-
-#### 24、Flink广播状态了解吗？
-
-Flink中，广播状态中叫作 BroadcastState。 在广播状态模式中使用。**所谓广播状态模式， 就是来自一个流的数据需要被广播到所有下游任务**，**在算子本地存储，在处理另一个流的时候依赖于广播的数据**.下面以一个示例来说明广播状态模式。
-
-![1636196223907](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185705-370781.png)
-
-上图这个示例包含两个流，一个为**kafka模型流**，该模型是通过机器学习或者深度学习训练得到的模型，将该模型通过广播，发送给下游所有规则算子，规则算子将规则缓存到Flink的本地内存中，另一个为 **Kafka数据流**，用来接收测试集，该测试集依赖于模型流中的模型，通过模型完成测试集的推理任务。
-
-广播状态（State）必须是MapState类型，广播状态模式需要使用广播函数进行处理，广播函数提供了处理广播数据流和普通数据流的接口。
-
-#### 25、Flink 状态接口包括哪些？
-
-在Flink中使用状态，包含两种状态接口：
-
-（1）**状态操作接口：**使用状态对象本身存储，写入、更新数据。
-
-（2）**状态访问接口：**从StateBackend获取状态对象本身。
-
-**状态操作接口**
-
-Flink 中的 **状态操作接口** 面向两类用户，即 **应用开发者** 和 **Flink 框架本身**。 所有Flink设计了两套接口
-
-**1、面向开发者State接口**
-
-面向开发的State接口只提供了对State中数据的增删改基本操作接口，用户无法访问状态的其他运行时所需要的信息。接口体系如下图：
-
-![1636196740973](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/190542-518816.png)
-
-面向开发者的 State 接口体系
-
-**2、面向内部State接口**
-
-内部State 接口 是给 Flink 框架使用，提供更多的State方法，可以根据需要灵活扩展。除了对State中数据的访问之外，还提供内部运行时信息，如State中数据的序列化器，命名空间（namespace）、命名空间的序列化器、命名空间合并的接口。**内部State接口命名方式为InternalxxxState。**
-
-**状态访问接口**
-
-**有了状态之后，开发者自定义UDF时，应该如何访问状态？**
-
-状态会被保存在StateBackend中，但StateBackend 又包含不同的类型。所有Flink中抽象了两个状态访问接口：**OperatorStateStore** 和 **KeyedStateStore，**用户在编写UDF时，就无须考虑到底是使用哪种 StateBackend类型接口。
-
-OperatorStateStore 接口原理：
-
-![1636196807915](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/190649-753654.png)
-
-OperatorState数据以Map形式保存在内存中，并没有使用RocksDBStateBackend和HeapKeyedStateBackend。
-
-KeyedStateStore 接口原理：
-
-![1636196856905](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/190738-675758.png)
-
-keyedStateStore数据使用RocksDBStateBackend或者HeapKeyedStateBackend来存储，KeyedStateStore中创建、获取状态都交给了具体的StateBackend来处理，KeyedStateStore本身更像是一个代理。
-
-#### 26、Flink 状态如何存储
-
-在Flink中， 状态存储被叫做 **StateBackend** , 它具备两种能力：
-
-（1）在计算过程中提供访问State能力，开发者在编写业务逻辑中能够使用StateBackend的接口读写数据。
-
-（2）能够将State持久化到外部存储，提供容错能力。
-
-Flink状态**提供三种存储方式**：
-
-**（1）内存：**MemoryStateBackend,适用于验证、测试、不推荐生产使用。
-
-**（2）文件：**FSStateBackend，适用于长周期大规模的数据。
-
-**（3）RocksDB :**  RocksDBStateBackend，适用于长周期大规模的数据。
-
-上面提到的 StateBackend是面向用户的，在Flink内部3种 State 的关系如下图：
-
-![1636196919724](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/190840-932080.png)
-
-在运行时，**MemoryStateBackend** 和 **FSStateBackend** 本地的 State 都保存在TaskManager的内存中，所以其底层都依赖于**HeapKeyedStateBackend**。HeapKeyedStateBackend面向Flink 引擎内部，使用者无须感知。
-
-**1、内存型  StateBackend**
-
-MemoryStateBackend，运行时所需的State数据全部保存在 **TaskManager JVM堆上内存中，**  KV类型的State、窗口算子的State 使用HashTable 来保存数据、触发器等。**执行检查点的时候，会把 State 的快照数据保存到****JobManager进程的内存中。
-
-MemoryStateBackend 可以使用**异步**的方式进行快照，（也可以同步），**推荐异步**，避免阻塞算子处理数据。
-
-基于内存的 Stateßackend 在生产环境下不建议使用，可以在本地开发调试测试 。
-
-**注意点如下 ：**
-
-1) State 存储在 JobManager 的内存中.受限于 JobManager的内存大小。 
-
-2) 每个 State默认5MB,可通过 MemoryStateBackend 构造函数调整 
-
-3) 每个 Stale 不能超过 Akka Frame 大小。
-
-**2、文件型 StateBackend**
-
-FSStateBackend，运行时所需的State数据全部保存在 **TaskManager 的内存中，** **执行检查点的时候，会把 State 的快照数据保存到****配置的文件系统中。
-
-可以是分布式或者本地文件系统，路径如：
-
-HDFS路径：`“hdfs://namenode:40010/flink/checkpoints”`
-
-本地路径：`“file:///data/flink/checkpoints”。`
-
-FSStateBackend **适用于处理大状态、长窗口、或者大键值状态的有状态处理任务**。
-
-**注意点如下 ：**
-
-1) State 数据首先被存在 TaskManager 的内存中。 
-
-2) State大小不能超过TM内存。
-
-3) TM异步将State数据写入外部存储。
-
-**MemoryStateBackend 和FSStateBackend 都依赖于HeapKeyedStateBackend，HeapKeyedStateBackend 使用 State存储数据。**
-
-**3、RocksDBStateBackend**
-
-RocksDBStateBackend 跟内存型和文件型都不同 。
-
-RocksDBStateBackend **使用****嵌入式的本地数据库 RocksDB** 将流计算数据状态**存储在本地磁盘中**，不会受限于TaskManager 的内存大小，在执行检查点的时候，再将整个 RocksDB 中保存的State数据全量或者增量持久化到配置的文件系统中，
-
-在 JobManager 内存中会存储少量的检查点元数据。RocksDB克服了State受内存限制的问题，同时又能够持久化到远端文件系统中，比较适合在生产中使用。
-
-**缺点：**
-
-RocksDBStateBackend 相比基于内存的StateBackend，访问State的成本高很多，可能导致数据流的吞吐量剧烈下降，甚至可能**降低为原来的 1/10**。
-
-**适用场景**
-
-1）最适合用于处理大状态、长窗口，或大键值状态的有状态处理任务。 
-
-2）RocksDBStateBackend 非常适合用于高可用方案。 
-
-3)  RocksDBStateBackend 是**目前唯一支持增量检查点的后端。** 增量检查点非常适用于超 大状态的场景。 
-
-**注意点** 
-
-1）总 State 大小仅限于磁盘大小，不受内存限制 
-
-2）**RocksDBStateBackend** 也需要配置外部文件系统，集中保存State 。
-
-3）RocksDB的 JNI API **基于 byte 数组**，单 key 和单 Value 的大小不能超过 8 字节
-
-4）对于使用具有合并操作状态的应用程序，如ListState ，随着时间可能会累积到超过 2*31次方字节大小，这将会导致在接下来的查询中失败。
-
-#### 27、Flink 状态如何持久化？
-
-首选，Flink的状态最终都要持久化到第三方存储中，确保集群故障或者作业挂掉后能够恢复。
-
-RocksDBStateBackend 持久化策略有两种：
-
-**全量持久化策略** RocksFullSnapshotStrategy
-
-**增量持久化策略** RocksIncementalSnapshotStrategy
-
-**1、全量持久化策略**
-
-每次将全量的State写入到状态存储中（HDFS）。内存型、文件型、RocksDB类型的StataBackend 都支持全量持久化策略。
-
-![1636197047284](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/191047-603915.png)
-
-快照保存策略类体系
-
-在执行持久化策略的时候，使用异步机制，每个算子启动1个独立的线程，将自身的状态写入分布式存储可靠存储中。在做持久化的过程中，状态可能会被持续修改，
-
-**基于内存的状态后端**使用 CopyOnWriteStateTable 来保证线程安全，RocksDBStateBackend则使用RocksDB的快照机制，使用快照来保证线程安全。
-
-**2、增量持久化策略**
-
-增量持久化就是每次持久化增量的State，**只有RocksDBStateBackend 支持增量持久化。**
-
-**Flink 增量式的检查点以 RocksDB为基础**， RocksDB是一个基于LSM-Tree的KV存储。新的数据保存在内存中， 称为**memtable**。如果Key相同，后到的数据将覆盖之前的数据，一旦memtable写满了，RocksDB就会将数据压缩并写入磁盘。memtable的数据持久化到磁盘后，就变成了不可变的 **sstable**。
-
-**因为 sstable 是不可变的，**Flink对比前一个检查点创建和删除的RocksDB sstable 文件就可以计算出状态有哪些发生改变。
-
-为了确保 sstable 是不可变的，**Flink 会在RocksDB 触发刷新操作**，**强制将 memtable 刷新到磁盘上 。**在Flink 执行检查点时，会将新的sstable 持久化到HDFS中，同时保留引用。这个过程中 Flink 并不会持久化本地所有的sstable，因为本地的一部分历史sstable 在之前的检查点中已经持久化到存储中了，只需增加对 sstable文件的引用次数就可以。 
-
-**RocksDB会在后台合并 sstable 并删除其中重复的数据**。然后在RocksDB删除原来的 sstable，替换成新合成的 sstable.。**新的 sstable 包含了被删除的 sstable中的信息，**通过合并历史的sstable会合并成一个新的 sstable，并删除这些历史sstable. 可以减少检查点的历史文件，避免大量小文件的产生。
-
-#### 28、Flink 状态过期后如何清理？
-
-**1、DataStream中状态过期**
-
-可以对DataStream中的每一个状态设置 **清理策略 StateTtlConfig**，可以设置的内容如下：
-
-- 过期时间：超过多长时间未访问，视为State过期，类似于缓存。
-- 过期时间更新策略：创建和写时更新、读取和写时更新。
-- State可见性：未清理可用，超时则不可用。
-
-**2、Flink SQL中状态过期**
-
-Flink SQL 一般在流Join、聚合类场景使用State，如果State不定时清理，则导致State过多，内存溢出。清理策略配置如下：
-
-```JAVA
-StreamQueryConfig qConfig = ...//设置过期时间为 min = 12小时 ，max = 24小时qConfig.withIdleStateRetentionTime(Time.hours(12),Time.hours(24));
-```
-
-![1636197110500](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/191151-773497.png)
-
-#### 29、Flink 通过什么实现**可靠的容错机制**。
-
-Flink 使用 轻量级分布式快照，设计检查点（**checkpoint**）实现可靠容错。
-
-> 30、什么是Checkpoin检查点？
-
-**Checkpoint**被叫做**检查点**，是Flink实现容错机制最核心的功能，是Flink可靠性的基石，它能够根据配置周期性地基于Stream中各个Operator的**状态**来生成Snapshot**快照**，从而将这些状态数据定期持久化存储下来，当Flink程序一旦意外崩溃时，重新运行程序时可以有选择地从这些Snapshot进行恢复，从而修正因为故障带来的程序数据状态中断。
-
-Flink的checkpoint机制原理来自“**Chandy-Lamport algorithm**”算法
-
-**注意:区分State和Checkpoint**
-
-**1.State:**
-
-一般指一个具体的Task/Operator的状态(operator的状态表示一些算子在运行的过程中会产生的一些中间结果)
-
-State数据默认保存在Java的堆内存中/TaskManage节点的内存中
-
-State可以被记录，在失败的情况下数据还可以恢复。
-
-**2.Checkpoint:**
-
-​       表示了一个FlinkJob在一个特定时刻的一份全局状态快照，即包含了所有Task/Operator的状态
-
-​       可以理解为Checkpoint是把State数据定时持久化存储了
-
-比如KafkaConsumer算子中维护的Offset状态,当任务重新恢复的时候可以从Checkpoint中获取。
-
-
-
-> 31、什么是Savepoin保存点？
-
-**保存点**在 Flink 中叫作 **Savepoint**. 是基于Flink 检查点机制的应用完整快照备份机制. 用来保存状态 可以在另一个集群或者另一个时间点.从保存的状态中将作业恢复回来。适用 于应用升级、集群迁移、 Flink 集群版本更新、A/B测试以及假定场景、暂停和重启、归档等场景。保存点可以视为一个(算子 ID -> State) 的Map，对于每一个有状态的算子，Key是算子ID，Value是算子State。
-
-> 32、什么是CheckpointCoordinator检查点协调器？
-
-Flink中检查点协调器叫作 **CheckpointCoordinator**，负责协调 Flink 算子的 State 的分布式快照。当触发快照的时候，CheckpointCoordinator向 Source 算子中注入**Barrier**消息 ，然后等待所有的Task通知检查点确认完成，同时持有所有 Task 在确认完成消息中上报的State句柄。
-
-
-
-> 33、Checkpoint中保存的是什么信息？
-
-检查点里面到底保存着什么信息呢？我们以flink消费kafka数据wordcount为例：
-
-
-
-1、我们从Kafka读取到一条条的日志，从日志中解析出app_id，然后将统计的结果放到内存中一个Map集合，app_id做为key，对应的pv做为value，每次只需要将相应app_id 的pv值+1后put到Map中即可；
-
-2、kafka topic：test；
-
-3、flink运算流程如下：
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MS3ZsmzMtdMIMxYj0ZXuknjPSYtFb0WJDDgaNf3ayDoLVM7Zq7cDd1zV7y2YKV8XGgNo2YS7U4aQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-kafka topic有且只有一个分区
-
-假设kafka的topic-test只有一个分区，flink的Source task记录了当前消费到kafka test topic的所有partition的offset
-
-- 
-
-```
-例：（0，1000）表示0号partition目前消费到offset为1000的数据
-```
-
-**Flink的pv task记录了当前计算的各app的pv值，为了方便讲解，我这里有两个app：app1、app2**
-
-- 
-- 
-- 
-- 
-
-```
-例：（app1，50000）（app2，10000）表示app1当前pv值为50000表示app2当前pv值为10000每来一条数据，只需要确定相应app_id，将相应的value值+1后put到map中即可；
-```
-
-
-
-该案例中，CheckPoint保存的其实就是**第n次CheckPoint消费的offset信息和各app的pv值信息**，记录一下发生CheckPoint当前的状态信息，并将该状态信息保存到相应的状态后端。图下代码：（**注：状态后端是保存状态的地方，决定状态如何保存，如何保障状态高可用**，我们只需要知道，我们能从状态后端拿到offset信息和pv信息即可。状态后端必须是高可用的，否则我们的状态后端经常出现故障，会导致无法通过checkpoint来恢复我们的应用程序）。
-
-- 
-- 
-- 
-- 
-
-```
-chk-100offset：（0，1000）pv：（app1，50000）（app2，10000）该状态信息表示第100次CheckPoint的时候， partition 0 offset消费到了1000，pv统计
-```
-
-> 34、当作业失败后，检查点如何恢复作业？
-
-Flink提供了 **应用自动恢复机制** 和 **手动作业恢复机制**。
-
-
-
-**应用自动恢复机制：**
-
-
-
-Flink设置有作业失败重启策略，包含三种：
-
-**1、定期恢复策略：fixed-delay**
-
-固定延迟重启策略会尝试一个给定的次数来重启Job，如果超过最大的重启次数，Job最终将失败，在连续两次重启尝试之间，重启策略会等待一个固定时间，默认Integer.MAX_VALUE次
-
-**2、失败比率策略：failure-rate**
-
-失败率重启策略在job失败后重启，但是超过失败率后，Job会最终被认定失败，在两个连续的重启尝试之间，重启策略会等待一个固定的时间。
-
-
-
-**3、直接失败策略：None   失败不重启**
-
-
-
-**手动作业恢复机制**。
-
-
-
-因为Flink检查点目录分别对应的是JobId，每通过flink run 方式/页面提交方式恢复都会重新生成 jobId，Flink 提供了在启动之时通过设置 **-s** .参数指定检查点目录的功能，让新的 jobld 读取该检查点元文件信息和状态信息，从而达到指定时间节点启动作业的目的。
-
-启动方式如下：
-
-- 
-
-```
-/bin/flink -s /flink/checkpoints/03112312a12398740a87393/chk-50/_metadata
-```
-
-
-
-> 35、当作业失败后，从保存点如何恢复作业？
-
-从保存点恢复作业并不简单，尤其是在作业变更(如修改逻辑、修复 bug) 的情况下， 需要考虑如下几点:
-
-**（1）算子的顺序改变** 
-
-如果对应的 UID 没变，则可以恢复，如果对应的 UID 变了恢复失败。
-
-**（2）作业中添加了新的算子** 
-
-如果是无状态算子，没有影响，可以正常恢复，如果是有状态的算子，跟无状态的算子 一样处理。
-
-**（3）从作业中删除了一个有状态的算子**
-
-默认需要恢复保存点中所记录的所有算子的状态，如果删除了一个有状态的算子，从保存点回复的时候被删除的OperatorID找不到，所以会报错 可以通过在命令中添加 
-
--- allowNonReStoredSlale (short: -n ）跳过无法恢复的算子 。
-
-**（4）添加和删除无状态的算子**
-
-如果手动设置了 UID 则可以恢复，保存点中不记录无状态的算子 如果是自动分配的 UID ，那么有状态算子的可能会变( Flink 一个单调递增的计数器生成 UID，DAG 改版，计数器极有可能会变) 很有可能恢复失败。
-
-
-
-> 36、Flink如何实现轻量级异步分布式快照？
-
-要实现分布式快照，最关键的是能够将数据流切分。**Flink 中使用 Barrier (屏障)来切分数据 流。** Barrierr 会周期性地注入数据流中，作为数据流的一部分，从上游到下游被算子处理。Barrier 会严格保证顺序，不会超过其前边的数据。Barrier 将记录分割成记录集，**两个 Barrier 之间的数据流中的数据隶属于同一个检查点。每一个 Barrier 都携带一个其所属快照的 ID 编号。**Barrier 随着数据向下流动，不会打断数据流，因此非常轻量。 在一个数据流中，可能会存在多个隶属于不同快照的 Barrier ，并发异步地执行分布式快照，如下图所示：
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MS3ZsmzMtdMIMxYj0ZXuknia9oiaXmsvLa9E24fHOcFVhLZGQwEEvSUfeHDKZorFPiaHk8t5mibuFUpA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-Barrier 会在数据流源头被注人并行数据流中。**Barrier n所在的位置就是恢复时数据重新处理的起始位置。** 例如，在Kafka中，这个位置就是最后一个记录在分区内的偏移量 ( offset) ，作业恢复时，会根据这个位置从这个偏移量之后向 kafka 请求数据 这个偏移量就是State中保存的内容之一。
-
-
-
-Barrier 接着向下游传递。当一个非数据源算子从所有的输入流中收到了快照 n 的Barrier时，该算子就会对自己的 State 保存快照，并向自己的下游 **广播 发送**快照 n 的 Barrier。一旦Sink 算子接收到 Barrier ，有两种情况：
-
-
-
-**（1）如果****是引擎内严格一次处理保证，**当 Sink 算子已经收到了所有上游的 Barrie  n 时， Sink 算子对自己的 State 进行快照，然后通知检查点协调器( CheckpointCoordinator) 。当所有 的算子都向检查点协调器汇报成功之后，检查点协调器向所有的算子确认本次快照完成。
-
-**（2）如果是端到端严格一次处理保证，**当 Sink 算子已经收到了所有上游的 Barrie n 时， Sink 算子对自己的 State 进行快照，**并预提交事务（两阶段提交的第一阶段）**，再通知检查点协调器( CheckpointCoordinator) ，检查点协调器向所有的算子确认本次快照完成，Sink 算子**提交事务（两阶段提交的第二阶段）**，本次事务完成。
-
-
-
-**我们接着** **33** **的案例来具体说一下如何执行分布式快照：**
-
-
-
-**对应到pv案例中就是**，Source Task接收到JobManager的编号为**chk-100（从最近一次恢复）**的CheckPoint触发请求后，发现自己恰好接收到kafka offset（0，1000）处的数据，所以会往offset（0，1000）数据之后offset（0，1001）数据之前安插一个barrier，然后自己开始做快照，也就是将offset（0，1000）保存到状态后端chk-100中。然后barrier接着往下游发送，当统计pv的task接收到barrier后，也会暂停处理数据，将自己内存中保存的pv信息（app1，50000）（app2，10000）保存到状态后端chk-100中。OK，flink大概就是通过这个原理来保存快照的;
-
-统计pv的task接收到barrier，就意味着barrier之前的数据都处理了，所以说，不会出现丢数据的情况。
-
-> 37、什么是Barrier对齐？
-
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/o1IgHWNdvFeUBTXx4ewKsVHDADKEibichrAcN6QztFYO6bm59aKJtj5e7dV3UYiaXPib6ECYjyfvPdlesvcLgm0d6w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MS3ZsmzMtdMIMxYj0ZXuknlFYKElZXwJhtY3qQDyF0jDyz1cicKicKRka01djmOXcmY1x0s7197XXQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-​                      
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MS3ZsmzMtdMIMxYj0ZXukne2UWIKbk5icTU1oJOSQfmhYD3Iwkzh4h7CkiaGwUsLSPxVNbYhhoqic7Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-一旦Operator从输入流接收到CheckPoint barrier n，它就不能处理来自该流的任何数据记录，直到它从其他所有输入接收到barrier n为止。否则，它会混合属于快照n的记录和属于快照n + 1的记录；
-
-**如上图所示：**
-
-图1，算子收到数字流的Barrier,字母流对应的barrier尚未到达
-
-图2，算子收到数字流的Barrier,会继续从数字流中接收数据，但这些流只能被搁置，记录不能被处理，而是放入缓存中，等待字母流 Barrier到达。在字母流到达前， 1，2，3数据已经被缓存。
-
-图3，字母流到达，算子开始对齐State进行异步快照，并将Barrier向下游广播，并不等待快照执行完毕。
-
-图4，算子做异步快照，首先处理缓存中积压数据，然后再从输入通道中获取数据。
-
-
-
-> 38、什么是Barrier不对齐？
-
-checkpoint 是要等到所有的barrier全部都到才算完成
-
-上述图2中，当还有其他输入流的barrier还没有到达时，会把已到达的barrier之后的数据1、2、3搁置在缓冲区，等待其他流的barrier到达后才能处理。
-
-
-
-**barrier不对齐：****就是指当还有其他流的barrier还没到达时，为了不影响性能，也不用理会，直接处理barrier之后的数据。等到所有流的barrier的都到达后，就可以对该Operator做CheckPoint了；**
-
-> 39、为什么要进行barrier对齐？不对齐到底行不行？
-
-答：Exactly Once时必须barrier对齐，如果barrier不对齐就变成了At Least Once；
-
-
-
-**CheckPoint的目的就是为了保存快照**，如果不对齐，那么在chk-100快照之前，已经处理了一些chk-100 对应的offset之后的数据，当程序从chk-100恢复任务时，chk-100对应的offset之后的数据还会被处理一次，所以就出现了重复消费。
-
-> 40、Flink支持Exactly-Once语义，那什么是Exactly-Once？
-
-Exactly-Once语义 : 指**端到端**的一致性，从**数据读取**、**引擎计算**、**写入外部存储的**整个过程中，**即使机器或软件出现故障，**都确保数据仅处理一次，不会重复、也不会丢失。
-
-
-
-> 41、要实现Exactly-Once,需具备什么条件？
+#### 41、要实现Exactly-Once,需具备什么条件？
 
 流系统要实现Exactly-Once，需要保证上游 Source 层、中间计算层和下游 Sink 层三部分同时满足**端到端严格一次处理，如下图：**
 
-
-
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
-
-Flink端到端严格一次处理
-
-
+![1636786126215](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/144847-531017.png)
 
 **Source端：**数据从上游进入Flink，必须保证消息严格一次消费。同时Source 端必须满足可重放（replay）。否则 Flink 计算层收到消息后未计算，却发生 failure 而重启，消息就会丢失。
 
-
-
 **Flink计算层：**利用 Checkpoint 机制，把状态数据定期持久化存储下来，Flink程序一旦发生故障的时候，可以选择状态点恢复，避免数据的丢失、重复。
 
-
-
-**Sink端：**Flink将处理完的数据发送到Sink端时，通过 **两阶段提交协议 ，**即 TwoPhaseCommitSinkFunction 函数。该 SinkFunction 提取并封装了两阶段提交协议中的公共逻辑，保证Flink 发送Sink端时实现严格一次处理语义。   **同时：**Sink端必须支持**事务机制**，能够进行数据**回滚**或者满足**幂等性。**
-
-
+**Sink端**:Flink将处理完的数据发送到Sink端时，通过 **两阶段提交协议 ，**即 TwoPhaseCommitSinkFunction 函数。该 SinkFunction 提取并封装了两阶段提交协议中的公共逻辑，保证Flink 发送Sink端时实现严格一次处理语义。   **同时：**Sink端必须支持**事务机制**，能够进行数据**回滚**或者满足**幂等性。**
 
 **回滚机制：**即当作业失败后，能够将部分写入的结果回滚到之前写入的状态。
 
-
-
 **幂等性：**就是一个相同的操作，无论重复多少次，造成的结果和只操作一次相等。即当作业失败后，写入部分结果，但是当重新写入全部结果时，不会带来负面结果，重复写入不会带来错误结果。
 
+#### 42、什么是两阶段提交协议？
 
-
-> 42、什么是两阶段提交协议？
-
-**两阶段提交协议（Two -Phase Commit，2PC）是解决分布式事务问题最常用的方法，它可以保证在分布式事务中，****要么所有参与进程都提交事务，要么都取消****，即实现ACID中的 A（原子性）。**
-
-
+**两阶段提交协议（Two -Phase Commit，2PC）是解决分布式事务问题最常用的方法，它可以保证在分布式事务中，**要么所有参与进程都提交事务，要么都取消**，即实现ACID中的 A（原子性）。**
 
 两阶段提交协议中 有两个重要角色**，协调者（Coordinator）**和 **参与者（Participant）**,其中协调者只有一个，起到分布式事务的协调管理作用，参与者有多个。
 
-
 两阶段提交阶段分为两个阶段：**投票阶段（Voting）**和 **提交阶段（Commit）。**
 
-
-
 **投票阶段：**
-
-
 
 （1）协调者向所有参与者**发送 prepare 请求**和事务内容，询问是否可以准备事务提交，等待参与者的相应。
 
@@ -1142,11 +111,7 @@ Flink端到端严格一次处理
 
 （3）参与者向协调者返回事务操作的执行结果，执行成功返回yes，失败返回no。
 
-
-
 **提交阶段：**
-
-
 
 分为成功与失败两种情况。
 
@@ -1156,9 +121,7 @@ Flink端到端严格一次处理
 - 参与者收到 commit 请求后，将事务真正地提交上去，并释放占用的事务资源，并向协调者返回 ack 。
 - 协调者收到所有参与者的 ack 消息，事务成功完成，如下图：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQm9buQaO13038n3oPvdicaCllSeC97I31dVicibZvhvUwpictHHmylUET97g/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmicddqLDhGJaribNDrGtFzAdUfsUtNquJqCcUp9oHpB9918QG9QEmWlOQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636786355834](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/145238-801142.png)
 
 若有参与者返回 no 或者超时未返回，说明事务中断，需要回滚：
 
@@ -1166,30 +129,19 @@ Flink端到端严格一次处理
 - 参与者收到rollback请求后，根据undo日志回滚到事务执行前的状态，释放占用的事务资源，并向协调者返回ack。
 - 协调者收到所有参与者的ack消息，事务回滚完成。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmNtJwdtL6HicL9feSUJRjb3OUxa84q2UuTXYeA5KeiaXT1djYDzmQEBJw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636786396061](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/145318-916970.png)
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmEwXzImXJwssmH5QP9zYptJKuLRAN04FX8STbQUwl8Ze6PnV7UV1YsQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-> 43、Flink 如何保证 Exactly-Once 语义？
+#### 43、Flink 如何保证 Exactly-Once 语义？
 
 Flink通过两阶段提交协议来保证Exactly-Once语义。
 
-
-
 **对于Source端：**Source端严格一次处理比较简单，因为数据要进入Flink 中，所以Flink 只需要保存消费数据的偏移量 （offset）即可。如果Source端为 kafka，Flink 将 Kafka Consumer 作为 Source，可以将偏移量保存下来，如果后续任务出现了故障，恢复的时候可以由连接器重置偏移量，重新消费数据，保证一致性。
-
-
 
 **对于 Sink 端：**Sink 端是最复杂的，因为数据是落地到其他系统上的，数据一旦离开 Flink 之后，Flink 就监控不到这些数据了，所以严格一次处理语义必须也要应用于 Flink 写入数据的外部系统，**故这些外部系统必须提供一种手段允许提交或回滚这些写入操作**，同时还要保证与 Flink Checkpoint 能够协调使用（**Kafka 0.11 版本已经实现精确一次处理语义**）。
 
-
 我们以 **Kafka - Flink -Kafka** 为例 说明如何保证Exactly-Once语义。
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmhiaHuNPJkQGJG4ODOLktPpPRoo3QXY1QFmgffRV8RjV8snefv2K6bzg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636786778053](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/145939-695951.png)
 
 如上图所示：Flink作业包含以下算子。
 
@@ -1199,75 +151,59 @@ Flink通过两阶段提交协议来保证Exactly-Once语义。
 
 （3）一个Sink算子，将结果写会到Kafka（即kafkaProducer）
 
-
-
 Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交（Commit）阶段保证端到端严格一次。**
 
 **（1）预提交阶段**
 
 **1、当Checkpoint 启动时，进入预提交阶段**，JobManager 向Source Task 注入检查点分界线（CheckpointBarrier）,Source Task 将 CheckpointBarrier 插入数据流，向下游广播开启本次快照，如下图所示：
 
+![1636786863780](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150104-39956.png)
 
-
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
-
-预处理阶段：  Checkpoint 启动
-
-**2、Source 端：****Flink Data Source 负责保存 KafkaTopic 的 offset偏移量**，当 Checkpoint 成功时 Flink 负责提交这些写入，否则就终止取消掉它们，当 Checkpoint 完成位移保存，它会将 checkpoint barrier（检查点分界线） 传给下一个 Operator，然后每个算子会对当前的状态做个快照，保存到**状态后端（State Backend）**。
+**2、Source 端：***Flink Data Source 负责保存 KafkaTopic 的 offset偏移量**，当 Checkpoint 成功时 Flink 负责提交这些写入，否则就终止取消掉它们，当 Checkpoint 完成位移保存，它会将 checkpoint barrier（检查点分界线） 传给下一个 Operator，然后每个算子会对当前的状态做个快照，保存到**状态后端（State Backend）。
 
 **对于 Source 任务而言，就会把当前的 offset 作为状态保存起来。下次从 Checkpoint 恢复时，Source 任务可以重新提交偏移量，从上次保存的位置开始重新消费数据，如下图所示：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmlIFIYiaGYKYnPRyYbRQUbUQmkSzJjK3oBWAiaznTbMOkm709gd72DS4w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636786926759](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150220-795312.png)
 
 预处理阶段：checkpoint barrier传递 及 offset 保存
 
 **3、Slink 端：**从 Source 端开始，每个内部的 transformation 任务遇到 checkpoint barrier（检查点分界线）时，都会把状态存到 Checkpoint 里。数据处理完毕到 Sink 端时，Sink 任务首先把数据写入外部 Kafka，**这些数据都属于预提交的事务（还不能被消费）**，**此时的 Pre-commit 预提交阶段下Data Sink 在保存状态到状态后端的同时还必须预提交它的外部事务，**如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmWX5n11eqricV4IQG5QCiabU7P1XaPftBuGaYibgXsiaY6E242R9uryUGrA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636786988260](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150310-459870.png)
 
 预处理阶段：预提交到外部系统
 
 **（2）提交阶段**
 
-**4、当所有算子任务的快照完成**（所有创建的快照都被视为是 Checkpoint 的一部分），**也就是这次的 Checkpoint 完成时**，**JobManager 会向所有任务发通知，确认这次 Checkpoint 完成，此时 Pre-commit 预提交阶段才算完成**。才正式到两阶段提交协议的**第二个阶段：****commit 阶段**。该阶段中 JobManager 会为应用中每个 Operator 发起 Checkpoint 已完成的回调逻辑。
-
-
+**4、当所有算子任务的快照完成**（所有创建的快照都被视为是 Checkpoint 的一部分），**也就是这次的 Checkpoint 完成时**，**JobManager 会向所有任务发通知，确认这次 Checkpoint 完成，此时 Pre-commit 预提交阶段才算完成**。才正式到两阶段提交协议的**第二个阶段：**commit 阶段。该阶段中 JobManager 会为应用中每个 Operator 发起 Checkpoint 已完成的回调逻辑。
 
 本例中的 Data Source 和窗口操作无外部状态，因此在该阶段，这两个 Opeartor 无需执行任何逻辑，**但是 Data Sink 是有外部状态的，此时我们必须提交外部事务**，当 Sink 任务收到确认通知，就会正式提交之前的事务，Kafka 中未确认的数据就改为“已确认”，数据就真正可以被消费了，如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmajNJ6wia4Tib8kzoXwaelwJRVmL0bXRgR4QmaXXKxwrDLqlCl0oMoquQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636787117421](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150519-76449.png)
 
 提交阶段：数据精准被消费
 
-注：Flink 由 JobManager 协调各个 TaskManager 进行 Checkpoint 存储，Checkpoint 保存在 StateBackend（状态后端） 中，默认 StateBackend 是内存级的，也可以改为文件级的进行持久化保存。
+> 注：Flink 由 JobManager 协调各个 TaskManager 进行 Checkpoint 存储，Checkpoint 保存在 StateBackend（状态后端） 中，默认 StateBackend 是内存级的，也可以改为文件级的进行持久化保存。
 
-> 44、数的很好，很清楚，那你对Flink 端到端 严格一次Exactly-Once 语义做个总结
+#### 44、对Flink 端到端 严格一次Exactly-Once 语义做个总结
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8N7XsMqPjpLr6lrjbiaenJQmPWAr0UFoMKhAJCBCHfJVM1yu7jkyZrQotQggAOCvgVJRP3IxytHPag/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636787214188](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094713-401934.png)
 
-如果觉得阿周讲解的知识点还满意的话，请关注公众号：**3分钟秒懂大数据**，获取更多，更全面的技术博文。并加博主微信：**threeknowbigdata，**拉你进大数据交流群。
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MS3ZsmzMtdMIMxYj0ZXuknFsp5ic4phuhV8VibbOOKMnMurNPibvNRILGaTXEmiavHof6xBxAcGQ0R9w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-> 45、Flink广播机制了解吗？
+#### 45、Flink广播机制了解吗？
 
 如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjicxLwreaRRE5MY1L4sGaLzwFR6KM2gicZpJLj9fRvn7rhJibJ4eM8oswQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636787262956](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150744-847457.png)
 
 （1）从图中可以理解 **广播** 就是一个**公共的共享变量，**广播变量是发给**TaskManager的内存中，**所以广播变量不应该太大，将一个数据集广播后，不同的**Task**都可以在节点上获取到，每个节点只存一份。 如果不使用广播，每一个Task都会拷贝一份数据集，造成内存资源浪费  。
 
-
-
-> 46、Flink反压了解吗？
+#### 46、Flink反压了解吗？
 
 反压（backpressure）是实时计算应用开发中，特别是流式计算中，十分常见的问题。**反压**意味着数据管道中某个节点成为瓶颈，**下游处理速率** **跟不上** **上游发送数据的速率**，而需要对上游进行限速。由于实时计算应用通常使用消息队列来进行生产端和消费端的解耦，消费端数据源是 pull-based 的，所以反压通常是从某个节点传导至数据源并降低数据源（比如 Kafka consumer）的摄入速率。
 
 简单来说就是**下游处理速率** **跟不上** **上游发送数据的速率**，下游来不及消费，导致队列被占满后，上游的生产会被阻塞，最终导致数据源的摄入被阻塞。
 
-> 47、Flink反压的影响有哪些？
+#### 47、Flink反压的影响有哪些？
 
 反压会影响到两项指标: **checkpoint 时长**和 **state 大小**
 
@@ -1275,11 +211,9 @@ Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交
 
 （2）后者是因为为保证 EOS（Exactly-Once-Semantics，准确一次），对于有两个以上输入管道的 Operator，checkpoint barrier 需要对齐（Alignment），接受到较快的输入管道的 barrier 后，它后面数据会被缓存起来但不处理，直到较慢的输入管道的 barrier 也到达，这些被缓存的数据会被放到state 里面，导致 checkpoint 变大。
 
-
-
 **这两个影响对于生产环境的作业来说是十分危险的**，因为 checkpoint 是保证数据一致性的关键，checkpoint 时间变长有可能导致 checkpoint 超时失败，而 state 大小同样可能拖慢 checkpoint 甚至导致 OOM （使用 Heap-based StateBackend）或者物理内存使用超出容器资源（使用 RocksDBStateBackend）的稳定性问题。
 
-> 48、Flink反压如何解决？
+#### 48、Flink反压如何解决？
 
 Flink社区提出了 FLIP-76: Unaligned Checkpoints[4] 来解耦反压和 checkpoint。
 
@@ -1294,9 +228,7 @@ Flink社区提出了 FLIP-76: Unaligned Checkpoints[4] 来解耦反压和 checkp
 
 Flink Web UI 的反压监控提供了 SubTask 级别的反压监控，原理是通过周期性对 Task 线程的栈信息采样，得到线程被阻塞在请求 Buffer（意味着被下游队列阻塞）的频率来判断该节点是否处于反压状态。默认配置下，这个频率在 0.1 以下则为 OK，0.1 至 0.5 为 LOW，而超过 0.5 则为 HIGH。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjial4qibpZTql4SORxKDCfD4rVLy3OFO2uDcwunVBtrXxSDbC2FwMiarxw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636787557625](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151239-298269.png)
 
 **（2）Task Metrics**
 
@@ -1306,15 +238,15 @@ Flink 提供的 Task Metrics 是更好的反压监控手段
 
 如果一个 Subtask 的接受端 Buffer 占用很高，则表明它将反压传导至上游。
 
-> 49、Flink支持的数据类型有哪些？
+#### 49、Flink支持的数据类型有哪些？
 
 Flink支持的数据类型如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjckLFEtM7u9GbrJAgOb6GxNb8ZKgsbBtiaHqia5fen2YKUI0HDFhEm8vQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151312-999578.png)
 
 从图中可以看到 Flink 类型可以分为基础类型（Basic）、数组（Arrays）、复合类型（Composite）、辅助类型（Auxiliary）、泛型和其它类型（Generic）。Flink 支持任意的 Java 或是 Scala 类型。 
 
-> 50、Flink如何进行序列和反序列化的？
+#### 50、Flink如何进行序列和反序列化的？
 
 所谓序列化和反序列化的含义：
 
@@ -1324,21 +256,19 @@ Flink支持的数据类型如下图所示：
 
 **TypeInformation 是 Flink 类型系统的核心类** 
 
-**在Flink中，当数据需要进行序列化时，会使用TypeInformation的****生成序列化器****接口调用一个 createSerialize() 方法，****创建出TypeSerializer，****TypeSerializer****提供了序列化和反序列化能力。如下图所示：Flink 的序列化过程**
+**在Flink中，当数据需要进行序列化时，会使用TypeInformation的**生成序列化器接口调用一个 createSerialize() 方法，创建出TypeSerializer，TypeSerializer提供了序列化和反序列化能力。如下图所示：Flink 的序列化过程:
 
+![1636787880390](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151803-512600.png)
 
+**对于大多数数据类型** **Flink 可以自动生成对应的序列化器***，能非常高效地对数据集进行序列化和反序列化 ，如下图：
 
-**![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)**
-
-**对于大多数数据类型** **Flink 可以自动生成对应的序列化器****，能非常高效地对数据集进行序列化和反序列化 ，****如下图：**
-
-**![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjbn6qdria0Jd1r7lk7xbHdsvn3DpjywoB40dh2ialeEWCrlQyBic3zkmDA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)**
+![1636787916777](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151839-161760.png)
 
 **比如，BasicTypeInfo、WritableTypeIno ，但针对 GenericTypeInfo 类型，Flink 会使用 Kyro 进行序列化和反序列化。其中，Tuple、Pojo 和 CaseClass 类型是复合类型，它们可能嵌套一个或者多个数据类型。在这种情况下，它们的序列化器同样是复合的。它们会将内嵌类型的序列化委托给对应类型的序列化器。**
 
 **通过一个案例介绍Flink序列化和反序列化：**
 
-**![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjKycmynxZ48SBoT7tGQWduKPgGo3eN7VtRsLVTstA4vxAU3r9bL8GJg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)**
+![1636787973149](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151935-647474.png)
 
 **如上图所示，当创建一个Tuple 3 对象时，包含三个层面，一是 int 类型，一是 double 类型，还有一个是 Person。Person对象包含两个字段，一是 int 型的 ID，另一个是 String 类型的 name，**
 
@@ -1346,15 +276,11 @@ Flink支持的数据类型如下图所示：
 
 **（2）Person 类会被当成一个 Pojo 对象来进行处理，PojoSerializer 序列化器会把一些属性信息使用一个字节存储起来。同样，其字段则采取相对应的序列化器进行相应序列化，在序列化完的结果中，可以看到所有的数据都是由 MemorySegment 去支持。** 
 
-
-
 **MemorySegment 具有什么作用呢？**
-
-
 
 **MemorySegment 在 Flink 中会将对象序列化到预分配的内存块上，它代表 1 个固定长度的内存，默认大小为 32 kb。MemorySegment 代表 Flink 中的一个最小的内存分配单元，相当于是 Java 的一个 byte 数组。每条记录都会以序列化的形式存储在一个或多个 MemorySegment 中。**
 
-> 51、为什么Flink使用自主内存而不用JVM内存管理？
+#### 51、为什么Flink使用自主内存而不用JVM内存管理？
 
 因为在内存中存储大量的数据 （包括缓存和高效处理）时，JVM会面临很多问题，包括如下：
 
@@ -1368,37 +294,33 @@ JVM 内存管理的不足：
 
 **4）缓存未命中问题。**CPU 进行计算的时候，是从 CPU 缓存中获取数据。现代体系的 CPU 会有多级缓存，而加载的时候是以 Cache Line 为单位加载。如果能够将对象连续存储， 这样就会大大降低 Cache Miss。使得 CPU 集中处理业务，而不是空转。
 
-> 52、那Flink自主内存是如何管理对象的？
+#### 52、那Flink自主内存是如何管理对象的？
 
 Flink 并不是将大量对象存在堆内存上，而是将对象都序列化到一个预分配的内存块上， 这个内存块叫做 **MemorySegment**，它代表了一段固定长度的内存（默认大小为 32KB），也 是 **Flink 中最小的内存分配单元**，并且提供了非常高效的读写方法，很多运算可以直接操作 二进制数据，不需要反序列化即可执行。每条记录都会以序列化的形式存储在一个或多个 MemorySegment 中。如果需要处理的数据多于可以保存在内存中的数据，Flink 的运算符会 将部分数据溢出到磁盘
 
-> 53、Flink内存模型介绍一下？
+#### 53、Flink内存模型介绍一下？
 
 Flink总体内存类图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjoaQX85ibqM9g60sFefcibx7YH4wbbXn2rq5CUQxNqfQGZpE4CcYhLA8g/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![图片](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/152344-726643.png)
 
 主要包含**JobManager内存模型**和 **TaskManager内存模型**
 
 **JobManager内存模型**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjz5EU34NEj0TXB8u9ibTnQiazAuib5d7PxbLmL1tGVEH1BYHGCMLKPgHOQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636788273015](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/152434-190395.png)
 
 在 1.10 中，Flink 统一了 TM 端的内存管理和配置，相应的在 1.11 中，Flink 进一步 对 JM 端的内存配置进行了修改，使它的选项和配置方式与 TM 端的配置方式保持一致。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjGcgspiatpjfLc7IPylzWuoHCoiazTgJE2DYziaFNd4iavL1OVNPeibFvKXw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636788359730](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/152602-251279.png)
 
 **TaskManager内存模型**
 
 **Flink 1.10** 对 TaskManager 的内存模型和 Flink 应用程序的配置选项进行了**重大更改**， 让用户能够更加严格地控制其内存开销。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjrU7yWMj3WlpWib2wZWvTvgMcWib56nbshMMos59VibVYHxiaYkiagY66ib7w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636788416502](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/152657-230534.png)
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjNquMecQcwB2bcA0BRacKpIgoPymjRy2PN8FXh1KoxtrAEZR9LJib67A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636788448121](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/152729-222409.png)
 
 **JVM Heap：JVM 堆上内存** 
 
@@ -1424,13 +346,9 @@ Flink总体内存类图如下：
 
 3）Network Memory：网络数据交换所使用的堆外内存大小，如网络数据交换 缓冲区 
 
-
-
 **2、Managed Memory：Flink 管理的堆外内存**，
 
 用于排序、哈希表、缓存中间结果及 RocksDB State Backend 的本地内存。
-
-
 
 **JVM specific memory：JVM 本身使用的内存** 
 
@@ -1456,87 +374,60 @@ taskmanager.memory.jvm-overhead.fraction=0.1
 
 Flink 使用内存：框架堆内外 + task 堆内外 + network + manage
 
-> 54、Flink如何进行资源管理的？
+#### 54、Flink如何进行资源管理的？
 
 Flink在资源管理上可以分为两层：**集群资源**和**自身资源**。集群资源支持主流的资源管理系统，如yarn、mesos、k8s等，也支持独立启动的standalone集群。自身资源涉及到每个子task的资源使用，由Flink自身维护。
 
-## **1 集群架构剖析**
 
- 
+### 1、集群架构剖析
 
 Flink的运行主要由 客户端、一个JobManager（后文简称JM）和 一个以上的TaskManager（简称TM或Worker）组成。
 
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+![1636853083770](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/092444-130287.png)
 
 **客户端**
 
-客户端主要用于提交任务到集群，在Session或Per Job模式中，客户端程序还要负责解析用户代码，生成JobGraph；在Application模式中，直接提交用户jar和执行参数即可。客户端一般支持两种模式：detached模式，客户端提交后自动退出。attached模式，客户端提交后阻塞等待任务执行完毕再退出。 
-
- 
+客户端主要用于提交任务到集群，在Session或Per Job模式中，客户端程序还要负责**解析用户代码，生成JobGraph**；在Application模式中，直接提交用户jar和执行参数即可。客户端一般支持两种模式：detached模式，客户端提交后自动退出。attached模式，客户端提交后阻塞等待任务执行完毕再退出。 
 
 **JobManager**
 
- 
-
 JM负责决定应用何时调度task，在task执行结束或失败时如何处理，协调检查点、故障恢复。该进程主要由下面几个部分组成：
 
-**1 ResourceManager**，负责资源的申请和释放、管理slot（Flink集群中最细粒度的资源管理单元）。Flink实现了多种RM的实现方案以适配多种资源管理框架，如yarn、mesos、k8s或standalone。在standalone模式下，RM只能分配slot，而不能启动新的TM。注意：这里所说的RM跟Yarn的RM不是一个东西，这里的RM是JM中的一个独立的服务。
+1. **ResourceManager**，负责资源的申请和释放、管理slot（Flink集群中最细粒度的资源管理单元）。Flink实现了多种RM的实现方案以适配多种资源管理框架，如yarn、mesos、k8s或standalone。在standalone模式下，RM只能分配slot，而不能启动新的TM。注意：这里所说的RM跟Yarn的RM不是一个东西，这里的RM是JM中的一个独立的服务。
 
-**2 Dispatcher**，提供Flink提交任务的rest接口，为每个提交的任务启动新的JobMaster，为所有的任务提供web ui，查询任务执行状态。
+2. **Dispatcher**，提供Flink提交任务的rest接口，为每个提交的任务启动新的JobMaster，为所有的任务提供web ui，查询任务执行状态。
 
-**3 JobMaster**，负责管理执行单个JobGraph，多个任务可以同时在一个集群中启动，每个都有自己的JobMaster。注意这里的JobMaster和JobManager的区别。
-
- 
+3. **JobMaster**，负责管理执行单个JobGraph，多个任务可以同时在一个集群中启动，每个都有自己的JobMaster。注意这里的JobMaster和JobManager的区别。
 
 **TaskManager**
 
- 
-
 TM也叫做worker，用于执行数据流图中的任务，缓存并交换数据。集群至少有一个TM，TM中最小的资源管理单元是Slot，每个Slot可以执行一个Task，因此TM中slot的数量就代表同时可以执行任务的数量。
 
-##  
-
-## 2 Slot与资源管理
-
- 
+### 2、Slot与资源管理
 
 每个TM是一个独立的JVM进程，内部基于独立的线程执行一个或多个任务。TM为了控制每个任务的执行资源，使用task slot来进行管理。每个task slot代表TM中的一部分固定的资源，比如一个TM有3个slot，每个slot将会得到TM的1/3内存资源。不同任务之间不会进行资源的抢占，注意GPU目前没有进行隔离，目前slot只能划分内存资源。
 
- 
-
 比如下面的数据流图，在扩展成并行流图后，同一的task可能分拆成多个任务并行在集群中执行。操作链可以把多个不同的任务进行合并，从而支持在一个线程中先后执行多个任务，无需频繁释放申请线程。同时操作链还可以统一缓存数据，增加数据处理吞吐量，降低处理延迟。
-
- 
 
 在Flink中，想要不同子任务合并需要满足几个条件：下游节点的入边是1（保证不存在数据的shuffle）；子任务的上下游不为空；连接策略总是ALWAYS；分区类型为ForwardPartitioner；并行度一致；当前Flink开启Chain特性。
 
- 
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/4PPc462eOOPtdLVtNgBOmakV7gaElDPTXN1Q6BekV4CqDgOfXXCiaTTDtldjiaG4LIN7g5nibyqUPeM1iaYeicoZehA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+ ![1636853401596](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/093004-621723.png)
 
 在集群中的执行图可能如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/4PPc462eOOPtdLVtNgBOmakV7gaElDPT5dYqyKgqJxNlOGw0YMBwkwOVORmyW6OyppAuDIffKnh69oE9WtF9ibw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636853467102](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/093107-955410.png)
 
 Flink也支持slot的共享，即把不同任务根据任务的依赖关系分配到同一个Slot中。这样带来几个好处：方便统计当前任务所需的最大资源配置（某个子任务的最大并行度）；避免Slot的过多申请与释放，提升Slot的使用效率。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/4PPc462eOOPtdLVtNgBOmakV7gaElDPTTSwSq9CZjOiakD8d1b5PtyaFlbKnGU4OG0F15KczhG79EgzZuicWyxgg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636853521080](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/093203-103631.png)
 
 通过Slot共享，就有可能某个Slot中包含完整的任务执行链路。
 
- 
-
-## **3 应用执行**
-
- 
+### 3、应用执行
 
 一个Flink应用就是用户编写的main函数，其中可能包含一个或多个Flink的任务。这些任务可以在本地执行，也可以在远程集群启动，集群既可以长期运行，也支持独立启动。下面是目前支持的任务提交方案：
 
- 
-
 **Session集群**
-
- 
 
 **生命周期**：集群事先创建并长期运行，客户端提交任务时与该集群连接。即使所有任务都执行完毕，集群仍会保持运行，除非手动停止。因此集群的生命周期与任务无关。
 
@@ -1544,11 +435,7 @@ Flink也支持slot的共享，即把不同任务根据任务的依赖关系分�
 
 **其他方面**：拥有提前创建的集群，可以避免每次使用的时候过多考虑集群问题。比较适合那些执行时间很短，对启动时间有比较高的要求的场景，比如交互式查询分析。
 
- 
-
 **Per Job集群**
-
- 
 
 **生命周期**：为每个提交的任务单独创建一个集群，客户端在提交任务时，直接与ClusterManager沟通申请创建JM并在内部运行提交的任务。TM则根据任务运行需要的资源延迟申请。一旦任务执行完毕，集群将会被回收。
 
@@ -1556,73 +443,43 @@ Flink也支持slot的共享，即把不同任务根据任务的依赖关系分�
 
 **其他方面**：由于RM需要申请和等待资源，因此启动时间会稍长，适合单个比较大、长时间运行、需要保证长期的稳定性、不在乎启动时间的任务。
 
- 
-
 **Application集群**
-
- 
 
 **生命周期**：与Per Job类似，只是main()方法运行在集群中。任务的提交程序很简单，不需要启动或连接集群，而是直接把应用程序打包到资源管理系统中并启动对应的EntryPoint，在EntryPoint中调用用户程序的main()方法，解析生成JobGraph，然后启动运行。集群的生命周期与应用相同。
 
 **资源隔离**：RM和Dispatcher是应用级别。 
 
+### 03、Flink 源码篇
 
+![1636853640470](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/093409-454346.png)
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/DiaLG0VOfnEibU5UwN5aic6Ez0obyBiapEUbCdUnqu7yuwQVF8mfAkNOux6iatlI7gtN9IgWHVIhy1pibiapFW89HzTRw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-03、Flink 源码篇
-
-
-
-
-
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PqALZbh7IQstylo5PALv6BpJ6wiapx6MrnzV2XsjehwDrZFeFRYiaibO3Z5O6xrgOmeoQLPhmNeA1FA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-> 55、FLink作业提交流程应该了解吧？
+#### 55、FLink作业提交流程应该了解吧？
 
 **Flink的提交流程：**
 
+1. 在Flink Client中，通过反射启动jar中的main函数，生成Flink StreamGraph和JobGraph，将JobGraph提交给Flink集群
 
-
-1.在Flink Client中，通过反射启动jar中的main函数，生成Flink StreamGraph和JobGraph，将JobGraph提交给Flink集群
-
-2.Flink集群收到JobGraph（JobManager收到）后，将JobGraph翻译成ExecutionGraph,然后开始调度，启动成功之后开始消费数据。
-
-
+2. Flink集群收到JobGraph（JobManager收到）后，将JobGraph翻译成ExecutionGraph,然后开始调度，启动成功之后开始消费数据。
 
 总结来说：Flink核心执行流程，对用户API的调用可以转为 StreamGraph -->JobGraph -- >  ExecutionGraph。
 
-
-
-> 56、FLink作业提交分为几种方式？
+#### 56、FLink作业提交分为几种方式？
 
 **Flink的作业提交分为两种方式**
 
+1. **Local 方式：**即本地提交模式，直接在IDEA运行代码。
 
+2. **远程提交方式：**分为Standalone方式、yarn方式、K8s方式
 
-**1.Local 方式：**即本地提交模式，直接在IDEA运行代码。
+3. **Yarn 方式分为三种提交模式：**Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式
 
-
-
-**2.远程提交方式：**分为Standalone方式、yarn方式、K8s方式
-
-
-
-**Yarn 方式分为三种提交模式：**Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式
-
-> 57、FLink JobGraph是在什么时候生成的？
+#### 57、FLink JobGraph是在什么时候生成的？
 
 StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集群之前生成，原理图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqar0RsdHAFugHDNtY0XZg1qfIOB1sttsjHxEyG5TVlXa6uokrjgeqxw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636853897720](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/093820-148596.png)
 
-
-
-> 58、那在jobGraph提交集群之前都经历哪些过程？
+#### 58、那在jobGraph提交集群之前都经历哪些过程？
 
 （1）用户通过启动Flink集群，使用命令行提交作业，运行 flink run -c  WordCount  xxx.jar
 
@@ -1632,103 +489,91 @@ StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集
 
 **具体流程图如下：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXq8dbnzGUs62NZE5T9sSiaia168kOMuT57mUZnG7BlkrMibliafc8nzZ8P7g/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636853995896](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/093957-465470.png)
 
-> 59、看你提到PipeExecutor，它有哪些实现类？
+#### 59、看你提到PipeExecutor，它有哪些实现类？
 
 （1）PipeExecutor 在Flink中被叫做 流水线执行器，它是一个接口，是Flink Client生成JobGraph 之后，将作业提交给集群的重要环节，前面说过，作业提交到集群有好几种方式，最常用的是yarn方式，yarn方式包含3种提交模式，主要使用 session模式，perjob模式。Application模式 jaobGraph是在集群中生成。
 
 所以PipeExecutor 的实现类如下图所示：（在代码中按CTRL+H就会出来）
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXq5AN8Y7INMSCqjXIKTKfVb3RoVcU0maK8trm8yqs8hVQjHmg8SpAQTw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854036415](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094038-100910.png)
 
 除了上述框的两种模式外，在IDEA环境中运行Flink MiniCluster 进行调试时，使用LocalExecutor。
 
-> 60、Local提交模式有啥特点，怎么实现的？
+#### 60、Local提交模式有啥特点，怎么实现的？
 
 （1）Local是在本地IDEA环境中运行的提交方式。不上集群。主要用于调试，原理图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqvCnianNI4wwxicBqe3hgu6kUS4gPv7HJt2VrMZbxvstRFib5LswZxqrYQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854066161](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094107-275316.png)
 
-\1. Flink程序由JobClient进行提交 
+1. Flink程序由JobClient进行提交 
 
-\2. JobClient将作业提交给JobManager 
+2. JobClient将作业提交给JobManager 
 
-\3. JobManager负责协调资源分配和作业执行。资源分配完成后，任务将提交给相应的TaskManager
+3. JobManager负责协调资源分配和作业执行。资源分配完成后，任务将提交给相应的TaskManager
 
-\4. TaskManager启动一个线程开始执行，TaskManager会向JobManager报告状态更改，如开始执 行，正在进行或者已完成。 
+4. TaskManager启动一个线程开始执行，TaskManager会向JobManager报告状态更改，如开始执 行，正在进行或者已完成。 
 
-\5. 作业执行完成后，结果将发送回客户端。
+5. 作业执行完成后，结果将发送回客户端。
 
-**源码分析：****通过Flink1.12.2源码进行分析的**
+**源码分析：**通过Flink1.12.2源码进行分析的
 
 **（1）创建获取对应的StreamExecutionEnvironment对象**：LocalStreamEnvironment
 
 调用StreamExecutionEnvironment对象的execute方法
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqvzDJnuxEmxPRmpscZBPjLQYxFjyuVUiajgcbAUEa6h8vcfbukCt8uvg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqdarN8Lnj4IysVicu3owo4MicFDulmfkhGA2bJpwpwKNPpxTvAlC9fpJQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqwQV6r9GhIl4NBSicgmCwBvRvmL82AiaHoiaqGyEHBlf5iaeEhqIPEdL5Vw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqdarN8Lnj4IysVicu3owo4MicFDulmfkhGA2bJpwpwKNPpxTvAlC9fpJQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqZmTQDLVR0yM7EvLKTODcrQ72ib596lOmRf6BeC7vRU3YMN0gJd4zVtg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854134587](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094217-49070.png)
 
 **（2）获取streamGraph**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqkRUB5EG78LK8zTH2hXnRGJq0gNwRpN8AQes4GMPOfacDeF6icEvEMtg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854227674](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094348-259879.png)
 
 **（3）执行具体的PipeLineExecutor - >得到localExecutorFactory**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXq8gjEHdia9Sf7dJkztiby98WCicPkh19Wa9MQ58qRTVeTOcibDk8RX67w0w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854251416](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094412-997450.png)
 
 **(4) 获取JobGraph**
 
 根据localExecutorFactory的实现类LocalExecutor生成JobGraph
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqEQtT2RNOw3mTYAFQ5pq87aCXXNsyZkkLDSAg4ZsytvwlLdibGWhdrRA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854275135](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094437-268640.png)
 
 上面这部分全部是在Flink Client生成的，由于是使用Local模式提交。所有接下来将创建MiniCluster集群，由miniCluster.submitJob指定要提交的jobGraph
 
 **（5）实例化MiniCluster集群**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqSbfbe9OLmeSrfZWHChwaEoADwstWqUJicPuCS3oHxq3dbyjNtnQN0BA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854301649](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094502-314382.png)
 
 **（6）返回JobClient 客户端**
 
 在上面执行miniCluster.submitJob 将JobGraph提交到本地集群后，会返回一个JobClient客户端，该JobClient包含了应用的一些详细信息，包括JobID,应用的状态等等。最后返回到代码执行的上一层，对应类为StreamExecutionEnvironment。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqmsbSDWicT7ibWTM7hdN0lN1aUEW8aIQKsMedX2vnjicAAHWibxloVGZrVw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854329035](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094530-365924.png)
 
 **以上就是Local模式的源码执行过程。**
 
-> 61、远程提交模式都有哪些？
+#### 61、远程提交模式都有哪些？
 
 **远程提交方式：**分为Standalone方式、yarn方式、K8s方式
 
-
-
 **Standalone：**包含session模式
-
-
 
 **Yarn 方式分为三种提交模式：**Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式。
 
 **K8s方式：**包含 session模式
 
-> 62、Standalone模式简单介绍一下？
+#### 62、Standalone模式简单介绍一下？
 
 Standalone 模式为Flink集群的单机版提交方式，只使用一个节点进行提交，常用Session模式。
 
 作业提交原理图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqY0crtUsgWojkoCFxQURnqXZP2kS8ZokYPNZ4HHHicpibnKEibkzKzYJ6w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636854591534](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/094953-851712.png)
 
 提交命令如下：
 
-```
+```java
 bin/flink run org.apache.flink.WordCount xxx.jar
 ```
 
@@ -1737,20 +582,15 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 3. JobManager分发任务给TaskManager执行
 4. TaskManager定期向JobManager汇报状态
 
-> 63、yarn集群提交方式介绍一下？
+#### 63、yarn集群提交方式介绍一下？
 
 通过yarn集群提交分为3种提交方式：分别为session模式、perjob模式、application模式
 
-
-
-> 64、yarn - session模式特点？
+#### 64、yarn - session模式特点？
 
 提交命令如下：
 
-- 
-- 
-
-```
+```java
 ./bin/flink run -t yarn-session \-Dyarn.application.id=application_XXXX_YY  xxx.jar
 ```
 
@@ -1762,47 +602,35 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 **原理图如下：**
 
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+![1636854858621](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/095420-499419.png)
 
-> 65、yarn - perJob模式特点？
+#### 65、yarn - perJob模式特点？
 
 提交命令：
 
-- 
-
-```
+```java
 ./bin/flink run -t yarn-per-job --detached  xxx.jar
 ```
 
-**Yarn-Per-Job模式：****每个作业单独启动集群**，隔离性好，JM负载均衡，main方法在客户端执行。在per-job模式下，每个Job都有一个JobManager，每个TaskManager只有单个Job。
-
-
+**Yarn-Per-Job模式：**每个作业单独启动集群，隔离性好，JM负载均衡，main方法在客户端执行。在per-job模式下，每个Job都有一个JobManager，每个TaskManager只有单个Job。
 
 **特点：**
 
 **一个任务会对应一个Job**，**每提交一个作业**会根据自身的情况，**都会单独向yarn申请资源**，直到作业执行完成，一个作业的失败与否并不会影响下一个作业的正常提交和运行。独享Dispatcher 和 ResourceManager，按需接受资源申请；**适合规模大长时间运行的作业。**
 
-
-
 **原理图如下：**
 
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+![1636854928394](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/095531-690085.png)
 
-
-
-> 66、yarn - application模式特点？
+#### 66、yarn - application模式特点？
 
 **提交命令如下：**
 
-- 
-
-```
+```java
 ./bin/flink run-application -t yarn-application xxx.jar
 ```
 
 **Yarn-Application模式：**每个作业单独启动集群，隔离性好，JM负载均衡，**main方法在JobManager上执行**。
-
-
 
 **特点：**
 
@@ -1814,31 +642,23 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 3、将依赖项和JobGraph上传到集群中。 
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXqgdAvYDfTha5qqp5pSrwQwopbfq5mmjqQFSklxqkORILGcvTrAhoTicQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636854998023](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/095639-719831.png)
 
 只有在这些都完成之后，才会通过env.execute()方法 触发 Flink运行时真正地开始执行作业。**如果所有用户都在同一个客户端上提交作业**，**较大的依赖会消耗更多的带宽**，而较复杂的作业逻辑翻译成JobGraph也需要吃掉更多的CPU和内存，**客户端的资源反而会成为瓶颈**。
-
-
 
 为了解决它，社区在传统部署模式的基础上实现了 Application模式。原本需要客户端做的三件事被转移到了JobManager里，也就是说main()方法在集群中执行(入口点位于 ApplicationClusterEntryPoint )，客 户端只需要负责发起部署请求了
 
 **原理图如下：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MauL9NX2cnb4iaby5dyibvXq74s0jPYGblp6PwAs4aqSDGnZsjymFL1l4SDI6SvQvrIic1uwNBEDKibg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855052223](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/095733-198922.png)
 
 **综上所述，Flink社区比较推荐使用 yarn-perjob  或者 yarn-application模式进行提交应用。**
 
-
-
-> 67、yarn - session 提交流程详细介绍一下？
+#### 67、yarn - session 提交流程详细介绍一下？
 
 **提交流程图如下：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1x6jBJVCMD8q3VlhqeCOMZstf38pEibGHibvUowa2kianpwbxkuIwxBupA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636855114711](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/095835-995738.png)
 
 **1、启动集群**
 
@@ -1854,19 +674,13 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 ​        2）在JobManager 进程中运行**YarnSessionClusterEntryPoint** 作为集群启动的入口。初始化Dispatcher，Flink自己内部要使用的ResourceManager，启动相关RPC服务，等待Flink Client 通过Rest接口提交JobGraph。
 
-
-
 **2、作业提交**
-
-
 
 **（3）Flink Client 通过Rest 向Dispatcher 提交编译好的JobGraph。**Dispatcher 是 Rest 接口，不负责实际的调度、指定工作。
 
 **（4）Dispatcher 收到 JobGraph 后，为作业创建一个JobMaster，将工作交给JobMaster，**JobMaster负责作业调度，管理作业和Task的生命周期**，构建ExecutionGraph（**JobGraph的并行化版本，调度层最核心的数据结构**）**
 
 **以上两步执行完后，作业进入调度执行阶段。**
-
-
 
 **3、作业调度执行**
 
@@ -1884,23 +698,17 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 （11）JobMaster调度Task到TaskMnager的Slot上执行。
 
-> 68、yarn - perjob 提交流程详细介绍一下？
+#### 68、yarn - perjob 提交流程详细介绍一下？
 
 **提交命令如下：**
 
-- 
-
-```
+```java
 ./bin/flink run -t yarn-per-job --detached  xxx.jar
 ```
 
 **提交流程图如下所示：**
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1yhicOVNFyxuMicNTNgYmV3ptRRbs8qiaGLzEa4MT7QRF5f7YOd4pploIQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855291878](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/100133-533544.png)
 
 **1、启动集群**
 
@@ -1916,19 +724,11 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 ​        2）在JobManager 进程中运行**YarnJobClusterEntryPoint** 作为集群启动的入口。初始化Dispatcher，Flink自己内部要使用的ResourceManager，启动相关RPC服务，等待Flink Client 通过Rest接口提交JobGraph。
 
-
-
 **2、作业提交**
-
-
 
 **（3）ApplicationMaster启动Dispatcher，Dispatcher启动ResourceManager和JobMaster****(该步和Session不同，Jabmaster是由Dispatcher拉起，而不是Client传过来的)。**JobMaster负责作业调度，管理作业和Task的生命周期**，构建ExecutionGraph（**JobGraph的并行化版本，调度层最核心的数据结构**）**
 
-
-
 **以上两步执行完后，作业进入调度执行阶段。**
-
-
 
 **3、作业调度执行**
 
@@ -1948,99 +748,65 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 （11）JobMaster调度Task到TaskMnager的Slot上执行。
 
-> 69、流图、作业图、执行图三者区别？
+#### 69、流图、作业图、执行图三者区别？
 
 **Flink内部Graph总览图，由于现在Flink 实行流批一体代码，Batch API基本废弃，就不过多介绍** 
 
 **在Flink DataStramAPI 中，Graph内部转换图如下：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1cPicmAb3ibRZ871T5uFiaAvLZmaRPicWd2H7gE6JxA1UibdXAWIWziaYicFlQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855345801](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/100227-920844.png)
 
 **以WordCount为例，流图、作业图、执行图、物理执行图之间的Task调度如下：**
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1blCofxNmF97uA71Z1Fnib7LYKnbNv0gCZicOKwDEcz8eh29Xb3X7Xeibw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1CbZ4zlHpbdvKUKcKWkGHQcqvM6D2qic2Zpg2Lq0CWZIvFibcMuUdBiaMw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1cCyRj5ZxicPCJm8yK8bBVkVnDNX9dB5THA4TjrSaoKCBORa6NTmkQfw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855378413](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/100259-597975.png)
 
 对于Flink 流计算应用，运行用户代码时，首先调用DataStream API ，将用户代码转换为 **Transformation**，然后经过：**StreamGraph**->**JobGraph**->**ExecutionGraph** 3层转换（这些都是Flink内置的数据结构），最后经过Flink调度执行，在Flink 集群中启动计算任务，形成一个**物理执行图**。
 
-> 70、流图介绍一下？
+#### 70、流图介绍一下？
 
 **（1）流图  StreamGraph**
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1dm0IYEFibSd1Sia2aYbia2doeuYaWPAdY4pCMxWiafagQu5ZrUH1psibsmA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636855627796](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/100709-306479.png)
 
 流图StreamGraph 核心对象包括两个：**StreamNode 点 和** **StreamEdge 边**
 
 ​    **1）StreamNode 点**
 
-
-
 **StreamNode 点** ，从 Transformation转换而来，可以简单理解为 **StreamNode** 表示一个算子，存在实体和虚拟，可以有多个输入和输出，实体**StreamNode** 最终变成物理算子，虚拟的附着在**StreamEdge 边** 上。
 
-
-
-​    **2）****StreamEdge 边**
-
-
+​    **2）StreamEdge边**
 
 **StreamEdge 是 StreamGraph 的边，**用来连接两个StreamNode 点，一个StreamEdge可以有多个出边、入边等信息。
 
-> 71、作业图介绍一下？
+#### 71、作业图介绍一下？
 
 **（2）作业图  JobGraph**
 
-
-
 JobGraph是由StreamGraph优化而来，是通过**OperationChain** 机制将算子合并起来，在执行时，调度在同一个Task线程上，避免数据的跨线程，跨网络传递。
 
-
-
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+![1636855713453](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/100834-850796.png)
 
 作业图JobGraph 核心对象包括三个：
 
-**JobVertex 点** **、** **Job****Edge 边****、****IntermediateDataSet 中间数据集**
-
-
+**JobVertex 点** **、** **JobEdge 边**、IntermediateDataSet 中间数据集
 
 **1）JobVertex 点** 
 
 经过算子融合优化后符合条件的多个StreamNode 可能会融合在一起生成一个 JobVertex，即一个JobVertex 包含一个或多个算子， **JobVertex 的输入是 JobEdge.** **输出是** **IntermediateDataSet** 
 
+**2）**JobEdge 边
 
+**Job**Edge表示 JobGraph 中的一 个数据流转通道， 其上游数据源是 **IntermediateDataSet** ，下游消费者是 **JobVertex** 。
 
-**2）****Job****Edge 边**
+**Job**Edge中的数据分发模式会直接影响执行时 Task 之间的数据连接关系是**点对点连接**还是**全连接**。
 
-
-
-**Job****Edge** 表示 JobGraph 中的一 个数据流转通道， 其上游数据源是 **IntermediateDataSet** ，下游消费者是 **JobVertex** 。
-
-**Job****Edge** 中的数据分发模式会直接影响执行时 Task 之间的数据连接关系是**点对点连接**还是**全连接**。
-
-
-
-**3）****IntermediateDataSet 中间数据集**
+**3）**IntermediateDataSet 中间数据集
 
 中间数据集 **IntermediateDataSet**  是一种逻辑结构.用来表示 **JobVertex** 的输出，即该 JobVertex 中包含的算子会产生的数据集。不同的执行模式下，其对应的结果分区类型不同，决 定了在执行时刻数据交换的模式。
 
-> 72、执行图介绍一下？
-
-
+#### 72、执行图介绍一下？
 
 **（3）执行图  ExecutionGraph**
-
-
 
 **ExecutionGraph**是调度Flink 作业执行的核心数据结构，包含了作业中所有并行执行的Task信息、Task之间的关联关系、数据流转关系。
 
@@ -2050,17 +816,11 @@ StreamGraph 和JobGraph都在Flink Client生成，然后交给Flink集群。JobG
 
 **2）生成了6个核心对象。**
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1tTsZtpe1BJKv1nk95Npw1AnlfWrSCKibUSyl7TzqPcfWArdkCSosfNg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855791179](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/100951-387153.png)
 
 **执行图ExecutionGraph 核心对象包括6个：**
 
 ExecutionJobVertex、ExecutionVertex、IntermediateResult、IntermediateResultPartition、ExecutionEdge、Execution。
-
-
 
 **1）ExecutionJobVertex**
 
@@ -2068,83 +828,49 @@ ExecutionJobVertex、ExecutionVertex、IntermediateResult、IntermediateResultPa
 
 **ExecutionJobVertex**用来将一个JobVertex 封装成 **ExecutionJobVertex**，并依次创建 ExecutionVertex、Execution、IntermediateResult 和  IntermediateResultPartition，用于丰富**ExecutionGraph。**
 
-
-
 **2）ExecutionVertex**
 
 **ExecutionJobVertex**会对作业进行并行化处理，构造可以并行执行的实例，每一个并行执行的实例就是 **ExecutionVertex**。
-
-
 
 **3）IntermediateResult**
 
 **IntermediateResult** 又叫作中间结果集，该对象是个逻辑概念 表示 **ExecutionJobVertex**输出，和 JobGrap 中的IntermediateDalaSet 一 一对应，同样 一个**ExecutionJobVertex**  可以有多个中间结果，取决于当前 JobVertex 有几个出边(JobEdge)。
 
-
-
 **4）IntermediateResultPartition**
 
 **IntermediateResultPartition** 又叫作中间结果分区。表示1个 **ExecutionVertex**输出结果，与 Execution Edge 相关联。
-
-
 
 **5）ExecutionEdge**
 
 表示**ExecutionVertex** 的输入，连按到上游产生的**IntermediateResultPartition** 。1个Execution对应唯一的1个**IntermediateResultPartition** 和1个**ExecutionVertex**。1个**ExecutionVertex** 可以有多个**ExecutionEdge。**
 
+**6）**Execution
 
-
-**6）****Execution**
-
-**ExecutionVertex** 相当于每个 Task 的模板，在真正执行的时候，会将**ExecutionVertex中的信息包装为1个****Execution，执行一个ExecutionVertex的一次尝试。**
-
-
+**ExecutionVertex** 相当于每个 Task 的模板，在真正执行的时候，会将**ExecutionVertex中的信息包装为1个**Execution，执行一个ExecutionVertex的一次尝试。
 
 JobManager 和 TaskManager 之间关于Task 的部署和Task执行状态的更新都是通过ExecutionAttemptID来识别标识的。
 
-
-
-如果觉得阿周讲解的知识点还满意的话，请关注公众号：**3分钟秒懂大数据**，获取更多，更全面的技术博文。并加博主微信：**threeknowbigdata，**拉你进大数据交流群。
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MS3ZsmzMtdMIMxYj0ZXuknFsp5ic4phuhV8VibbOOKMnMurNPibvNRILGaTXEmiavHof6xBxAcGQ0R9w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-
-
-
-
 **接下来问问作业调度的问题**
 
-
-
-> 73、Flink调度器的概念介绍一下？
+#### 73、Flink调度器的概念介绍一下？
 
 **调度器**是Flink作业执行的核心组件，管理作业执行的所有相关过程，包括JobGraph到ExecutionGraph的转换、作业生命周期管理（作业的发布、取消、停止）、作业的Task生命周期管理（Task的发布、取消、停止）、资源申请与释放、作业和Task的Faillover等。
 
 **（1）DefaultScheduler**
 
-
-
 Flink 目前默认的调度器。是Flink新的调度设计，使用SchedulerStrategy来实现调度。
-
-
 
 **（2）LegacySchedular**
 
 过去的调度器，实现了原来的Execution调度逻辑。
 
-> 74、Flink调度行为包含几种？
+#### 74、Flink调度行为包含几种？
 
 **调度行为包含四种：**
 
-
-
 SchedulerStrategy接口定义了调度行为，其中包含4种行为：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae176jJDCiaGLKlnYeTzUviaSiboAuQyu90uKGeXeuP0XXW7EicU4LdSVDYxg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855871200](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101112-251859.png)
 
 （1）startScheduling:调度入口，触发调度器的调度行为
 
@@ -2154,11 +880,9 @@ SchedulerStrategy接口定义了调度行为，其中包含4种行为：
 
 （4）onPartitionConsumable：当IntermediateResultPartition中的数据可以消费时。
 
+#### 75、Flink调度模式包含几种？
 
-
-> 75、Flink调度模式包含几种？
-
-**调度模式包含3种：****Eager模式、分阶段模式（Lazy_From_Source）、分阶段Slot重用模式（Lazy_From_Sources_With_Batch_Slot_Request）。**
+**调度模式包含3种：Eager模式、分阶段模式（Lazy_From_Source）、分阶段Slot重用模式（Lazy_From_Sources_With_Batch_Slot_Request）。**
 
 **1）Eager 调度**
 
@@ -2178,17 +902,11 @@ SchedulerStrategy接口定义了调度行为，其中包含4种行为：
 
 　　目前视线中的 Eager 模式和 LAZY_FROM_SOURCES 模式的资源申请逻辑一样，LAZY_FROM_SOURCES_WITH_BATCH_SLOT_REQUEST 是单独的资源申请逻辑。
 
-
-
-> 76、Flink调度策略包含几种？
+#### 76、Flink调度策略包含几种？
 
 **调度策略包含3种：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1icz6UEortysx0aNLokWL5f0eMMkEZoOiaCGZG5lPrvmz5n5s8Vn6Izbg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae17qknsibOwF7mJGtfxOe8K2tghnygkXSGVnafc9nu5cGhF0TMND1QX3Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636855933158](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101214-519110.png)
 
 调度策略全部实现于调度器SchedulingStrategy，有三种实现：
 
@@ -2208,7 +926,7 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 
 作业的完整生命周期状态变换如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1Fl7FfkSNuulZ4YgUV4A7jRkJGwW8z6GQ4ad5ibKqCJdp1DM7pZlIzEg/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636855959359](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101241-880546.png)
 
 （1）作业首先处于创建状态（created），然后切换到运行状态（running），并且在完成所有工作后，它将切换到完成状态（finished）。
 
@@ -2218,9 +936,7 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 
 （4）在用户取消作业的情况下，将进入取消状态（cancelling），会取消所有当前正在运行的任务。一旦所有运行的任务已经达到最终状态，该作业将转换到已取消状态（canceled）。
 
-**完成状态（finished）****，取消状态（canceled）**和**失败状态（failed）**表示一个全局的终结状态，并且触发清理工作，**而暂停状态（suspended）仅处于本地终止状态**。意味着作业的执行在相应的 JobManager 上终止，但集群的另一个 JobManager 可以从持久的HA存储中恢复这个作业并重新启动。因此，处于暂停状态的作业将不会被完全清理。
-
-
+**完成状态（finished）**，取消状态（canceled）**和**失败状态（failed）**表示一个全局的终结状态，并且触发清理工作，**而暂停状态（suspended）仅处于本地终止状态**。意味着作业的执行在相应的 JobManager 上终止，但集群的另一个 JobManager 可以从持久的HA存储中恢复这个作业并重新启动。因此，处于暂停状态的作业将不会被完全清理。
 
 > 78、Task的作业生命周期包含哪些状态？
 
@@ -2228,59 +944,51 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 
 **Task的生命周期如下：共8种状态。**
 
-![图片](https://mmbiz.qpic.cn/mmbiz/nEEdkvXCJ8OYeY8jPMVaYMzHNtsKFae1iaXmlXRibkFKQJDBV1l3Vrb1mxNia1ZQ9yttI0PFSesZoEPZ1nlw7KCbw/640?wx_fmt=jpeg&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636855988815](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101310-19479.png)
 
 **在执行 ExecutionGraph 期间，每个并行任务经过多个阶段，从创建（created）到完成（finished）或失败（failed） ，下图说明了它们之间的状态和可能的转换。任务可以执行多次（例如故障恢复）。每个 Execution 跟踪一个 ExecutionVertex 的执行，每个 ExecutionVertex 都有一个当前 Execution（current execution）和一个前驱 Execution（prior execution）。**
-
-
 
 > 79、Flink的任务调度流程讲解一下？
 
 任务调度流程图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MJFWiaPuolAQBCuo19vs95U3s1mXftwgWjw8j83HlF75TiasWqVgtM6nk6LPAx6fGe0xh2uF7Z702w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856013600](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101334-396786.png)
 
-\1. 当Flink执行executor会自动根据程序代码生成**DAG数据流图** ，即 **Jobgraph；**
+1. 当Flink执行executor会自动根据程序代码生成**DAG数据流图** ，即 **Jobgraph；**
 
-\2. **ActorSystem**创建**Actor**将数据流图发送给JobManager中的Actor；
+2. **ActorSystem**创建**Actor**将数据流图发送给JobManager中的Actor；
 
-\3. **JobManager**会不断接收**TaskManager**的心跳消息，从而可以获取到有效的TaskManager；
+3. **JobManager**会不断接收**TaskManager**的心跳消息，从而可以获取到有效的TaskManager；
 
-\4. JobManager通过调度器在TaskManager中调度执行Task（在Flink中，最小的调度单元就是task，对应就是一个线程） ；
+4. JobManager通过调度器在TaskManager中调度执行Task（在Flink中，最小的调度单元就是task，对应就是一个线程） ；
 
-\5. 在程序运行过程中，task与task之间是可以进行数据传输的 。
+5. 在程序运行过程中，task与task之间是可以进行数据传输的 。
 
 **• Job Client**
 
-​        – 主要职责是提交任务, 提交后可以结束进程, 也可以等待结果返回 ；
+- 主要职责是提交任务, 提交后可以结束进程, 也可以等待结果返回 ；
 
-​        – Job Client 不是 Flink 程序执行的内部部分，但它是任务执行的起点；
+- Job Client 不是 Flink 程序执行的内部部分，但它是任务执行的起点；
 
-​       – Job Client 负责接受用户的程序代码，然后创建数据流，将数据流提交给 JobManager 以便进一步执行。执行完成后，Job Client 将结果返回给用户。
+- Job Client 负责接受用户的程序代码，然后创建数据流，将数据流提交给 JobManager 以便进一步执行。执行完成后，Job Client 将结果返回给用户。
 
 **• JobManager** 
 
-​        – 主要职责是调度工作并协调任务做检查点；
-
-​        – 集群中至少要有一个 master，master 负责调度 task，协调checkpoints 和 容错；
-
-​        – 高可用设置的话可以有多个 master，但要保证一个是 leader, 其他是stand by；
-
-​        – Job Manager 包含 **Actor System、Scheduler、CheckPoint**三个重要的组件 ；
-
-​      – JobManager从客户端接收到任务以后, 首先生成优化过的执行计划, 再调度到TaskManager中执行。
+- 主要职责是调度工作并协调任务做检查点；
+- 集群中至少要有一个 master，master 负责调度 task，协调checkpoints 和 容错；
+- 高可用设置的话可以有多个 master，但要保证一个是 leader, 其他是stand by；
+- Job Manager 包含 **Actor System、Scheduler、CheckPoint**三个重要的组件 ；
+- JobManager从客户端接收到任务以后, 首先生成优化过的执行计划, 再调度到TaskManager中执行。
 
 **• TaskManager**
 
-​        – 主要职责是从JobManager处接收任务, 并部署和启动任务, 接收上游的数 据并处理 
+- 主要职责是从JobManager处接收任务, 并部署和启动任务, 接收上游的数 据并处理 
+- Task Manager 是在 JVM 中的一个或多个线程中执行任务的工作节点。 
+- TaskManager在创建之初就设置好了Slot, 每个Slot可以执行一个任务。
 
-​        – Task Manager 是在 JVM 中的一个或多个线程中执行任务的工作节点。 
+#### 80、Flink的任务槽是什么意思？
 
-​        – TaskManager在创建之初就设置好了Slot, 每个Slot可以执行一个任务。
-
-> 80、Flink的任务槽是什么意思？
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MJFWiaPuolAQBCuo19vs95UhrYfyRHYvmmEfhibYgh0cjws5zBTm66hiaSkezMJacEtvvckpwYf4Qicg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856115902](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101517-147923.png)
 
 每个TaskManager是一个JVM的进程, 可以在不同的线程中执行一个或多个子任务。为了控制一个worker能接收多少个task。worker通过task slot来进行控制（一个worker 至少有一个task slot）。
 
@@ -2302,43 +1010,30 @@ Flink将进程的内存划分到多个slot中。
 
 **总结：task slot的个数代表TaskManager可以并行执行的task数。**
 
-
-
-> 81、Flink 槽共享又是什么意思？
+#### 81、Flink 槽共享又是什么意思？
 
 **2、槽共享**
 
 **默认情况下，Flink允许子任务共享插槽**，即使它们是不同任务的子任务，只要它们来自同一个作业。结果是一个槽可以保存作业的整个管道。允许插槽共享有两个主要好处：
 
-​        • 只需计算Job中最高并行度（parallelism）的task slot。只要这个满足，其他的job也都能满足。 
+- 只需计算Job中最高并行度（parallelism）的task slot。只要这个满足，其他的job也都能满足。 
+- 资源分配更加公平。如果有比较空闲的slot可以将更多的任务分配给它。图中若没有任务槽共享，负载不高的Source/Map等subtask将会占据许多资源，而负载较高的窗口subtask则会缺乏资源。 
+- 有了任务槽共享，可以将基本并行度（base parallelism）从2提升到6。提高了分槽资源的利用率。同时它还可以保障TaskManager给subtask的分配的slot方案更加公平。
 
-​        • 资源分配更加公平。如果有比较空闲的slot可以将更多的任务分配给它。图中若没有任务槽共享，负载不高的Source/Map等subtask将会占据许多资源，而负载较高的窗口subtask则会缺乏资源。 
-
-​        • 有了任务槽共享，可以将基本并行度（base parallelism）从2提升到6。提高了分槽资源的利用率。同时它还可以保障TaskManager给subtask的分配的slot方案更加公平。
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8MJFWiaPuolAQBCuo19vs95Uye5WL30NushOTXjrsQydMXNDTA2Qu81ibxbzLEnuyUg79crWSAhnGnA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856151070](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101552-772955.png)
 
 
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/DiaLG0VOfnEibU5UwN5aic6Ez0obyBiapEUbCdUnqu7yuwQVF8mfAkNOux6iatlI7gtN9IgWHVIhy1pibiapFW89HzTRw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-04、Flink SQL篇
-
-
-
-
-
-
+### 04、Flink SQL篇
 
 Flink SQL也是面试的重点考察点，不仅需要你掌握扎实的SQL编程，同时还需要理解SQL提交的核心原理，以及Flink SQL中涉及的一些重点知识，例如CEP、CDC、SQL GateWay、SQL-Hive等，思维导图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PqALZbh7IQstylo5PALv6BLD6OjW73ORmVNapcWMhMA3rr1pjeEVxyIlE5zhNH5PR4ODwUMOELjw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856490919](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102131-910161.png)
 
-> 82、Flink SQL有没有使用过？
+#### 82、Flink SQL有没有使用过？
 
 用过，在Flink中，一共有**四种**级别的**抽象**，而Flink SQL作为最上层，是Flink API的一等公民
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PqALZbh7IQstylo5PALv6BxmJavNLvWSKnKbjsOibwNAemND9LvLd5lotvbVJ0ILdCVT6Jd8NnzMg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856523406](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102205-460742.png)
 
 在标准SQL中，SQL语句包含四种类型
 
@@ -2350,20 +1045,19 @@ DQL (Data Query Language):数据查询语言，用来查询记录（数据）。
 
 DDL(Data Definition Language):数据定义语言，用来定义数据库对象（库，表，列等）。
 
-
 **Flink SQL包含 DML 数据操作语言、 DDL 数据语言， DQL 数据查询语言**，**不包含DCL语言。**
 
-> 83、Flink被称作流批一体，那从哪个版本开始，真正实现流批一体的？
+#### 83、Flink被称作流批一体，那从哪个版本开始，真正实现流批一体的？
 
 从1.9.0版本开始，引入了阿里巴巴的 Blink ，对 FIink TabIe & SQL 模块做了重大的重构，保留了 Flink Planner 的同时，引入了 Blink PIanner，没引入以前，Flink 没考虑流批作业统一，针对流批作业，底层实现两套代码，引入后，基于流批一体理念，重新设计算子，以流为核心，流作业和批作业最终都会被转为transformation。
 
-> 84、Flink SQL 使用哪种解析器？
+#### 84、Flink SQL 使用哪种解析器？
 
 Flink SQL使用 Apache Calcite作为解析器和优化器。
 
 **Calcite** 一种动态数据管理框架，它具备很多典型数据库管理系统的功能 如SQL 解析、 SQL 校验、 SQL 查询优化、 SQL 生成以及数据连接查询等，但是又省略了一些关键的功能，如 Calcite并**不存储**相关的**元数据**和**基本数据**，不完全包含相关处理数据的算法等。
 
-> 85、Calcite主要功能包含哪些？
+#### 85、Calcite主要功能包含哪些？
 
 Calcite 主要包含以下五个部分：
 
@@ -2393,19 +1087,15 @@ Calcite SQL 解析是**通过 JavaCC** 实现的，使用 JavaCC 编写 SQL 语�
 
 在Flink 或者其他使用 Calcite 的大数据引擎中，一般到 SQL 查询优化即结束，由各个平台结合 Calcite SQL 代码生成 和 平台实现的代码生成，将优化后的物理执行计划组合成可执行的代码，然后在内存中编译执行。
 
-> 86、Flink SQL 处理流程说一下？
+#### 86、Flink SQL 处理流程说一下？
 
 下面举个例子，详细描述一下Flink Sql的处理流程，如下图所示：
 
-
-
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+![1636856581338](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102302-57181.png)
 
 我们写一张source表，来源为kafka，当执行create table log_kafka之后 Flink SQL将做如下操作：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IJgz7By71p5wCSMVH6ylUU0EdPW5PHmTf1EAzQ3Rz4j1dHOQpOnIib1g/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636856613343](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102334-470392.png)
 
 （1）首先，FlinkSQL 底层使用的是 **apache Calcite** 引擎来处理SQL语句，Calcite会使用javaCC做SQL解析，javaCC根据Calcite中定义的 **Parser.jj** 文件，生成一系列的java代码，生成的java代码会**把SQL转换成AST抽象语法树（即SQLNode类型）**。
 
@@ -2421,29 +1111,21 @@ Calcite中的优化器RelOptPlanner有两种，一是**基于规则优化（RBO�
 
 （6）最后进一步**编译**成可执行的 JobGraph 提交运行。
 
-> 87、Flink SQL包含哪些优化规则？
+#### 87、Flink SQL包含哪些优化规则？
 
 如下图为执行流程图
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IHqaeicibHiaKk7vFCYEeoHm7eS8InFnG9w94UC8nNArZ6gDfEKzrtxBpQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856644137](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102406-730684.png)
 
 **总结就是：**
 
 先解析，然后验证，将SqlNode转化为Operation来创建表，然后调用rel方法将sqlNode变成 逻辑计划 （RelNodeTree）紧接着对逻辑计划进行优化；
 
-
-
 优化之前 会根据Calcite中的优化器中的基于规则优化的HepPlanner**针对四种规则进行预处理**，处理完之后得到Logic RelNode，紧接着**使用代价优化的VolcanoPlanner使用**  Logical_Opt_Rules（逻辑计划优化）找到最优的执行Planner,并转换为FlinkLogical RelNode。
-
-
 
 最后运用 Flink包含的优化规则，如DataStream_Opt_Rules：流式计算优化，DataStream_Deco_Rules：装饰流式计算优化   将优化后的逻辑计划转换为物理计划。
 
-
-
 **优化规则包含如下：**
-
-
 
 Table_subquery_rules  子查询优化
 
@@ -2459,7 +1141,7 @@ DataStream_Opt_Rules：流式计算优化
 
 DataStream_Deco_Rules：装饰流式计算优化
 
-> 88、Flink SQL中涉及到哪些operation？
+#### 88、Flink SQL中涉及到哪些operation？
 
 **先介绍一下什么是Operation**
 
@@ -2467,21 +1149,19 @@ DataStream_Deco_Rules：装饰流式计算优化
 
 **Operation执行在优化前**，执行的函数为executeQperation,如下图所示，为执行的所有Operation。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IOQlicHcaPZRBjky2Mm0Uib3YtibqXcYgjFo554CnQ8YNNAsFRAobkhXgA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856679270](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102440-554664.png)
 
-> 89、Flink Hive有没有使用过？
+#### 89、Flink Hive有没有使用过？
 
 Flink社区在Flink1.11版本进行了重大改变，如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IpRGfxTXAUp0nafklveD9TbSx9ROOBdqcsNJruWnibmUwiaF5BSIfvyMQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856701686](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102502-135215.png)
 
-> 90、Flink与Hive集成时都做了哪些操作？
+#### 90、Flink与Hive集成时都做了哪些操作？
 
 如下所示为Flink与HIve进行连接时的执行图：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6Ikys9jf3eLjnNQ2eHkZXaKaUiatr1aXgbOqsoOHqZrTmsoDcicR6J6ncQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636856723843](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102525-68993.png)
 
 （1）Flink1.1新引入了Hive方言，所以在Flink SQL中可以编写HIve语法，即Hive Dialect。
 
@@ -2491,17 +1171,15 @@ Flink社区在Flink1.11版本进行了重大改变，如下图所示：
 
 BlinkPlanner 是在Flink1.9版本新引入的机制，Blink 的查询处理器则实现流批作业接口的统一，**底层的 API 都是Transformation**。真正实现 流 &批 的统一处理，替代原FlinkPlanner将流&批区分处理的方式。在1.11版本后 已经默认为Blink Planner。
 
-> 91、HiveCatalog类包含哪些方法？
+#### 91、HiveCatalog类包含哪些方法？
 
 重点方法如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IQ6sibCurGX4p0PIHRYKs2qI5YDm2yqVHviawQCvKqQbLa9jgkHzALAqw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636856750482](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102551-600723.png)
 
 HiveCatalog主要是**持久化元数据**，所以 一般的创建类型都包含，如 database,Table,View，Function,Partition,还有is_Generic字段判断等。
 
-> 92、Flink SQL1.11新增了实时数仓功能，介绍一下？
+#### 92、Flink SQL1.11新增了实时数仓功能，介绍一下？
 
 Flink1.11 版本新增的一大功能是实时数仓，可以实时的将kafka中的数据插入Hive中，传统的实时数仓基于 Kafka+ Flinkstreaming，定义全流程的流计算作业，有着秒级甚至毫秒的实时性，**但实时数仓的一个问题是历史数据只有 3-15天，无法在其上做 Ad-hoc的查询。**
 
@@ -2509,53 +1187,43 @@ Flink1.11 版本新增的一大功能是实时数仓，可以实时的将kafka�
 
 Flink 1.11 的 Table/SQL API 中，**FileSystemConnector 是靠增强版 StreamingFileSink组件实现**，在源码中名为 StreamingFileWriter。***** **只有在Checkpoint 成功时，StreamingFileSink写入的文件才会由 Pending状态变成 Finished状态，从而能够安全地被下游读取。所以，我们一定要打开 Checkpointing，并设定合理的间隔。**
 
-> 93、Flink -Hive实时写数据介绍下？
+#### 93、Flink -Hive实时写数据介绍下？
 
 **StreamingWrite**，从kafka 中实时拿到数据，使用分区提交将数据从Kafka写入Hive表中，并运行批处理查询以读取该数据。
-
-
 
 Flink -SQL 写法
 
 **Source源**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IpnHeVtD4juh3r0gJicTdXo7dSgkDfyZMQvyYcs9hL4wVJ1IcJbWQnVQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856784769](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102625-242079.png)
 
+**Sink目的地**
 
-
-***\*Sink目的地\****
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6I5Gq6fY3Rib60x3fd80ILN3IlJzgvutH9MvSNF7Gc92hZaNbW7ukVKNA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856808207](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102649-40833.png)
 
 **Insert 插入**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IBF2gkxoqG7Iu3mvibJibiaX9XQEzv3PZRlAO87JCl8fJNcCNaHXEESEhQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636856824649](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102705-665159.png)
 
 Flink-table写法：
 
 **Source源**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IlNbMczUicu3dicw4mbN9dsC5g6Yykp19NF2LlyKXNJJEAyKSw9l76RjQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636856847429](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102728-707378.png)
 
 **Sink目的地**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IAP0NR6LoKkE67IxcsMwTej2WQibBoOf9FicicwdQtvuBt0J5O1EP8vTaA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856871980](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102753-264989.png)
 
 **Insert 插入**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IORib4bFsj3icOic5V9umYUUW3EJ9EtbBWkt0GwSXeRSMuasE9MRfVmRWw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856888096](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102808-930650.png)
 
-> 94、Flink -Hive实时读数据介绍下？
+#### 94、Flink -Hive实时读数据介绍下？
 
 **如下图所示：**
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6I3sK3dMGeUW0pI76XsxbvOcQO38aUFlMfFtN40Ria5HDfkqVezVhvgZQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856910232](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102831-174526.png)
 
 Flink 源码中在对Hive进行读取操作时，会经历以下几个步骤：
 
@@ -2567,13 +1235,11 @@ Flink 源码中在对Hive进行读取操作时，会经历以下几个步骤：
 
 4、最后循环执行reader.next 获取value，将其解析成Row。
 
-> 95、Flink -Hive实时写数据时，如何保证已经写入分区的数据何时才能对下游可见呢？
+#### 95、Flink -Hive实时写数据时，如何保证已经写入分区的数据何时才能对下游可见呢？
 
 **如下图所示：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IbvCqGWsEFZ60BzaQ5FolmHfxYDePV2JYk7LGwl5JMfQakQMARBWz6A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636856934691](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102855-593449.png)
 
 首先可以看一下，在实时的将数据存储到Hive数仓中，FileSystemConnector 为了与 Flink-Hive集成的大环境适配，**最大的改变就是分区提交**，可以看一下左下图，官方文档给出的，分区可以采取日期+ 小时的策略，或者时分秒的策略。
 
@@ -2585,17 +1251,18 @@ Flink 源码中在对Hive进行读取操作时，会经历以下几个步骤：
 
 但选择process-time触发机制会有缺陷，就是当数据迟到或者程序失败重启时，数据不能按照事件时间被归入正确分区。所以 一般会选择 partition-time。
 
-> 96、源码中分区提交的PartitionCommitTrigger介绍一下？
+#### 96、源码中分区提交的PartitionCommitTrigger介绍一下？
 
 **在源码中，PartitionCommitTrigger类图如下所示**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IXNHHdzz0YyW6GdpOUtZFuibm74carNiaiaZWRQkfaxXt8YfMt8YjRDXSQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636856966742](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102927-374152.png)
 
 该类中维护了两对必要的信息：
 
-1.pendingPartitions/pendingPartitionsState：等待提交的分区以及对应的状态；2.watermarks/watermarksState：watermarks（用 TreeMap 存储以保证有序）以及对应的状态。
+1. pendingPartitions/pendingPartitionsState：等待提交的分区以及对应的状态
+2. watermarks/watermarksState：watermarks（用 TreeMap 存储以保证有序）以及对应的状态。
 
-> 97、PartitionTimeCommitTigger 是如何知道该提交哪些分区的呢？（源码分析）
+#### 97、PartitionTimeCommitTigger 是如何知道该提交哪些分区的呢？（源码分析）
 
 1、检查checkpoint ID 是否合法；
 
@@ -2607,125 +1274,111 @@ Flink 源码中在对Hive进行读取操作时，会经历以下几个步骤：
 
 如果watermark>partition-time+delay，说明可以提交，并返回它们
 
-> 98、如何保证已经写入分区的数据对下游可见的标志问题（源码分析）
+#### 98、如何保证已经写入分区的数据对下游可见的标志问题（源码分析）
 
-**在源码中，主要涉及****PartitionCommitPolicy****类，如下图所示：**
+**在源码中，主要涉及**PartitionCommitPolicy类，如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IAl9rMPaZqgiaP7PbCIRRBp0MKQFvJgwvibF0aAPghIImnNpIaj8VSwQA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857014876](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103015-736927.png)
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PdhcdC3tVvo5LQKGibWXp6IMuUB4BgfItK1TmhjwrBohbEdiaiakxOHQZcLF8mvgfhAPbvqRAP4vChw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
-
-> 99、Flink SQL CEP有没有接触过？
+#### 99、Flink SQL CEP有没有接触过？
 
 **CEP的概念：**
 
-​        Ø复杂事件处理（Complex Event Processing），用于识别输入流中符合指定规则的事件，并按照指定方式输出。
-
-​        Ø起床—>洗漱—>吃饭—>上班一系列串联起来的事件流形成的模式
-
-​        Ø浏览商品—>加入购物车—>创建订单—>支付完成—>发货—>收货事件流形成的模式。
+- 复杂事件处理（Complex Event Processing），用于识别输入流中符合指定规则的事件，并按照指定方式输出。
+- 起床—>洗漱—>吃饭—>上班一系列串联起来的事件流形成的模式
+- 浏览商品—>加入购物车—>创建订单—>支付完成—>发货—>收货事件流形成的模式。
 
 通过概念可以了解，CEP主要是识别输入流中用户指定的一些基本规则的事件，然后将这些事件再通过指定方式输出。
 
 如下图所示： 我们指定“方块、圆”为基本规则的事件，在输入的原始流中，将这些事件作为一个结果流输出来。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPs3N8OGDhmKAhL4kJnib88PepZmuNXgibQLStF2icw0libVzIw9Y7dHG0E1A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857081891](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103123-657989.png)
 
 **CEP的使用场景：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsqeBlAVJiczrYx42dZP0dCFXkqEqGbiaRtcYsxzKDRh35rRL59E4sQTiaQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsFXuhoVTUibDu71iau3Gjoib6HfQSz88Eiae8ibuclMXpVP36JJ5Dvu4pErA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636857109942](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103151-518840.png)
 
 像用户异常检测：我们指定异常操作事件为要输出的结果流；策略营销：指定符合要求的事件为结果流；运维监控：指定一定范围的指标为结果流；银行卡盗刷：指定同一时刻在两个地方被刷两次为异常结果流。
 
 **Flink CEP SQL 语法 是通过SQL方式进行复杂事件处理，但是与** Flink SQL语法也不太相同，其中包含许多规则。
 
-> 100、Flink SQL CEP了解的参数介绍一下？
+#### 100、Flink SQL CEP了解的参数介绍一下？
 
 **CEP包含的参数如下：**
 
-**![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsLzfyU0EzdL59x9bngibda6ykbaTxdjVrvWoSQK2wBwGKfWLura6rO9A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)**
+![1636857148245](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103229-610723.png)
 
 **参数介绍**
 
 p**输出模式（**每个找到的匹配项应该输出多少行）
 
-​     Øone  row  per  match
+- one  row  per  match
 
-​                每次检测到完整的匹配后进行汇总输出
+每次检测到完整的匹配后进行汇总输出
 
-​     Øall  rows per match (flink暂不支持)
+- all  rows per match (flink暂不支持)
 
-​                检测到完整的匹配后会把匹配过程中每条具体记录进行输出
+检测到完整的匹配后会把匹配过程中每条具体记录进行输出
 
 p**runningVS final语义**
 
-​        Ø在计算中使用那些匹配的事件
+- 在计算中使用那些匹配的事件
 
-​                running匹配中和final匹配结束
+running匹配中和final匹配结束
 
-​        Ø define语句中只可以使用running,measure两者都可以
+- define语句中只可以使用running,measure两者都可以
 
-​        Ø输出结果区别
+- 输出结果区别
 
-​                对于one row per match，输出没区别
+对于one row per match，输出没区别
 
-​                对于all  rows  per match ，输出不同
+对于all  rows  per match ，输出不同
 
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
-
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
+![图片](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103325-949181.png)
 
 **3、匹配后跳转模式介绍**
 
 after  match（匹配后，从哪里开始重新匹配）
 
-​       Ø skip to next row
+- bskip to next row
 
-​             从匹配成功的事件序列中的第一个事件的下一个事件开始进行下一次匹配
+从匹配成功的事件序列中的第一个事件的下一个事件开始进行下一次匹配
 
-​       Ø skip  past last row
+- skip  past last row
 
-​             从匹配成功的事件序列中的最后一个事件的下一个事件开始进行下一次匹配
+从匹配成功的事件序列中的最后一个事件的下一个事件开始进行下一次匹配
 
-​       Ø skip  to first pattern  Item  
+- skip  to first pattern  Item  
 
-​              从匹配成功的事件序列中第一个对应于patternItem的事件开始进行下一次匹配     
+从匹配成功的事件序列中第一个对应于patternItem的事件开始进行下一次匹配     
 
-​        Øskip  to last pattern  Item
+- skip  to last pattern  Item
 
-​              从匹配成功的事件序列中最后一个对应于patternItem的事件开始进行下一次匹配
+从匹配成功的事件序列中最后一个对应于patternItem的事件开始进行下一次匹配
 
 注意：
 
-​        在使用skip to first/last patternItem容易出现循环匹配问题，需要慎重
+在使用skip to first/last patternItem容易出现循环匹配问题，需要慎重
 
 针对上面的匹配后跳转模式分别介绍:
 
 **（1）after  match   skip past  last  row 如下图**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsa5lBtKjZmib3lPJUXYib7xxrScibu8F6RG60IROCyFnriaa2hvYA9XrPbg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857264129](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103425-916303.png)
 
 **（2）after  match   skip to  next  row 如下图**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsW8ZBBF4pnTLXpZHrR5VYy4G2FUch9a46vBW7icSjvbrzGTrOvrXnZkg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857288607](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103449-955883.png)
 
 **（3）after  match   skip to  last patternItem 如下图**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsib1IBnLE2EeHGcrUiauVemTRyfiayTwdyvkQVtXiccAuTkqfs9Lz5KjAqg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857311033](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103511-7948.png)
 
 **（4）after  match   skip to  first  patternItem 如下图**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPsxibwhwBYnSAfD32mwN4l8zoMwE9rxvo5rZEIjWnKeU7T2wSFVPvJrlg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857333868](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103534-295589.png)
 
-> 101、编写一个CEP SQL案例，如银行卡盗刷
+#### 101、编写一个CEP SQL案例，如银行卡盗刷
 
 通过Flink CEP SQL 写的关于金融场景 银行卡盗刷案例。
 
@@ -2733,13 +1386,11 @@ after  match（匹配后，从哪里开始重新匹配）
 
 要求：当相同的cardId在十分钟内，从两个不同的Location发生刷卡现象，触发报警机制，以便检测信用卡盗刷现象。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8PB7gbwuqx7oy4jFMwVicoPs6xFZNPbxbSlgFcHdvVn36ZTTGiaBiauOicPWKb1uTibY8noldyGbwAfzFQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857374327](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103616-361824.png)
 
 （1）编写cep sql时，包含许多技巧，首先我们编写最基础的查询语句,从一张表中查询需要的字段。
 
-- 
-
-```
+```java
 select starttime,endtime,cardId,event from dataStream
 ```
 
@@ -2753,77 +1404,43 @@ select starttime,endtime,cardId,event from dataStream
 
 （4）理解CEP  SQL核心的编写顺序
 
-
-
 如上图标的顺序
 
-1、CEP SQL 的类为Pattern，检测在10分钟内两个地方出现刷卡现象，所以定义两个事件：
+![1636857434228](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103722-634765.png)
 
-Pattern (e1 e2+) within interval  ‘10’minute
-
-2、定义在Pattern中要求的判断语句，规定使用define
-
-define
-
-​        e1 as a1.action = ''
-
-​      e2 as e2.action = '' and e2.location <> e1.location
-
-3、根据上述的输入条件构建输出条件，规定使用 measures
-
-measures
-
-​        e2.action as event
-
-​        e1.timestamp as starttime
-
-​        last(e2.timestamp) as endtime
-
-4、输出条件匹配成功，输出一条，规定写法(这块根据不同的规则写不同的语句)
-
-one row per match
-
-5、匹配后跳转跳转到下一行（根据不同规则写不同语句）
-
-after match skip to  next row
-
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)
-
-根据核心编写顺序进行理解，然后在按照书写正确的顺序进行编写。
-
-> 102、Flink CDC了解吗？什么是 Flink SQL CDC Connectors？
+#### 102、Flink CDC了解吗？什么是 Flink SQL CDC Connectors？
 
 **在 Flink 1.11 引入了 CDC 机制**，CDC 的全称是 **Change Data Capture**，用于捕捉数据库表的增删改查操作，是目前非常成熟的同步数据库变更方案。
 
-Flink CDC Connectors 是 Apache Flink 的一组源连接器，是可以从 MySQL、PostgreSQL 数据直接读取全量数据和增量数据的 Source Connectors，开源地址：https://github.com/ververica/flink-cdc-connectors。
+Flink CDC Connectors 是 Apache Flink 的一组源连接器，是可以从 MySQL、PostgreSQL 数据直接读取全量数据和增量数据的 Source Connectors，开源地址：`https://github.com/ververica/flink-cdc-connectors。`
 
 目前(1.13版本)支持的 Connectors 如下：      
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8NfO96GyiaAKrgdQ5KhdvattreSl0gJob3iaX3psDQiaEwdk2bKQ0bic22F3semAr9aJB6TADgaiaguvgw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857474904](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103755-973244.png)
 
 另外**支持解析 Kafka 中 debezium-json 和 canal-json 格式的 Change Log**，通过Flink 进行计算或者直接写入到其他外部数据存储系统(比如 Elasticsearch)，或者将 Changelog Json 格式的 Flink 数据写入到 Kafka:
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8NfO96GyiaAKrgdQ5Khdvatt7UAUP9LFOZBevtnkHrib675WXoQtXXLg4C1v27enUfIQJibwZBXZDPOw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857489501](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103810-319387.png)
 
 Flink CDC Connectors 和 Flink 之间的版本映射:
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8NfO96GyiaAKrgdQ5Khdvattnet4ESBWvyPLGA6sILqic2MriaPv1MfzZVa3KReIY3libtlibnGKlCqlng/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857503952](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103824-211741.png)
 
-> 103、Flink CDC原理介绍一下
+#### 103、Flink CDC原理介绍一下
 
 在最新CDC 调研报告中，**Debezium** 和 **Canal** 是目前最流行使用的 CDC 工具，这些 CDC 工具的核心原理是抽取数据库日志获取变更。在经过一系列调研后，目前Debezium (支持全量、增量同步，同时支持 MySQL、PostgreSQL、Oracle 等数据库)，使用较为广泛。
 
 Flink SQL CDC 内置了 **Debezium** 引擎，利用其抽取日志获取变更的能力，将 changelog 转换为 Flink SQL 认识的 RowData 数据。（以下右侧是 Debezium 的数据格式，左侧是 Flink 的 **RowData 数据格式**）。
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8NfO96GyiaAKrgdQ5Khdvattbag0GN608LgNYzwiaZmxByHdic8CJ5CSPq6RGTcf4tFTyxEFJp3YC2pg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857524440](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103845-662251.png)
 
 RowData 代表了一行的数据，在 RowData 上面会有一个元数据的信息 **RowKind**，RowKind 里面包括了插入(+I)、更新前(-U)、更新后(+U)、删除(-D)，这样和数据库里面的 binlog 概念十分类似。通过 Debezium 采集的数据，包含了旧数据(before)和新数据行(after)以及原数据信息(source)，op 的 u 表示是 update 更新操作标识符（op 字段的值 c，u，d，r 分别对应 create，update，delete，reade），ts_ms 表示同步的时间戳。
 
-> 104、通过CDC设计一种Flink SQL 采集+计算+传输(ETL)一体化的实时数仓
+#### 104、通过CDC设计一种Flink SQL 采集+计算+传输(ETL)一体化的实时数仓
 
 设计图如下：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8NfO96GyiaAKrgdQ5Khdvatt0XPC9Xiauiayt5XINktUbbkaicTSw0JAzQcHVpCtMsmXs4SNPQMiaGTRCA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857550032](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/103911-530055.png)
 
 **通过 Flink CDC connectors 替换 Debezium+Kafka 的数据采集模块**，**实现** **Flink SQL 采集+计算+传输(ETL)一体化**，以Mysql为Source源，Flink CDC中间件为插件，ES或者Kafka，或者其他为Sink，这样设计的优点如下：
 
@@ -2835,92 +1452,51 @@ RowData 代表了一行的数据，在 RowData 上面会有一个元数据的信
 - 支持全量和增量流式读取
 - binlog 采集位点可回溯
 
-> 105、Flink SQL CDC如何实现一致性保障（源码分析）
+#### 105、Flink SQL CDC如何实现一致性保障（源码分析）
 
 Flink SQL CDC 用于获取数据库变更日志的 Source 函数是 **DebeziumSourceFunction**，且最终返回的类型是 **RowData**，该函数实现了 CheckpointedFunction，即通过 Checkpoint 机制来保证发生 failure 时不会丢数，实现 exactly once 语义，这部分在函数的注释中有明确的解释。
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
-```
-/** * The {@link DebeziumSourceFunction} is a streaming data source that pulls captured change data * from databases into Flink. * 通过Checkpoint机制来保证发生failure时不会丢数，实现exactly once语义 * <p>The source function participates in checkpointing and guarantees that no data is lost * during a failure, and that the computation processes elements "exactly once". * 注意：这个Source Function不能同时运行多个实例 * <p>Note: currently, the source function can't run in multiple parallel instances. * * <p>Please refer to Debezium's documentation for the available configuration properties: * https://debezium.io/documentation/reference/1.2/development/engine.html#engine-properties</p> */@PublicEvolvingpublic class DebeziumSourceFunction<T> extends RichSourceFunction<T> implementsCheckpointedFunction,ResultTypeQueryable<T> {}
+```java
+/** * The {@link DebeziumSourceFunction} is a streaming data source that pulls captured change data * from databases into Flink. * 通过Checkpoint机制来保证发生failure时不会丢数，实现exactly once语义 * <p>The source function participates in checkpointing and guarantees that no data is lost * during a failure, and that the computation processes elements "exactly once". * 注意：这个Source Function不能同时运行多个实例 * <p>Note: currently, the source function can't run in multiple parallel instances. * * <p>Please refer to Debezium's documentation for the available configuration properties: * https://debezium.io/documentation/reference/1.2/development/engine.html#engine-properties</p> */
+@PublicEvolvingpublic class DebeziumSourceFunction<T> extends RichSourceFunction<T> implementsCheckpointedFunction,ResultTypeQueryable<T> {}
 ```
 
 **为实现 CheckpointedFunction，需要实现以下两个方法：**
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
-```
-public interface CheckpointedFunction {//做快照，把内存中的数据保存在checkpoint状态中void snapshotState(FunctionSnapshotContext var1) throws Exception;
+```java
+public interface CheckpointedFunction {
+  //做快照，把内存中的数据保存在checkpoint状态中void snapshotState(FunctionSnapshotContext var1) throws Exception;
 //程序异常恢复后从checkpoint状态中恢复数据void initializeState(FunctionInitializationContext var1) throws Exception;}
 ```
 
 **接下来我们看看 DebeziumSourceFunction 中都记录了哪些状态。**
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-
-```
-/** Accessor for state in the operator state backend.     offsetState中记录了读取的binlog文件和位移信息等，对应Debezium中的*/private transient ListState<byte[]> offsetState;
-/** * State to store the history records, i.e. schema changes. * historyRecordsState记录了schema的变化等信息 * @see FlinkDatabaseHistory*/private transient ListState<String> historyRecordsState;
+```java
+/** Accessor for state in the operator state backend.     offsetState中记录了读取的binlog文件和位移信息等，对应Debezium中的*/
+private transient ListState<byte[]> offsetState;
+/** * State to store the history records, i.e. schema changes. * historyRecordsState记录了schema的变化等信息 * @see FlinkDatabaseHistory*/
+private transient ListState<String> historyRecordsState;
 ```
 
 我们发现在 Flink SQL CDC 是一个相对简易的场景，没有中间算子，是通过 Checkpoint 持久化 binglog 消费位移和 schema 变化信息的快照，来实现 Exactly Once。
 
-> 106、Flink SQL GateWay了解吗？
+#### 106、Flink SQL GateWay了解吗？
 
 **Flink SQL GateWay的概念：**
 
 FlinkSql Gateway是Flink集群的“任务网关”，支持以restapi 的形式提交查询、插入、删除等任务，如下图所示：
 
-
-
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjmpI1qnxL4iayd6g9iaBXX3dmhng2uqskrKoDbMn8Px7mKGGjUAxod3AQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636857658426](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/104059-894712.png)
 
 总体架构如下图所示：
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmjM1MicFzkISOv29QTzQEMNfUbVe2iaibjUZEoUCGNxLibibN0mNnIX92Uia6Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1636857674505](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/104115-127885.png)
 
-
-
-> 107、Flink SQL GateWay创建会话讲解一下？
+#### 107、Flink SQL GateWay创建会话讲解一下？
 
 **创建会话流程图如下：**
 
-![图片](https://mmbiz.qpic.cn/mmbiz_png/nEEdkvXCJ8OEm0ibzDF4SWzGQtlzIYVmj6UGxaUCOqQzxoyJCUuzS9K7B5xaxr2CricnAqHmibVuGbu9v07G8QwAw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1636857694946](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/104136-965836.png)
 
 （1）传入参数包含name名称、planner执行引擎（Blink或原生的flink）、executetype（streaming或者batch）、properties（配置参数，如并发度等）；
 
@@ -2932,16 +1508,14 @@ FlinkSql Gateway是Flink集群的“任务网关”，支持以restapi 的形式
 
    sessions.put(sessionId,session); return sessionId;
 
-> 108、Flink SQL GateWay如何处理并发请求？多个提交怎么处理？ 
+#### 108、Flink SQL GateWay如何处理并发请求？多个提交怎么处理？ 
 
-​      sql gateway内部维护SessionManager，里面通过Map维护了各个Session，每个Session的任务执行是独立的。同一个Session通过ExecuteContext内部的tEnv按顺序提交。
+sql gateway内部维护SessionManager，里面通过Map维护了各个Session，每个Session的任务执行是独立的。同一个Session通过ExecuteContext内部的tEnv按顺序提交。
 
-> 109、如何维护多个SQL之间的关联性？ 
+#### 109、如何维护多个SQL之间的关联性？ 
 
-​      在每个Session中单独维护了tEnv，同一个session中的操作其实是在一个env中执行的。因此只要是同一个session中的任务，内部使用的tEnv就是同一个。这样就可以实现在Asession中，先创建一个view，然后执行一个select，最后执行一个insert。
+ 在每个Session中单独维护了tEnv，同一个session中的操作其实是在一个env中执行的。因此只要是同一个session中的任务，内部使用的tEnv就是同一个。这样就可以实现在Asession中，先创建一个view，然后执行一个select，最后执行一个insert。
 
-> 110、sql字符串如何提交到集群成为代码？
+#### 110、sql字符串如何提交到集群成为代码？
 
-​       **Session**中维护了tenv，sql会通过tenv编译生成**pipeline**（即DAG图），在batch模式下是Plan执行计划；在stream模式下是**StreamGraph**。然后Session内部会创建一个ProgramDeployer代码发布器，根据Flink中配置的target创建不同的excutor。最后调用executor.execute方法提交Pipeline和config执行。
-
-**以上就是Flink 的全部内容，160张图全部亲自绘制出来****！不想被白嫖呀，觉得好的，点赞，在看，分享三连击，谢谢！！！**
+**Session**中维护了tenv，sql会通过tenv编译生成**pipeline**（即DAG图），在batch模式下是Plan执行计划；在stream模式下是**StreamGraph**。然后Session内部会创建一个ProgramDeployer代码发布器，根据Flink中配置的target创建不同的excutor。最后调用executor.execute方法提交Pipeline和config执行。
