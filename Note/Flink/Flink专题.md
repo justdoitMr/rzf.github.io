@@ -4,7 +4,7 @@
 - [Flink专题](#flink专题)
   - [Flink 基础篇](#flink-基础篇)
     - [1、什么是Flink？描述一下](#1什么是flink描述一下)
-    - [2、能否详细解释一下其中的 数据流、流批一体、容错能力等概念？](#2能否详细解释一下其中的-数据流流批一体容错能力等概念)
+    - [2、能否详细解释一下其中的数据流、流批一体、容错能力等概念？](#2能否详细解释一下其中的数据流流批一体容错能力等概念)
     - [3、Flink 和 Spark Streaming的区别？](#3flink-和-spark-streaming的区别)
     - [4、Flink的架构包含哪些？](#4flink的架构包含哪些)
     - [5、简单介绍一下技术架构](#5简单介绍一下技术架构)
@@ -14,6 +14,7 @@
     - [9、Flink编程模型了解不？](#9flink编程模型了解不)
     - [10、Flink作业中的DataStream，Transformation介绍一下](#10flink作业中的datastreamtransformation介绍一下)
     - [11、Flink的分区策略了解吗？](#11flink的分区策略了解吗)
+    - [Flink中图的介绍](#flink中图的介绍)
     - [12、描述一下Flink wordcount执行包含的步骤有哪些？](#12描述一下flink-wordcount执行包含的步骤有哪些)
     - [13、Flink常用的算子有哪些？](#13flink常用的算子有哪些)
   - [Flink 核心篇](#flink-核心篇)
@@ -132,7 +133,7 @@
 
 Flink是一个以**流**为核心的**高可用、高性能**的分布式计算引擎。具备 **流批一体，高吞吐、低延迟，容错能力，大规模复杂计算**等特点，在数据流上提供 数据分发、通信等功能。
 
-#### 2、能否详细解释一下其中的 数据流、流批一体、容错能力等概念？
+#### 2、能否详细解释一下其中的数据流、流批一体、容错能力等概念？
 
 **数据流**：
 
@@ -144,11 +145,11 @@ Flink是一个以**流**为核心的**高可用、高性能**的分布式计算�
 
 ![1636858322326](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/105204-73353.png)
 
-**有界数据**，就是在一个确定的时间范围内的数据流，有开始，有结束，一旦确定就不会再改变，一般批处理用来处理有界数据，如上图的 bounded stream。
+**有界数据**，就是在一个确定的时间范围内的数据流，有开始，有结束，一旦确定就不会再改变，一般**批处理**用来处理有界数据，如上图的 bounded stream。
 
-**无界数据**，就是持续产生的数据流，数据是无限的，有开始，无结束，一般流处理用来处理无界数据。如图 unbounded stream。
+**无界数据**，就是持续产生的数据流，数据是无限的，有开始，无结束，一般**流处理**用来处理无界数据。如图 unbounded stream。
 
-Flink的设计思想是以**流**为核心，**批是流的特例**，擅长处理无界和有界数据， Flink 提供精确的时间控制能力和有状态计算机制，可以轻松应对无界数据流，同时提供窗口处理有界数据流。所以被成为流批一体。
+Flink的设计思想是以**流**为核心，**批是流的特例**，擅长处理无界和有界数据， Flink 提供精确的**时间控制能力和有状态计算机制**，可以轻松应对无界数据流，同时提供**窗口**处理有界数据流。所以被成为流批一体。
 
 **容错能力**：
 
@@ -156,15 +157,13 @@ Flink的设计思想是以**流**为核心，**批是流的特例**，擅长处�
 
 **Flink提供集群级容错和应用级容错能力**
 
-**集群级容错:** Flink与集群管理器紧密连接，如YARN、Kubernetes，当进程挂掉后，自动重启新进程接管之前的工作。同时具备**高可用**性,可消除所有单点故障，
+**集群级容错:** Flink与集群管理器紧密连接，如YARN、Kubernetes，当进程挂掉后，自动重启新进程接管之前的工作。同时具备**高可用**性,可消除所有**单点故障**。
 
-**应用级容错**:Flink 使用 轻量级分布式快照，设计检查点（**checkpoint**）实现可靠容错。
-
-Flink 利用检查点特性，在框架层面 提供 **Exactly-once** 语义，即端到端的一致性，确保数据仅处理一次，不会重复也不会丢失，即使出现故障，也能保证数据只写一次。
+**应用级容错**:Flink使用轻量级分布式快照，设计检查点（**checkpoint**）实现可靠容错。Flink 利用检查点特性，在框架层面 提供 **Exactly-once** 语义，即端到端的一致性，确保数据仅处理一次，不会重复也不会丢失，即使出现故障，也能保证数据只写一次。
 
 #### 3、Flink 和 Spark Streaming的区别？
 
-**Flink**和**Spark Sreaming**最大的区别在于：Flink 是标准的实时处理引擎，基于事件驱动，**以流为核心**，而 Spark Streaming 的RDD 实际是一组小批次的RDD集合，是微批（Micro-Batch）的模型，**以批为核心**。
+**Flink**和**Spark Sreaming**最大的区别在于：Flink 是标准的**实时处理引擎**，基于事件驱动，**以流为核心**，而 Spark Streaming 的**RDD 实际是一组小批次的RDD集合**，是**微批**（Micro-Batch）的模型，**以批为核心**。
 
 **下面我们介绍两个框架的主要区别：**
 
@@ -203,7 +202,10 @@ JobManager 会根据 JobGraph 生成 **ExecutionGraph**，ExecutionGraph 是 Fli
 
 ![1636187460754](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163101-293797.png)
 
-3. **时间机制**
+> Flink：StreamGraph-->JobGraph-->ExecutionGraph--> 执行图
+> Spark：DStreamGraph=spark application--->job-->stage--->Task
+
+1. **时间机制**
 
 Spark Streaming 支持的时间机制有限，只支持、**处理时间**。
 
@@ -213,7 +215,7 @@ Flink 支持了流处理程序在时间上的三个定义：**事件时间 Event
 
 4. **容错机制**
 
-对于 Spark Streaming 任务，我们可以设置**checkpoint**，然后假如发生故障并重启，我们可以从上次 checkpoint 之处恢复，但是这个行为只能使得数据不丢失，可能会重复处理，不能做到恰好一次处理语义。
+对于 Spark Streaming 任务，我们可以设置**checkpoint**，然后假如发生故障并重启，我们可以从上次 checkpoint 之处恢复，**但是这个行为只能使得数据不丢失，可能会重复处理，不能做到恰好一次处理语义**。
 
 Flink 则使用两阶段提交协议来解决这个问题，因为Flink保证的是端到端的精确一致性。
 
@@ -229,7 +231,7 @@ Flink 架构分为**技术架构和运行架构**两部分。
 
 Flink 作为流批一体的分布式计算引擎，必须提供面向开发人员的**API层**，同时还需要跟外部数据存储进行交互，需要**连接器**，作业开发、测试完毕后，需要提交集群执行，需要**部署层**，同时还需要运维人员能够管理和监控，还提供图计算、机器学习、SQL等，需要**应用框架层**。
 
-> Api层-面向开发人员
+> Api层：面向开发人员
 > 
 > 连接器：和外部数据交互
 > 
@@ -251,7 +253,7 @@ Flink 客户端是F1ink 提供的 CLI 命令行工具，用来提交 Flink 作�
 
 **(2)、JobManager**
 
-JobManager根据并行度将Flink客户端提交的Flink 应用分解为子任务，从资源管理器 ResourceManager 申请所需的计算资源，资源具备之后，开始分发任务到 TaskManager执行Task，并负责应用容错，跟踪作业的执行状态，发现异常则恢复作业等。
+JobManager根据并行度将Flink客户端提交的Flink 应用分解为**子任务**，从资源管理器 ResourceManager 申请所需的计算资源，资源具备之后，开始分发任务到 TaskManager执行Task，**并负责应用容错，跟踪作业的执行状态，发现异常则恢复作业等。**
 
 **(3)、TaskManager**
 
@@ -267,7 +269,7 @@ Flink程序在执行的时候，会被映射成一个**Streaming Dataflow**，�
 
 ![20211114111313](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211114111313.png)
 
-一个Stream可以被分成多个Stream的分区，也就是Stream Partition。**一个Operator也可以被分为多个Operator Subtask**。如上图中，Source被分成Source1和Source2，它们分别为Source的Operator Subtask。每一个Operator Subtask都是在不同的线程当中独立执行的。**一个Operator的并行度，就等于Operator Subtask的个数**。
+**一个Stream可以被分成多个Stream的分区，也就是Stream Partition。一个Operator也可以被分为多个Operator Subtask**。如上图中，Source被分成Source1和Source2，它们分别为Source的Operator Subtask。每一个Operator Subtask都是在不同的线程当中独立执行的。**一个Operator的并行度，就等于Operator Subtask的个数**。
 
 上图Source的并行度为2。而一个Stream的并行度就等于它生成的Operator的并行度。数据在两个operator之间传递的时候有两种模式：
 
@@ -297,7 +299,7 @@ Flink 应用程序主要由三部分组成：
 
 - **transformation**
 
-- **目的地sink**
+- **sink**
 
 这些流式 dataflows 形成了有向图，以一个或多个源（source）开始，并以一个或多个目的地（sink）结束。
 
@@ -315,19 +317,125 @@ DataStream API 和 Transformation 的转换如下图：
 
 #### 11、Flink的分区策略了解吗？
 
+
+![20211115084735](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115084735.png)
+
+```java
+public interface ChannelSelector<T extends IOReadableWritable> {
+
+    /**
+     * 初始化channels数量，channel可以理解为下游
+     
+     Operator的某个实例(并行算子的某个subtask).
+     */
+    void setup(int numberOfChannels);
+
+    /**
+     *根据当前的record以及Channel总数，
+     *决定应将record发送到下游哪个Channel。
+     *不同的分区策略会实现不同的该方法。
+     */
+    int selectChannel(T record);
+
+    /**
+    *是否以广播的形式发送到下游所有的算子实例
+     */
+    boolean isBroadcast();
+}
+```
+
+**抽象类**：StreamPartitioner
+
+```java
+public abstract class StreamPartitioner<T> implements
+        ChannelSelector<SerializationDelegate<StreamRecord<T>>>, Serializable {
+    private static final long serialVersionUID = 1L;
+
+    protected int numberOfChannels;
+
+    @Override
+    public void setup(int numberOfChannels) {
+        this.numberOfChannels = numberOfChannels;
+    }
+
+    @Override
+    public boolean isBroadcast() {
+        return false;
+    }
+
+    public abstract StreamPartitioner<T> copy();
+}
+```
+
 目前 Flink 支持**8种分区策略**的实现，数据分区体系如下图：
 
 ![20211114111814](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211114111814.png)
 
 (1) GlobalPartitioner
 
-数据会被分发到下游算子的第一个实例中进行处理。
+该分区器会将所有的数据都发送到下游的某个算子实例(subtask id = 0)
+
+![20211115085112](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115085112.png)
 
 (2) ForwardPartitioner
 
 在API层面上**ForwardPartitioner**应用在DataStream上，生成一个新的 DataStream。
 
 该Partitioner 比较特殊，用于在同一个 OperatorChain 中上下游算子之间的数据转发，实际上数据是直接传递给下游的，要求上下游并行度一样。
+
+发送到下游对应的第一个task，保证上下游算子并行度一致，即上有算子与下游算子是1:1的关系
+
+```java
+/**
+ * 发送到下游对应的第一个task
+ * @param <T>
+ */
+@Internal
+public class ForwardPartitioner<T> extends StreamPartitioner<T> {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        return 0;
+    }
+
+    public StreamPartitioner<T> copy() {
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "FORWARD";
+    }
+}
+```
+
+**图示**
+
+![20211115090143](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115090143.png)
+
+> 注意：
+> 
+> 在上下游的算子没有指定分区器的情况下，如果上下游的算子并行度一致，则使用ForwardPartitioner，否则使用RebalancePartitioner，对于ForwardPartitioner，必须保证上下游算子并行度一致，否则会抛出异常
+
+```java
+//在上下游的算子没有指定分区器的情况下，如果上下游的算子并行度一致，则使用ForwardPartitioner，否则使用RebalancePartitioner
+            if (partitioner == null && upstreamNode.getParallelism() == downstreamNode.getParallelism()) {
+                partitioner = new ForwardPartitioner<Object>();
+            } else if (partitioner == null) {
+                partitioner = new RebalancePartitioner<Object>();
+            }
+
+            if (partitioner instanceof ForwardPartitioner) {
+                //如果上下游的并行度不一致，会抛出异常
+                if (upstreamNode.getParallelism() != downstreamNode.getParallelism()) {
+                    throw new UnsupportedOperationException("Forward partitioning does not allow " +
+                        "change of parallelism. Upstream operation: " + upstreamNode + " parallelism: " + upstreamNode.getParallelism() +
+                        ", downstream operation: " + downstreamNode + " parallelism: " + downstreamNode.getParallelism() +
+                        " You must use another partitioning strategy, such as broadcast, rebalance, shuffle or global.");
+                }
+            }
+```
 
 (3) ShufflePartitioner
 
@@ -337,7 +445,37 @@ DataStream API 和 Transformation 的转换如下图：
 
 dataStream.shuffle();
 
+/**
+ * 随机的选择一个channel进行发送
+ * @param <T>
+ */
+@Internal
+public class ShufflePartitioner<T> extends StreamPartitioner<T> {
+    private static final long serialVersionUID = 1L;
+
+    private Random random = new Random();
+
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        //产生[0,numberOfChannels)伪随机数，随机发送到下游的某个task
+        return random.nextInt(numberOfChannels);
+    }
+
+    @Override
+    public StreamPartitioner<T> copy() {
+        return new ShufflePartitioner<T>();
+    }
+
+    @Override
+    public String toString() {
+        return "SHUFFLE";
+    }
+}
 ```
+
+**图示**
+
+![20211115085227](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115085227.png)
 
 (4) RebalancePartitioner
 
@@ -347,11 +485,52 @@ dataStream.shuffle();
 
 dataStream.rebalance();
 
+/**
+ *通过循环的方式依次发送到下游的task
+ * @param <T>
+ */
+@Internal
+public class RebalancePartitioner<T> extends StreamPartitioner<T> {
+    private static final long serialVersionUID = 1L;
+
+    private int nextChannelToSendTo;
+
+    @Override
+    public void setup(int numberOfChannels) {
+        super.setup(numberOfChannels);
+        //初始化channel的id，返回[0,numberOfChannels)的伪随机数
+        nextChannelToSendTo = ThreadLocalRandom.current().nextInt(numberOfChannels);
+    }
+
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        //循环依次发送到下游的task，比如：nextChannelToSendTo初始值为0，numberOfChannels(下游算子的实例个数，并行度)值为2
+        //则第一次发送到ID = 1的task，第二次发送到ID = 0的task，第三次发送到ID = 1的task上...依次类推
+        nextChannelToSendTo = (nextChannelToSendTo + 1) % numberOfChannels;
+        return nextChannelToSendTo;
+    }
+
+    public StreamPartitioner<T> copy() {
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "REBALANCE";
+    }
+}
 ```
+
+**图示**
+
+![20211115085450](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115085450.png)
 
 (5) RescalePartitioner
 
 根据上下游 Task 的数量进行分区， 使用 **Round-robin**选择下游的一个Task 进行数据分区，如上游有2个 Source.，下游有6个 Map，那么每个 Source 会分配3个固定的下游 Map，不会向未分配给自己的分区写人数据。这一点与 ShufflePartitioner 和 RebalancePartitioner 不同， 后两者会写入下游所有的分区。
+
+基于上下游Operator的并行度，将记录以循环的方式输出到下游Operator的每个实例。
+举例: 上游并行度是2，下游是4，则上游一个并行度以循环的方式将记录输出到下游的两个并行度上;上游另一个并行度以循环的方式将记录输出到下游另两个并行度上。 若上游并行度是4，下游并行度是2，则上游两个并行度将记录输出到下游一个并行度上；上游另两个并行度将记录输出到下游另一个并行度上。
 
 ![1636189039077](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/165720-924160.png)
 
@@ -361,7 +540,34 @@ dataStream.rebalance();
 
 dataStream.rescale();
 
+@Internal
+public class RescalePartitioner<T> extends StreamPartitioner<T> {
+    private static final long serialVersionUID = 1L;
+
+    private int nextChannelToSendTo = -1;
+
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        if (++nextChannelToSendTo >= numberOfChannels) {
+            nextChannelToSendTo = 0;
+        }
+        return nextChannelToSendTo;
+    }
+
+    public StreamPartitioner<T> copy() {
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "RESCALE";
+    }
+}
 ```
+
+**图示**
+
+![20211115085636](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115085636.png)
 
 (6) BroadcastPartitioner
 
@@ -371,7 +577,40 @@ dataStream.rescale();
 
 dataStream.broadcast();
 
+/**
+ * 发送到所有的channel
+ */
+@Internal
+public class BroadcastPartitioner<T> extends StreamPartitioner<T> {
+    private static final long serialVersionUID = 1L;
+    /**
+     * Broadcast模式是直接发送到下游的所有task，所以不需要通过下面的方法选择发送的通道
+     */
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        throw new UnsupportedOperationException("Broadcast partitioner does not support select channels.");
+    }
+
+    @Override
+    public boolean isBroadcast() {
+        return true;
+    }
+
+    @Override
+    public StreamPartitioner<T> copy() {
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "BROADCAST";
+    }
+}
 ```
+
+**图示**
+
+![20211115085342](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115085342.png)
 
 (7) KeyGroupStreamPartitioner
 
@@ -381,9 +620,158 @@ KeyedStream根据keyGroup索引编号进行分区，会将数据按 Key 的 Hash
 
 KeyedStream在构造**Transformation**的时候默认使用KeyedGroup分区形式，从而在底层上支持作业Rescale功能。
 
+```java
+org.apache.flink.streaming.runtime.partitioner.KeyGroupStreamPartitioner
+
+/**
+ * 根据key的分组索引选择发送到相对应的下游subtask
+ * @param <T>
+ * @param <K>
+ */
+@Internal
+public class KeyGroupStreamPartitioner<T, K> extends StreamPartitioner<T> implements ConfigurableStreamPartitioner {
+...
+
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        K key;
+        try {
+            key = keySelector.getKey(record.getInstance().getValue());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not extract key from " + record.getInstance().getValue(), e);
+        }
+        //调用KeyGroupRangeAssignment类的assignKeyToParallelOperator方法,代码如下所示
+        return KeyGroupRangeAssignment.assignKeyToParallelOperator(key, maxParallelism, numberOfChannels);
+    }
+...
+}
+
+org.apache.flink.runtime.state.KeyGroupRangeAssignment
+
+public final class KeyGroupRangeAssignment {
+...
+
+    /**
+     * 根据key分配一个并行算子实例的索引，该索引即为该key要发送的下游算子实例的路由信息，
+     * 即该key发送到哪一个task
+     */
+    public static int assignKeyToParallelOperator(Object key, int maxParallelism, int parallelism) {
+        Preconditions.checkNotNull(key, "Assigned key must not be null!");
+        return computeOperatorIndexForKeyGroup(maxParallelism, parallelism, assignToKeyGroup(key, maxParallelism));
+    }
+
+    /**
+     *根据key分配一个分组id(keyGroupId)
+     */
+    public static int assignToKeyGroup(Object key, int maxParallelism) {
+        Preconditions.checkNotNull(key, "Assigned key must not be null!");
+        //获取key的hashcode
+        return computeKeyGroupForKeyHash(key.hashCode(), maxParallelism);
+    }
+
+    /**
+     * 根据key分配一个分组id(keyGroupId),
+     */
+    public static int computeKeyGroupForKeyHash(int keyHash, int maxParallelism) {
+
+        //与maxParallelism取余，获取keyGroupId
+        return MathUtils.murmurHash(keyHash) % maxParallelism;
+    }
+
+    //计算分区index，即该key group应该发送到下游的哪一个算子实例
+    public static int computeOperatorIndexForKeyGroup(int maxParallelism, int parallelism, int keyGroupId) {
+        return keyGroupId * parallelism / maxParallelism;
+    }
+...
+```
+
+**图示**
+
+![20211115090510](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115090510.png)
+
 (8) CustomPartitionerWrapper
 
 用户自定义分区器。需要用户自己实现Partitioner接口，来定义自己的分区逻辑。
+
+```java
+public class CustomPartitionerWrapper<K, T> extends StreamPartitioner<T> {
+    private static final long serialVersionUID = 1L;
+
+    Partitioner<K> partitioner;
+    KeySelector<T, K> keySelector;
+
+    public CustomPartitionerWrapper(Partitioner<K> partitioner, KeySelector<T, K> keySelector) {
+        this.partitioner = partitioner;
+        this.keySelector = keySelector;
+    }
+
+    @Override
+    public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+        K key;
+        try {
+            key = keySelector.getKey(record.getInstance().getValue());
+        } catch (Exception e) {
+            throw new RuntimeException("Could not extract key from " + record.getInstance(), e);
+        }
+//实现Partitioner接口，重写partition方法
+        return partitioner.partition(key, numberOfChannels);
+    }
+
+    @Override
+    public StreamPartitioner<T> copy() {
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "CUSTOM";
+    }
+}
+
+public class CustomPartitioner implements Partitioner<String> {
+      // key: 根据key的值来分区
+      // numPartitions: 下游算子并行度
+      @Override
+      public int partition(String key, int numPartitions) {
+         return key.length() % numPartitions;//在此处定义分区策略
+      }
+  }
+```
+
+#### Flink中图的介绍
+
+> 前两个图主要在客户端生成
+> 
+> 后两个图主要在JobManager端生成
+
+Flink 中的执行图可以分成四层：StreamGraph -> JobGraph -> ExecutionGraph -> 物理执行图。
+
+StreamGraph：是根据用户通过 Stream API 编写的代码生成的最初的图。用来表示程序的**拓扑结构**。
+
+JobGraph：StreamGraph经过优化后生成了 JobGraph，提交给 JobManager 的数据结构。主要的优化为，将多个符合条件的节点 chain 在一起作为一个节点，这样可以减少数据在节点之间流动所需要的序列化/反序列化/传输消耗。
+
+ExecutionGraph：JobManager 根据 JobGraph 生成ExecutionGraph。ExecutionGraph是JobGraph的并行化版本，是调度层最核心的数据结构。
+
+物理执行图：JobManager 根据 ExecutionGraph 对 Job 进行调度后，在各个TaskManager 上部署 Task 后形成的“图”，并不是一个具体的数据结构。
+
+而StreamingJobGraphGenerator就是StreamGraph转换为JobGraph。在这个类中，把ForwardPartitioner和RescalePartitioner列为POINTWISE分配模式，其他的为ALL_TO_ALL分配模式。代码如下
+
+```java
+if (partitioner instanceof ForwardPartitioner || partitioner instanceof RescalePartitioner) {
+            jobEdge = downStreamVertex.connectNewDataSetAsInput(
+                headVertex,
+
+               // 上游算子(生产端)的实例(subtask)连接下游算子(消费端)的一个或者多个实例(subtask)
+                DistributionPattern.POINTWISE,
+                resultPartitionType);
+        } else {
+            jobEdge = downStreamVertex.connectNewDataSetAsInput(
+                headVertex,
+                // 上游算子(生产端)的实例(subtask)连接下游算子(消费端)的所有实例(subtask)
+                DistributionPattern.ALL_TO_ALL,
+                resultPartitionType);
+        }
+```
 
 #### 12、描述一下Flink wordcount执行包含的步骤有哪些？
 
