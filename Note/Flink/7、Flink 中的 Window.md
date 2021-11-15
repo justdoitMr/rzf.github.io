@@ -51,6 +51,10 @@
 
 ![1622104270812](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/27/163118-133038.png)
 
+> 对于 TimeWindow，可以根据窗口实现原理的不同分成三类：滚动窗口（Tumbling Window）、滑动窗口（Sliding Window）和会话窗口（Session Window）。
+> 
+> 对于CountWinsow,可以根据窗口的实现原理分为两类：滚动计数窗口(tumblingcount window)和滑动计数窗口(slidingcount window)
+
 #### 按照slide和size分类
 
 窗口有两个重要的属性: **窗口大小size和滑动间隔slide**,根据它们的大小关系可分为:
@@ -739,7 +743,7 @@ public class CountWindow {
 
 **基于时间的滚动和滑动窗口**
 
-![1622878592124](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622878592124.png)
+![1622878592124](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/113007-449093.png)
 
 **代码演示**
 
