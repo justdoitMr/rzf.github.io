@@ -2,7 +2,7 @@
 <!-- TOC -->
 
 - [Flink运行时架构](#flink运行时架构)
-  - [flink原理初探](#flink原理初探)
+  - [Flink原理初探](#flink原理初探)
   - [Flink运行时的组件](#flink运行时的组件)
   - [Spark和Flink组件对比](#spark和flink组件对比)
   - [名词说明](#名词说明)
@@ -23,19 +23,21 @@
 
 Flink 是一个用于**状态化并行流**处理的分布式系统。它的搭建涉及多个进程，这些进程通常会分布在多台机器上。分布式系统需要应对的常见挑战包括**分配和管理集群计算资源，进程协调，持久且高可用的数据存储及故障恢复等**。
 
-### flink原理初探
+### Flink原理初探
 
 ![1621655348577](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/22/114910-990149.png)
 
-flink客户端不仅会提交应用程序的代码，还会将提交的程序代码转换为**数据流图**，然后进行一些优化，形成一个数据流图，然后提交给资源管理的节点job manager节点，也就是master，负责整个作业的管理，任务的分配和资源的申请。job manager会将任务分给task mansger节点。task manager是工作节点，工作节点里面是task slot，可以把task slot看做是线程，taskmanager看做的一个jvm进程，执行的是任务。如果和spark类比,job manager就相当于spark中的driver进程，taskmanager就相当于worker种运行的Executor进程。
+flink客户端不仅会提交应用程序的代码，还会将提交的程序代码转换为**StreamGraph**，然后进行一些优化，形成一个**JobGraph**。
+
+然后提交给资源管理的节点job manager节点，也就是master，负责整个作业的管理，job manager会将JobGraph先转换为物理图，然后在物理下图的基础上转换为执行图，也就是可以在机器上运行的一个个Task组成的图，任务的分配和资源的申请。job manager会将任务分给task mansger节点。task manager是工作节点，工作节点里面是task slot，可以把task slot看做是线程，taskmanager看做的一个jvm进程，执行的是任务。如果和spark类比,job manager就相当于spark中的driver进程，taskmanager就相当于worker种运行的Executor进程。
 > job manager---->driver
 > 
 > task manager---->Executor
 
 - 简单来说在clint上面会生成最初的程序流图，也就是streamGraph。
 - 然后把oneToOne的算子进行合并，做一些优化生成jobGraph图。
-- 接下来在jobManager上面根据程序中设置的并行度和资源的申请状况生成executorGraph图(执行图)。
-- 将executorGraph落实到具体的taskmanager上面，并将具体的subtask落实到具体的slot中进行运行，这一步是物理的执行图。
+- 接下来在jobManager上面根据程序中设置的并行度和资源的申请状况生成物理图和executorGraph图(执行图)。
+- 将executorGraph落实到具体的taskmanager上面，并将具体的subtask落实到具体的slot中进行运行。
 
 > 生成前两部分的图形是在clint端进行的。
 >
@@ -69,7 +71,7 @@ Flink集群启动时，会启动一个JobManager进程、至少一个TaskManager
 
 - 控制一个应用程序执行的**主进程**，也就是说，每个应用程序(作业)都会被一个不同的JobManager 所控制执行。提交一个flink程序，那么就由jobmanager来控制执行，提交作业就是提交给jobmanager。它扮演的是集群管理者的角色，负责调度任务、协调checkpoints、协调故障恢复、收集 Job 的状态信息，并管理 Flink 集群中的从节点 TaskManager。
 - JobManager 会先接收到要执行的应用程序，这个应用程序会包括：作业图（JobGraph）、逻辑数据流图（logical dataflow graph）和打包了所有的类、库和其它资源的 JAR 包。
-- JobManager 会把 JobGraph 转换成一个物理层面的数据流图dataflow图，这个图被叫做“执行图”（ExecutionGraph），包含了所有可以并发执行的任务。
+- JobManager 会把 JobGraph 转换成一个物理层面的物理图，然后在转换为“执行图”（ExecutionGraph），包含了所有可以并发执行的任务。
 - JobManager 会向资源管理器（ResourceManager）请求执行任务必要的资源，也就是任务管理器（TaskManager）上的插槽（slot）。一旦它获取到了足够的资源，就会将执行图分发到真正运行它们的TaskManager 上。而在运行过程中，JobManager 会负责所有需要中央协调的操作，比如说检查点（checkpoints）的协调。
 
 **任务管理器（TaskManager）**
