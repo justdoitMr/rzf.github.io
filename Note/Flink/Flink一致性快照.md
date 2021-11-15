@@ -6,6 +6,7 @@
 - [面试题：](#面试题)
   - [flink是如何保证状态一致性的？（内部保证）](#flink是如何保证状态一致性的内部保证)
 - [Exactly-once两阶段提交步骤](#exactly-once两阶段提交步骤)
+- [Flink+Kafka实现端到端的精确一致性](#flinkkafka实现端到端的精确一致性)
 
 <!-- /TOC -->
 
@@ -20,14 +21,13 @@
 
 - AT-MOST-ONCE(最多一次):
   
-  当故障发生的时候，什么都不干。就是说每条消息就只消费一次。
+  当任务故障时，最简单的做法是什么都不干，既不恢复丢失的状态，也不重播丢失的数据。At-most-once 语义的含义是最多处理一次事件。这种情况会发生数据的丢失。
 - AT-LEAST-ONCE(至少一次):
 
-
-  为了确保数据不丢失，确保每个时间都得到处理，一些时间可能会被处理多次。
+  在大多数的真实应用场景，我们希望不丢失事件。这种类型的保障称为 at-least-once，意思是所有的事件都得到了处理，而一些事件还可能被处理多次。这种情况不会丢失事件，但是数据会重复处理。
 - EXACTLY-ONCE(精确一次):
   
-  每个时间都精确处理一次。
+  恰好处理一次是最严格的保证，也是最难实现的。恰好处理一次语义不仅仅意味着没有事件丢失，还意味着针对每一个数据，内部状态仅仅更新一次。
 
 ## 面试题：
 
@@ -35,7 +35,7 @@
 
 - flink使用了一种轻量级的快照机制--**检查点**（checkpoint）来保证exactly-once语义。
 - **所有任务的状态，在某个时间点的一份快照。这个时间点，所有任务都恰好处理完一个相同的数据输入。**
-- flink的故障恢复核心集市状态**一致性检查。**
+- 应用状态的一致检查点，是 Flink 故障恢复机制的核心
 
 **端到端（end-to-end）状态一致性**
 
@@ -89,3 +89,47 @@ Flink 提供了TwoPhaseCommitSinkFunction接口。
 - jobmanager收到所有任务的通知，发出确认信息，表示checkpoint完成
 - sink任务收到jobmanager的确认信息，正式提交这段时间的数据
 - 外部kafka关闭事务，提交的数据可以正常消费了。
+
+## Flink+Kafka实现端到端的精确一致性
+
+我们知道，端到端的状态一致性的实现，需要每一个组件都实现，对于 Flink + Kafka 的数据管道系统（Kafka 进、Kafka 出）而言，各组件怎样保证 exactly-once 语义呢？
+
+    内部 —— 利用 checkpoint 机制，把状态存盘，发生故障的时候可以恢复， 保证内部的状态一致性
+    source —— kafka consumer 作为 source，可以将偏移量保存下来，如果后续任务出现了故障，恢复的时候可以由连接器重置偏移量，重新消费数据，保证一致性
+    sink —— kafka producer 作为 sink，采用两阶段提交 sink，需要实现一个 TwoPhaseCommitSinkFunction
+
+我们知道 Flink 由 JobManager 协调各个 TaskManager 进行 checkpoint 存储， checkpoint 保存在 StateBackend 中，默认StateBackend 是内存级的，也可以改为文件级的进行持久化保存。
+
+![20211115093522](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115093522.png)
+
+当 checkpoint 启动时，JobManager 会将检查点分界线（barrier）注入数据流； barrier 会在算子间传递下去。
+
+![20211115093547](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115093547.png)
+
+每个算子会对当前的状态做个快照，保存到状态后端。对于 source 任务而言，就会把当前的 offset 作为状态保存起来。下次从 checkpoint 恢复时，source 任务可以重新提交偏移量，从上次保存的位置开始重新消费数据。
+
+![20211115093620](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115093620.png)
+
+每个内部的 transform 任务遇到 barrier 时，都会把状态存到 checkpoint 里。
+
+sink 任务首先把数据写入外部 kafka，这些数据都属于预提交的事务（还不能被消费）；当遇到barrier 时，把状态保存到状态后端，并开启新的预提交事务。
+
+![20211115093701](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115093701.png)
+
+当所有算子任务的快照完成，也就是这次的 checkpoint 完成时，JobManager 会向所有任务发通知，确认这次 checkpoint 完成。
+
+当 sink 任务收到确认通知，就会正式提交之前的事务，kafka 中未确认的数据就改为“已确认”，数据就真正可以被消费了。
+
+![20211115093806](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115093806.png)
+
+所以我们看到，执行过程实际上是一个两段式提交，每个算子执行完成，会进行“预提交”，直到执行完 sink 操作，会发起“确认提交”，如果执行失败，预提交会放弃掉。
+
+具体的两阶段提交步骤总结如下：
+
+1. 第一条数据来了之后，开启一个 kafka 的事务（transaction），正常写入 kafka 分区日志但标记为未提交，这就是“预提交”
+2. jobmanager 触发 checkpoint 操作，barrier 从 source 开始向下传递，遇到 barrier 的算子将状态存入状态后端，并通知 jobmanager
+3. sink 连接器收到 barrier，保存当前状态，存入 checkpoint，通知 jobmanager，并开启下一阶段的事务，用于提交下个检查点的数据
+4. jobmanager 收到所有任务的通知，发出确认信息，表示 checkpoint 完成
+5. sink 任务收到 jobmanager 的确认信息，正式提交这段时间的数据外部 kafka 关闭事务，提交的数据可以正常消费了。
+
+所以我们也可以看到，如果宕机需要通过 StateBackend 进行恢复，只能恢复所有确认提交的操作。
