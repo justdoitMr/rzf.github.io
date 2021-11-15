@@ -2,22 +2,22 @@
 <!-- TOC -->
 
 - [概述](#概述)
-  - [数据分析方式](#数据分析方式)
-    - [命令式](#命令式)
-    - [SQL](#sql)
-    - [小结](#小结)
-  - [Spark Sql历史](#spark-sql历史)
-  - [Spark sql的应用场景](#spark-sql的应用场景)
-    - [结构化数据](#结构化数据)
-    - [半结构化数据](#半结构化数据)
-    - [非结构化数据](#非结构化数据)
-    - [Spark Sql](#spark-sql)
-  - [DataFrame&Dataset](#dataframedataset)
-    - [命令式API使用](#命令式api使用)
-    - [声明式api的使用](#声明式api的使用)
-  - [Catasyst优化器](#catasyst优化器)
-    - [什么是catasyst优化器](#什么是catasyst优化器)
-    - [catasyst的优化步骤](#catasyst的优化步骤)
+	- [数据分析方式](#数据分析方式)
+		- [命令式](#命令式)
+		- [SQL](#sql)
+		- [小结](#小结)
+	- [Spark Sql历史](#spark-sql历史)
+	- [Spark sql的应用场景](#spark-sql的应用场景)
+		- [结构化数据](#结构化数据)
+		- [半结构化数据](#半结构化数据)
+		- [非结构化数据](#非结构化数据)
+		- [Spark Sql](#spark-sql)
+	- [DataFrame&Dataset](#dataframedataset)
+		- [命令式API使用](#命令式api使用)
+		- [声明式api的使用](#声明式api的使用)
+	- [Catasyst优化器](#catasyst优化器)
+		- [什么是catasyst优化器](#什么是catasyst优化器)
+		- [catasyst的优化步骤](#catasyst的优化步骤)
 
 <!-- /TOC -->
 
@@ -84,9 +84,9 @@ WHERE age > 10
 
 ![1621772005373](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/201611-979073.png)
 
-hive延迟太高，因为其底层式基于MapReduce计算框架。
+Hive延迟太高，因为其底层式基于MapReduce计算框架。
 
-Hive是基于进程并行的，因为MapReduce是基于进程并行执行，spark是基于线程并行执行。
+Hive是基于**进程**并行的，因为MapReduce是基于**进程**并行执行，spark是基于**线程**并行执行。
 
 **Shark**
 
