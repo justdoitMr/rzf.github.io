@@ -118,6 +118,7 @@
 13. [Flink监控与优化](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E7%9B%91%E6%8E%A7%E4%B8%8E%E4%BC%98%E5%8C%96.md)
 14. [深入理解Flink原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Flink%E5%8E%9F%E7%90%86.md)
 15. [Flink状态一致性](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%80%E8%87%B4%E6%80%A7%E5%BF%AB%E7%85%A7.md)
+16. [Flink中Task的划分](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%AD%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%88%92%E5%88%86.md)
 
 
 ### 分布式

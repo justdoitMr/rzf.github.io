@@ -13,7 +13,7 @@
       - [窗口分配器（window assigner）](#窗口分配器window-assigner)
       - [创建不同类型的窗口](#创建不同类型的窗口)
       - [窗口函数（window function）](#窗口函数window-function)
-        - [**增量聚合函数**](#增量聚合函数)
+        - [增量聚合函数](#增量聚合函数)
         - [全窗口函数](#全窗口函数)
         - [计数窗口](#计数窗口)
       - [其他API](#其他api)
@@ -23,9 +23,9 @@
 <!-- /TOC -->
 
 
-- 窗 口 是流式应用中 一类十分常见的操作 。它们可以在无限数据流上基于有界区间实现聚合等转换。通常情况下， 这些区间都是基于时间逻辑定义的 。窗口算子提供了一种基于有限大小的桶对事件进行分组， 并对这些桶中的有限内容进行计算的方法 。 
-- streaming 流式计算是一种被设计用于处理无限数据集的数据处理引擎，而无限数据集是指一种不断增长的本质上无限的数据集，而 window 是一种切割无限数据为有限块进行处理的手段。Window 是无限数据流处理的核心， Window 将一个无限的 stream 拆分成有限大小的” buckets”桶，我们可以在这些桶上做计算操作。 
-- 窗口算子可用在键值分区或非键值分区的数据流上。用于键值分区窗口的算子可以并行计算，而非键值分区窗口只能单线程处理。 
+- 窗口是流式应用中一类十分常见的操作。它们可以在无限数据流上基于**有界区间**实现聚合等转换。通常情况下，这些区间都是基于时间逻辑定义的。窗口算子提供了一种基于有限大小的桶对事件进行分组，并对这些桶中的有限内容进行计算的方法。 
+- streaming 流式计算是一种被设计用于处理无限数据集的数据处理引擎，而无限数据集是指一种不断增长的本质上无限的数据集，而**window是一种切割无限数据为有限块进行处理的手段**。Window 是无限数据流处理的核心，Window将一个无限的stream 拆分成有限大小的” buckets”桶，我们可以在这些桶上做计算操作。 
+- **窗口算子可用在键值分区或非键值分区的数据流上。用于键值分区窗口的算子可以并行计算，而非键值分区窗口只能单线程处理。**
 
 ### 为什么需要Window
 
@@ -35,15 +35,17 @@
 
 - 一般真实的流都是无界的，怎样处理无界的数据？
 - 可以把无限的数据流进行切分，得到有限的数据集进行处理——也就是得到有界流
-- 窗口（window）就是将无限流切割为有限流的一种方式，它会将流数据分发到有限大小的桶（bucket）中进行分析
+
+
+**窗口（window）就是将无限流切割为有限流的一种方式，它会将流数据分发到有限大小的桶（bucket）中进行分析。**
 
 ### Window的分类
 
 #### 按照time和count分类
 
-time-window:时间窗口:根据时间划分窗口,如:每xx分钟统计最近xx分钟的数据
+**time-window**:时间窗口:根据时间划分窗口,如:每xx分钟统计最近xx分钟的数据
 
-count-window:数量窗口:根据数量划分窗口,如:每xx个数据统计最近xx个数据
+**count-window**:数量窗口:根据数量划分窗口,如:每xx个数据统计最近xx个数据
 
 **图示**
 
@@ -51,28 +53,28 @@ count-window:数量窗口:根据数量划分窗口,如:每xx个数据统计最�
 
 #### 按照slide和size分类
 
-窗口有两个重要的属性: 窗口大小size和滑动间隔slide,根据它们的大小关系可分为:
+窗口有两个重要的属性: **窗口大小size和滑动间隔slide**,根据它们的大小关系可分为:
 
 **滚动窗口（Tumbling Windows）**
 
-滚动窗口:size=slide,如:每隔10s统计最近10s的数据
+滚动窗口:**size=slide**,如:每隔10s统计最近10s的数据
 
 ![1622104549235](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/27/163552-363085.png)
 
 ![1614568758764](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/01/111920-559392.png)
 
 - 将数据依据固定的窗口长度对数据进行切分，窗口大小固定。
-- 时间对齐，窗口长度固定，没有重叠
-- 在时间节点上的数据可以自定义开闭区间
-- 只需要定义窗口的大小即可
-- DataStream  API 针对事件时间和处理时间的滚动窗口分别提供了对应的分配器TumblingEventTimeWindows 和 TumblingProcessingTimeWindows 
+- 时间对齐，窗口长度固定，没有重叠。
+- 在时间节点上的数据可以自定义开闭区间。
+- 只需要定义窗口的大小即可。
+- DataStream API针对**事件时间和处理时间**的滚动窗口分别提供了对应的分配器TumblingEventTimeWindows 和 TumblingProcessingTimeWindows 
 - 滚动窗口分配器只接受一个参数，以时间单元表示窗口的大小，他可以利用分配器的of(Time size)进行指定。
 
-> 特点：时间对齐，窗口长度固定，没有重叠。 
+> 特点：时间对齐，窗口长度固定，数据没有重叠。 
 
 **滑动窗口（Sliding Windows）**
 
-滑动窗口:size>slide,如:每隔5s统计最近10s的数据
+滑动窗口:**size>slide**,如:每隔5s统计最近10s的数据
 
 ![1622104608127](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/27/163650-745134.png)
 
@@ -80,37 +82,37 @@ count-window:数量窗口:根据数量划分窗口,如:每xx个数据统计最�
 
 ![1614568849756](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/01/112106-853588.png)
 
-注意:当size<slide的时候,如每隔15s统计最近10s的数据,那么中间5s的数据会丢失,所有开发中不用
+> 注意:当size<slide的时候,如每隔15s统计最近10s的数据,那么中间5s的数据会丢失,所有开发中不用。
 
-- 滑动窗口是固定窗口的更广义的一种形式，滑动窗口由固定的窗口长度和滑动间隔组成
-- 窗口长度固定，可以有重叠
-- 可以自定义滑动的间隔
+- 滑动窗口是固定窗口的更广义的一种形式，滑动窗口由固定的窗口长度和滑动间隔组成。
+- 窗口长度固定，可以有数据的重叠。
+- 可以自定义滑动的间隔。
 - 滑动窗口分配器将元素分配给大小固定且按指定滑动间隔移动的窗口。 
 - 对于滑动窗口而言，你需要指定窗口大小以及用于定义新窗口开始频率的滑动间隔。如果滑动间隔小于窗口大小，则窗口会出现重叠，此时元素会被分配给多个窗口:如果滑动间隔大于窗口大小，则一些元素可能不会分配给任何窗口，因此可能会被直接丢弃。 
 - Data Stream API 提供了针对事件时间和处理时间的分配器以及相关的简写方怯 
 
-> 特点：时间对齐，窗口长度固定， 可以有重叠 
+> 特点：时间对齐，窗口长度固定， 可以有数据重叠 
 
 **会话窗口（Session Windows）**
 
 ![1614568939743](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/27/162854-431280.png)
 
 - 由一系列事件组合一个指定时间长度的timeout间隙组成，也就是一段时间没有接收到新数据就会生成新的窗口
-- 特点：时间无对齐
+- 特点：**时间无对齐**。
 - 可以指定回话间隔，也就是多长时间没有产生新的数据就开辟一个窗口
-- 会话窗口将元素放入长度可变且不重叠的窗口中。会话窗口的边界由非活动间隔，即持续没有收到记录的时间间隔来定义 
+- 会话窗口将元素放入长度可变且不重叠的窗口中。会话窗口的边界由非活动间隔，即持续没有收到记录的时间间隔来定义 。
 - session 窗口分配器通过 session 活动来对元素进行分组， session 窗口跟滚动窗口和滑动窗口相比，不会有重叠和固定的开始时间和结束时间的情况，相反，当它在一个固定的时间周期内不再收到元素，即非活动间隔产生，那这个窗口就会关闭。一个 session 窗口通过一个 session 间隔来配置，这个 session 间隔定义了非活跃周期的长度，当这个非活跃周期产生，那么当前的 session 将关闭并且后续的元素将被分配到新的 session 窗口中去。 
 
 > 特点：时间对齐，窗口长度固定， 可以有重叠 
 
 **综上，窗口的划分如下**
 
-- 时间窗口（Time Window）:按照时间来划分数据
+- 时间窗口（Time Window）:按照**时间**来划分数据
 
   根据数据的移动规则进行划分
 
   - 滚动时间窗口，用的较多
-  - 滑动时间窗口。用的较多
+  - 滑动时间窗口，用的较多
   - 会话窗口
 
 - 计数窗口（Count Window）：按照数据的个数划分数据
@@ -159,14 +161,14 @@ public abstract class Window {
 
 **新建窗口需要两个组件**
 
-1. 一 个用于决定输入流中的元素该如何划分的窗口分配器( window assigner ) 。窗口分配器会产生一个WindowedStream (如果用在非键值分区的 DataStream 上则是 AIIWindowedStream ) 。 
-2. 一 个作用于 WindowedStream (或 AIIWindowedStream ) 上，用于处理分配到窗口中元素的窗口函数。 
+1. 一 个用于决定输入流中的元素该如何划分给窗口的分配器( window assigner) 。窗口分配器会产生一个**WindowedStream** (如果用在非键值分区的 DataStream 上则是 **AIIWindowedStream**) 。 
+2. 一 个作用于 WindowedStream (或 AIIWindowedStream ) 上，用于处理分配到窗口中元素的**窗口函数**。 
 
 ![1622876156662](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/05/145557-227196.png)
 
 - 窗口分配器——window()方法
-- 我们可以用.window()来定义一个窗口，然后基于这个window去做一些聚合或者其它处理操作。注意window ()方法必须在keyBy之后才能用。
-- Flink提供了更加简单的.timeWindow和.countWindow方法，用于定义时间窗口和计数窗口。
+- 我们可以用.window()来定义一个窗口，然后基于这个window去做一些聚合或者其它处理操作。注意window ()方法必须在keyBy之后才能用，windowAll可以作用与非键值事件的数据。
+- Flink提供了更加简单的.timeWindow和.countWindow方法，用于定义**时间窗口和计数窗口**。
 
 ![1614573542742](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/05/145605-88098.png)
 
@@ -186,7 +188,7 @@ public abstract class Window {
 
 ##### 创建不同类型的窗口
 
-根据参数的个数来区分是滑动窗口还是滚动窗口。
+根据**参数的个**数来区分是**滑动窗口还是滚动窗口**。
 
 - 滚动时间窗口（tumblingtime window）
 
@@ -200,9 +202,11 @@ Flink 默认的时间窗口根据 Processing Time 进行窗口的划分，将 Fl
  .timeWindow(Time.seconds(15));
 ```
 
+> 滚动窗口默认窗口大小size和sliding式相同的。
+
 - 滑动时间窗口（sliding time window）
 
-滑动窗口和滚动窗口的函数名是完全一致的，只是在传参数时需要传入两个参数，一个是 window_size，一个是 sliding_size。 时间间隔可以通过 Time.milliseconds(x)， Time.seconds(x)， Time.minutes(x)等其中的一个来指定 
+滑动窗口和滚动窗口的函数名是完全一致的，只是在传参数时需要传入两个参数，一个是 window_size，一个是 sliding_size。 时间间隔可以通过 Time.milliseconds(x)， Time.seconds(x)，Time.minutes(x)等其中的一个来指定 
 
 ```java
 //处理时间滑动窗口分配器，注意有两个参数
@@ -212,6 +216,9 @@ Flink 默认的时间窗口根据 Processing Time 进行窗口的划分，将 Fl
 //下面是简写，按照参数个数判断是时间窗口还是滑动窗口
 .timeWindow(Time.seconds(12),Time.seconds(2));
 ```
+> 滑动窗口，窗口的大小size大于滑动的距离sliding。
+> 
+> 窗口的大小size小于滑动的距离sliding时候会发生数据的丢失，一般情况下不适用。
 
 - 会话窗口（session window）
 
@@ -221,10 +228,13 @@ Flink 默认的时间窗口根据 Processing Time 进行窗口的划分，将 Fl
 //处理时间会话窗口分配器
  .window(ProcessingTimeSessionWindows.withGap(Time.seconds(12)))
 ```
+> 会话窗口只需要添加一个时间间隔即可，表示多长时间没有数据就开启一个新的窗口。
 
 **计数窗口**
 
-CountWindow 根据窗口中相同 key 元素的数量来触发执行，执行时只计算元素数量达到窗口大小的 key 对应的结果。 注意： CountWindow 的 window_size 指的是相同 Key 的元素的个数，不是输入的所有元素的总数。 
+CountWindow根据**窗口中相同key元素的数量**来触发执行，执行时只计算元素数量达到窗口大小的key对应的结果。
+
+> 注意： CountWindow的window_size指的是相同 Key 的元素的个数，不是输入的所有元素的总数。 
 
 - 滚动计数窗口（tumblingcount window）
 
@@ -233,15 +243,19 @@ CountWindow 根据窗口中相同 key 元素的数量来触发执行，执行时
 ```java
 countWindow(10);
 ```
+> 滚动计数窗口中，窗口的大小默认和滚动事件个数式一致的。
 
 - 滑动计数窗口（sliding count window）
 
-滑动窗口和滚动窗口的函数名是完全一致的，只是在传参数时需要传入两个参数，一个是 window_size，一个是 sliding_size。 下面代码中的 sliding_size 设置为了 2，也就是说，每收到两个相同 key 的数据
-就计算一次，每一次计算的 window 范围是 10 个元素 
+滑动窗口和滚动窗口的函数名是完全一致的，只是在传参数时需要传入两个参数，**一个是 window_size，一个是 sliding_size**。下面代码中的 sliding_size 设置为了 2，也就是说，每收到两个相同 key 的数据
+就计算一次，每一次计算的 window范围是 10 个元素 
 
 ```java
 countWindow(10,2);
 ```
+
+> 同样，窗口的大小要大于滑动的事件个数，否则会发生数据的丢失。
+
 
 ##### 窗口函数（window function）
 
@@ -249,21 +263,21 @@ countWindow(10,2);
 
 ![1614607444753](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/01/220406-129546.png)
 
-- window function定义了要对窗口中收集的数据做的计算操作
+- window function定义了要对窗口中收集的数据做的计算操作。
 - 窗口函数定义了针对窗口内元素的计算逻辑。 
 
 **函数分类**：两类
 
-- 增量聚合函数（incremental aggregation functions）：类似于流处理的过程，每来一条数据，就在以前数据的基础上做聚合操作。
-  - 它的应用场景是窗口内以状态形式存储某个值且需要根据每个加入窗口的元素对该值进行更新。此类函数通常会十分节省空间且最终会将聚合值作为单个结果发送出去。 
-  - 每条数据到来就进行计算，保持一个简单的状态，
+- **增量聚合函数**（incremental aggregation functions）：类似于流处理的过程，每来一条数据，就在以前数据的基础上做聚合操作。
+  - **它的应用场景是窗口内以状态形式存储某个值且需要根据每个加入窗口的元素对该值进行更新**。此类函数通常会十分节省空间且最终会将聚合值作为单个结果发送出去。因为最终只存储的式一个结果状态。 
+  - 每条数据到来就进行计算，保持一个简单的状态。
   - ReduceFunction, AggregateFunction
 - 全窗口函数（full window functions）
   - 它会接收集窗口内的所有元素，并在执行计算时对它们进行遍历。虽然全量窗口函数通常需要占用更多空间，但它和增量聚合函数相比，支持更复杂的逻辑。 
   - 先把窗口所有数据收集起来，等到计算的时候会遍历所有数据。
   - ProcessWindowFunction，WindowFunction
 
-###### **增量聚合函数**
+###### 增量聚合函数
 
 **AggregateFunction接口**
 
