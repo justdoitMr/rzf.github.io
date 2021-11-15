@@ -63,7 +63,7 @@
 <!-- /TOC -->
 
 
-Flink中的流一般分为有边界的流和无边界的流，有边界的流就是批处理。
+Flink中的流一般分为**有边界的流和无边界的流**，有边界的流就是批处理。
 
 ### 概述
 
@@ -71,21 +71,21 @@ Flink中的流一般分为有边界的流和无边界的流，有边界的流就
 
 ![1621574171278](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/135540-53159.png)
 
-- Table api一般是面向对象进行编程
+- Table api一般是面向对象进行编程。
 - DataStream是面向流和批的处理，DataSet api是面向批处理的，现在已经被淘汰。
 
-入门案例使用dataSet面向批处理写，后面使用流处理和批处理一体的DataStream
+入门案例使用DataSet面向批处理写，后面使用流处理和批处理一体的DataStream
 
 **语法说明**
 
 ![1621574518154](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/21/132214-880288.png)
 
-**flink编程模型**
+**Flink编程模型**
 
 ![1621574558280](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/21/132241-692408.png)
 
 - Data Source是加载数据
-- Transformations是处理数据
+- Transformations是处理数据做转换0
 - Data Sink是输出结果
 
 **编程模型说明**
@@ -180,13 +180,13 @@ public class Test01 {
 
 ![1614474745877](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/28/091227-963313.png)
 
-**流处理api的分类--Flink程序的构成**
+**流处理Api的分类--Flink程序的构成**
 
 ![1614392944297](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/27/213317-534420.png)
 
 **Flink程序的执行**
 
-- Flink 程序都是通过**延迟计算** (lazily execute) 的方式执行。也就是说，那些创建数据掘和转换操作的 API 调用不会立即触发数据处理，而只会在执行环境中构建一个执行计划。计划中包含了从环境创建的流式数据源以及应用于这些数据源之上的一系列转换。只有在调用 execute ()方法时，系统才会触发程序执行。
+- Flink 程序都是通过**延迟计算** (**lazily execute**) 的方式执行(Spark程序也是懒加载方式执行)。也就是说，那些创建数据流和转换操作的 API 调用不会立即触发数据处理，而只会在执行环境中构建一个执行计划（就是最初的数据流图）。计划中包含了从环境创建的流式数据源以及应用于这些数据源之上的一系列转换。只有在调用 execute ()方法时，系统才会触发程序执行。
 - 构建完的计划会被转成 JobGraph 并提交至 JobManager 执行。根据执行环境类型的不同，系统可能需要将 JobGraph 发送到作为本地线程启动的JobManager 上(本地执行环境) ，也可能会将其发送到远程 JobManager 上。如果是后者，除 JobGraph 之外，我们还要同时提供包含应用所需全部类和依赖的 JAR 包。 
 
 #### 流处理wordcount案例
