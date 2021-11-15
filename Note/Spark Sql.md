@@ -217,7 +217,7 @@ Hive是基于进程并行的，因为MapReduce是基于进程并行执行，spar
 
 **Spark sql的重要性**
 
-![1621772482838](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621772482838.png)
+![1621772482838](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153211-531186.png)
 
 可以看到，spark streaming,Graphs和MLIBS都是基于spark sql的api进行实现的。spark sql底层是RDD。
 
@@ -229,7 +229,7 @@ Hive是基于进程并行的，因为MapReduce是基于进程并行执行，spar
 
 #### 结构化数据
 
-![1621772662871](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621772662871.png)
+![1621772662871](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153215-552036.png)
 
 - 字段有约束
 - 字段类型也有约束
@@ -238,13 +238,13 @@ Hive是基于进程并行的，因为MapReduce是基于进程并行执行，spar
 
 #### 半结构化数据
 
-![1621772730106](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621772730106.png)
+![1621772730106](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153217-824662.png)
 
 - 有列
 - 列有类型
 - 但是没有严格的约束，可以任意的修改
 
-![1621772820874](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621772820874.png)
+![1621772820874](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153219-869961.png)
 
 #### 非结构化数据
 
@@ -254,7 +254,7 @@ Hive是基于进程并行的，因为MapReduce是基于进程并行执行，spar
 
 spark sql用于处理什么类型的数据？
 
-![1621772940514](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621772940514.png)
+![1621772940514](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153221-172234.png)
 
 虽然Spark sql是基于RDD的，但是SparkSql的速度比RDD快很多。spark sql在编写的时候可以通过更方便的结构化的api来进行更好的操作。
 
@@ -401,13 +401,13 @@ Schema信息封装在StructType中，包含很多StructField对象
 
 **第一步**
 
-![1621901919210](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621901919210.png)
+![1621901919210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153238-672640.png)
 
 不管什么语言，编译器在进行编译的时候，首先是进行解析工作，解析为语法树。
 
 **第二步**
 
-![1621901991722](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621901991722.png)
+![1621901991722](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153239-874331.png)
 
 生成元数据信息，也就是给相应的数据添加类型信息。
 
@@ -469,11 +469,11 @@ Spark在Spark 1.3版本中引入了Dataframe，DataFrame是组织到命名列中
 
 ### Dataset是什么
 
-![1622028799877](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622028799877.png)
+![1622028799877](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153256-791088.png)
 
 Spark 框架从最初的数据结构RDD、到SparkSQL中针对结构化数据封装的数据结构DataFrame，最终使用Dataset数据集进行封装，发展流程如下。
 
-![1622028832085](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622028832085.png)
+![1622028832085](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153257-256261.png)
 
 Dataset是Spark 1.6推出的最新的数据抽象，可以理解为是DataFrames的扩展，它提供了一种类型安全的，面向对象的编程接口。
 
@@ -581,7 +581,7 @@ SerializeFromObject [staticinvoke(class org.apache.spark.unsafe.types.UTF8String
 
 **底层代码**
 
-![1621905089396](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621905089396.png)
+![1621905089396](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153306-392743.png)
 
 从底层代码来看，他对所有的数据类型都进行了一个包装，对外表现为不同的数据类型，但是对内使用统一的数据类型表示。
 
@@ -891,7 +891,7 @@ DataFrame中每条数据封装在Row中，Row表示每行数据
 
 **row与DataFrame**
 
-![1621995794558](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621995794558.png)
+![1621995794558](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153331-858963.png)
 
 可以看到，DataFrame就是一个二维的表格，row就是一个行，Row有一个schema对象表示表结构，DataFrame就是由放置了Row的Dataset组成组成的二维表格。其实DataFrame就是DataSet。
 
@@ -929,7 +929,7 @@ object Test09 {
 
 对于RDD中的数据：
 
-![1621996339397](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621996339397.png)
+![1621996339397](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153336-47460.png)
 
 对应到Dataset中就是这样存放的：
 
@@ -990,7 +990,7 @@ SparkSession对象实例通过建造者模式构建，代码如下：
 
 ③表示导入SparkSession类中implicits对象object中隐式转换函数。
 
-![1622029318667](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622029318667.png)
+![1622029318667](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153348-225540.png)
 
 ### 获取DataFrame/DataSet
 
@@ -1258,7 +1258,7 @@ object Test18 {
 
 调用DataFrame/Dataset中API（函数）分析数据，其中函数包含**RDD中转换函数**和类似**SQL语句函数**，部分截图如下：
 
-![1622030944541](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622030944541.png)
+![1622030944541](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153403-644845.png)
 
 类似SQL语法函数：调用Dataset中API进行数据分析，Dataset中涵盖很多函数，大致分类如下：
 
@@ -1268,11 +1268,11 @@ object Test18 {
 
 2. 过滤函数**filter/where**：设置过滤条件，类似SQL中WHERE语句
 
-![1622031022522](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031022522.png)
+![1622031022522](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153407-459569.png)
 
 3. 分组函数**groupBy/rollup/cube**：对某些字段分组，在进行聚合统计
 
-![1622031052837](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031052837.png)
+![1622031052837](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153407-461866.png)
 
 4. 聚合函数**agg**：通常与分组函数连用，使用一些count、max、sum等聚合函数操作
 
@@ -1280,27 +1280,27 @@ object Test18 {
 
 5. 排序函数**sort/orderBy**：按照某写列的值进行排序（升序ASC或者降序DESC）
 
-![1622031122930](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031122930.png)
+![1622031122930](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153414-545125.png)
 
 6. 限制函数**limit**：获取前几条数据，类似RDD中take函数
 
-![1622031161950](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031161950.png)
+![1622031161950](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153413-358762.png)
 
 7. 重命名函数**withColumnRenamed**：将某列的名称重新命名
 
-![1622031194110](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031194110.png)
+![1622031194110](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153420-14737.png)
 
 8. 删除函数**drop**：删除某些列
 
-![1622031221439](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031221439.png)
+![1622031221439](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153418-731629.png)
 
 9. 增加列函数**withColumn**：当某列存在时替换值，不存在时添加此列
 
-![1622031253979](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031253979.png)
+![1622031253979](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153422-26027.png)
 
 上述函数在实际项目中经常使用，尤其数据分析处理的时候，其中要注意，调用函数时，通常指定某个列名称，传递Column对象，通过**隐式转换转换字符串String类型为Column对象**。
 
-![1622031297792](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622031297792.png)
+![1622031297792](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153421-286765.png)
 
 Dataset/DataFrame中转换函数，类似RDD中Transformation函数，使用差不多：
 
@@ -1413,7 +1413,7 @@ object Test19 {
 
 数据分析处理中，数据可以分为结构化数据、非结构化数据及半结构化数据。
 
-![1622032548537](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622032548537.png)
+![1622032548537](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153433-774381.png)
 
 **结构化数据（Structured）**
 
@@ -1485,7 +1485,7 @@ def text(path: String): DataFrame = {
 
 ~~~
 
-![1622033516232](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622033516232.png)
+![1622033516232](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153443-154824.png)
 
 可以看出textFile方法底层还是调用text方法，先加载数据封装到DataFrame中，再使用as[String]方法将DataFrame转换为Dataset，实际中推荐使用textFile方法，从Spark 2.0开始提供。
 
@@ -1501,7 +1501,7 @@ def text(path: String): DataFrame = {
 
 **函数：get_json_obejct使用说明**
 
-![1622033604262](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622033604262.png)
+![1622033604262](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153447-879432.png)
 
 ~~~ java
 object Test21 {
@@ -1546,13 +1546,13 @@ object Test21 {
 
 运行结果展示
 
-![1622033732195](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622033732195.png)
+![1622033732195](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153451-870714.png)
 
 #### CSV格式
 
 在机器学习中，常常使用的数据存储在csv/tsv文件格式中，所以SparkSQL中也支持直接读取格式数据，从2.0版本开始内置数据源。关于CSV/TSV格式数据说明：
 
-![1622033775839](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622033775839.png)
+![1622033775839](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153454-608480.png)
 
 SparkSQL中读取CSV格式数据，可以设置一些选项，重点选项：
 
@@ -1738,7 +1738,7 @@ object SparkSQLParquet {
 
 **结果**
 
-![1622034171994](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622034171994.png)
+![1622034171994](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153504-230756.png)
 
 #### jdbc数据
 
@@ -1746,21 +1746,21 @@ object SparkSQLParquet {
 
 - 单分区模式
 
-![1622034270194](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622034270194.png)
+![1622034270194](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153513-75063.png)
 
 - **多分区模式**，可以设置列的名称，作为分区字段及列的值范围和分区数目
 
-![1622034306063](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622034306063.png)
+![1622034306063](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153507-580717.png)
 
 - **高度自由分区模式**，通过设置条件语句设置分区数据及各个分区数据范围
 
-![1622034329911](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622034329911.png)
+![1622034329911](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153517-397546.png)
 
 当加载读取RDBMS表的数据量不大时，可以直接使用单分区模式加载；当数据量很多时，考虑使用多分区及自由分区方式加载。
 
 从RDBMS表中读取数据，需要设置连接数据库相关信息，基本属性选项如下：
 
-![1622034358412](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622034358412.png)
+![1622034358412](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153521-540873.png)
 
 **代码演示**
 
@@ -1985,7 +1985,7 @@ object Test13 {
 
 ![1622021108833](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/173403-591287.png)
 
-![1622021698139](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622021698139.png)
+![1622021698139](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153544-274367.png)
 
 ![1622021725453](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/173527-130371.png)
 
@@ -2045,7 +2045,7 @@ SparkSQL天然无缝集成Hive，可以加载Hive表数据进行分析。
 - HiveOnSpark：SparkSql诞生之前的Shark项目使用的，是把Hive的执行引擎换成Spark,剩下的使用Hive的，严重依赖Hive，早就淘汰了没有人用了
 - SparkOnHive：SparkSQL诞生之后，Spark提出的，是仅仅使用Hive的元数据(库/表/字段/位置等信息...)，剩下的用SparkSQL的，如:执行引擎,语法解析,物理执行计划,SQL优化
 
-![1622802574038](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622802574038.png)
+![1622802574038](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153550-86628.png)
 
 
 
@@ -3203,7 +3203,7 @@ object Test37 {
 
 ##### 字符串类型缺失值处理
 
-![1622866307041](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622866307041.png)
+![1622866307041](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153716-832823.png)
 
 **案例**
 
@@ -3400,7 +3400,7 @@ object Test41 {
 
 **rollup**
 
-![1622945819842](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622945819842.png)
+![1622945819842](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153729-347698.png)
 
 简单来说就是进行多次的分组操作，第一次先按照所有指定的字段进行分组，每次减少一个字段进行分组，直到剩下一个字段为止，对全局进行一个分组。
 
@@ -3522,7 +3522,7 @@ object Test43 {
 
 产生的问题
 
-![1622948297777](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622948297777.png)
+![1622948297777](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153740-323245.png)
 
 如果把source和year相互交换位置，产生的结果会一样么？明显不一样，因为在第二次分组时候，产生了分歧，rollup分组会按照指定的第一列为支点进行分组操作。所以可以使用cube进行弥补。
 
@@ -3575,7 +3575,7 @@ object Test44 {
 }
 ~~~
 
-![1622948717536](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622948717536.png)
+![1622948717536](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153749-119657.png)
 
 最明显的结果是最后把每一年的平均值也统计出来了。
 
@@ -3881,7 +3881,7 @@ object Test50 {
 
 显示两个表没有连接上的部分，右侧表不显示
 
-![1622956575669](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622956575669.png)
+![1622956575669](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153834-949121.png)
 
 ![1622956593767](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/06/131635-582249.png)
 
@@ -4035,9 +4035,9 @@ object Test53 {
 
 ### 窗口函数
 
-![1623025265601](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623025265601.png)
+![1623025265601](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153853-652262.png)
 
-![1623025281264](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623025281264.png)
+![1623025281264](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153855-689714.png)
 
 **案例**
 
@@ -4106,15 +4106,15 @@ object Test54 {
 
 **窗口的定义部分**
 
-![1623027074280](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623027074280.png)
+![1623027074280](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153918-129896.png)
 
 窗口的定义使用partitionBy()函数，就是对数据进行分区操作。
 
-![1623027130792](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623027130792.png)
+![1623027130792](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153921-997307.png)
 
 定义每一个分区或者窗口内部数据的顺序。
 
-![1623027306210](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623027306210.png)
+![1623027306210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153928-700808.png)
 
 ![1623027344921](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/07/085548-937304.png)
 
@@ -4122,7 +4122,7 @@ object Test54 {
 
 ![1623027399668](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/07/085642-791192.png)
 
-![1623027460846](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623027460846.png)
+![1623027460846](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153941-437667.png)
 
 **统计每一个商品，和此品类商品最贵商品之间的差值**
 
@@ -4190,7 +4190,7 @@ object Test55 {
 
 ### 流程分析
 
-![1623030565008](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623030565008.png)
+![1623030565008](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153955-665969.png)
 
 ![1623030863366](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/07/095426-64231.png)
 
@@ -4202,7 +4202,7 @@ object Test55 {
 
 ### 数据转换
 
-![1623034427231](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623034427231.png)
+![1623034427231](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/154006-965977.png)
 
 ### 异常的处理
 
