@@ -1004,13 +1004,21 @@ Flink支持两种划分窗口的方式(**time和count**)
 
 **session窗口分配器通过session活动来对元素进行分组，session窗口跟滚动窗口和滑动窗口相比，不会有重叠和固定的开始时间和结束时间的情况**。
 
+> 需要注意的是，滑动距离或者时间间隔大于窗口大小的时候，会发生数据的丢失，所以一般不会使用。
+
 session窗口在一个固定的时间周期内不再收到元素，即非活动间隔产生，那个这个窗口就会关闭。
 
-一个session窗口通过一个session间隔来配置，这个session间隔定义了非活跃周期的长度，当这个非活跃周期产生，那么当前的session将关闭并且后续的元素将被分配到新的session窗口中去,如下图所示：
+一个session窗口通过一个**session间隔来配置**，**这个session间隔定义了非活跃周期的长度**，当这个非活跃周期产生，那么当前的session将关闭并且后续的元素将被分配到新的session窗口中去,如下图所示：
 
 ![1636194090767](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/182131-680149.png)
 
 #### 16、看你基本概念讲的还是很清楚的，那你介绍下Flink的窗口机制以及各组件之间是如何相互工作的
+
+**首先说一下窗口机制使用的组件**
+
+- WindowAssigner:分配元素
+- WindowTrigger：触发计算
+- WindowEvictor：过滤数据
 
 以下为窗口机制的流程图：
 
@@ -1018,11 +1026,11 @@ session窗口在一个固定的时间周期内不再收到元素，即非活动�
 
 **WindowAssigner**
 
-1、窗口算子负责处理窗口，数据流源源不断地进入算子（window operator）时，每一个到达的元素首先会被交给 WindowAssigner。**WindowAssigner 会决定元素被放到哪个或哪些窗口（window）**，可能会创建新窗口。因为一个元素可以被放入多个窗口中（个人理解是滑动窗口，滚动窗口不会有此现象），所以同时存在多个窗口是可能的。注意，`Window`**本身只是一个ID标识符**，其内部可能存储了一些元数据，如`TimeWindow`中有开始和结束时间，但是并不会存储窗口中的元素。窗口中的元素实际存储在 Key/Value State 中，key为`Window`，value为元素集合（或聚合值）。为了保证窗口的容错性，该实现依赖了 Flink 的 State 机制。
+1、窗口算子负责处理窗口，数据流源源不断地进入算子（window operator）时，每一个到达的元素首先会被交给 WindowAssigner(窗口分配器)。**WindowAssigner 会决定元素被放到哪个或哪些窗口（window）**，可能会创建新窗口。因为一个元素可以被放入多个窗口中（个人理解是滑动窗口，滚动窗口不会有此现象），所以同时存在多个窗口是可能的。注意，`Window`**本身只是一个ID标识符**，其内部可能存储了一些元数据，如`TimeWindow`中有开始和结束时间，但是并不会存储窗口中的元素。窗口中的元素实际存储在 Key/Value State 中，key为`Window`，value为元素集合（或聚合值）。为了保证窗口的容错性，该实现依赖了 Flink 的 State 机制。
 
 **WindowTrigger**
 
-2、每一个Window都拥有一个属于自己的 Trigger，Trigger上会有定时器，**用来决定一个窗口何时能够被计算或清除**。每当有元素加入到该窗口，或者之前注册的定时器超时了，那么Trigger都会被调用。Trigger的返回结果可以是 ：
+2、每一个Window都拥有一个属于自己的 Trigger(触发器)，Trigger上会有定时器，**用来决定一个窗口何时能够被计算或清除**。每当有元素加入到该窗口，或者之前注册的定时器超时了，那么Trigger都会被调用。Trigger的返回结果可以是 ：
 
 （1）continue（继续、不做任何操作），
 
@@ -1040,7 +1048,7 @@ session窗口在一个固定的时间周期内不再收到元素，即非活动�
 
 4、计算函数收到了窗口的元素（可能经过了 Evictor 的过滤），并计算出窗口的结果值，并发送给下游。窗口的结果值可以是一个也可以是多个。DataStream API 上可以接收不同类型的计算函数，包括预定义的`sum()`,`min()`,`max()`，还有 `ReduceFunction`，`FoldFunction`，还有`WindowFunction`。WindowFunction 是最通用的计算函数，其他的预定义的函数基本都是基于该函数实现的。
 
-5、Flink 对于一些聚合类的窗口计算（如sum,min）做了优化，因为聚合类的计算不需要将窗口中的所有数据都保存下来，只需要保存一个result值就可以了。每个进入窗口的元素都会执行一次聚合函数并修改result值。这样可以大大降低内存的消耗并提升性能。但是如果用户定义了 Evictor，则不会启用对聚合窗口的优化，因为 Evictor 需要遍历窗口中的所有元素，必须要将窗口中所有元素都存下来。
+5、Flink 对于一些聚合类的窗口计算（如sum,min）做了优化，**因为聚合类的计算不需要将窗口中的所有数据都保存下来，只需要保存一个result值就可以了。每个进入窗口的元素都会执行一次聚合函数并修改result值**。这样可以大大降低内存的消耗并提升性能。但是如果用户定义了 Evictor，则不会启用对聚合窗口的优化，因为 Evictor 需要遍历窗口中的所有元素，必须要将窗口中所有元素都存下来。
 
 #### 17、讲一下Flink的Time概念
 
@@ -1062,7 +1070,7 @@ session窗口在一个固定的时间周期内不再收到元素，即非活动�
 
 - **ProcessingTime[处理时间]**
 
- 某个Flink节点执行某个operation的时间，例如：timeWindow处理数据时的系统时间，默认的时间属性就是Processing Time。
+ 某个Flink节点执行某个operation的时间，例如：timeWindow处理数据时的系统时间，**默认的时间属性就是Processing Time**。
 
 如果以**ProcessingTime**基准来定义时间窗口那将形成ProcessingTimeWindow，以operator的systemTime为准。
 
@@ -1105,7 +1113,7 @@ env.setStrearnTimeCharacteristic(TimeCharacteri stic Eve~tTime);
 
 在上面这个场景中你可以看到，**支付数据的事件时间是11点50分**，而**支付数据的处理时间是12点05分**
 
-**案例2：**某App 会记录用户的所有点击行为，并回传日志（在网络不好的情况下，先保存在本地，延后回传）。
+**案例2**:某App 会记录用户的所有点击行为，并回传日志（在网络不好的情况下，先保存在本地，延后回传）。
 
 A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
 
@@ -1143,7 +1151,7 @@ A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
 
 #### 21、如果数据延迟非常严重呢？只使用WaterMark可以处理吗？那应该怎么解决？
 
-使用 WaterMark+ EventTimeWindow 机制可以在一定程度上解决数据乱序的问题，但是，WaterMark 水位线也不是万能的，在某些情况下，数据延迟会非常严重，即使通过Watermark + EventTimeWindow也无法等到数据全部进入窗口再进行处理，因为窗口触发计算后，**对于延迟到达的本属于该窗口的数据，Flink默认会将这些延迟严重的数据进行丢弃**
+使用 **WaterMark+ EventTimeWindow** 机制可以在一定程度上解决数据乱序的问题，但是，WaterMark 水位线也不是万能的，在某些情况下，数据延迟会非常严重，即使通过Watermark + EventTimeWindow也无法等到数据全部进入窗口再进行处理，因为窗口触发计算后，**对于延迟到达的本属于该窗口的数据，Flink默认会将这些延迟严重的数据进行丢弃**
 
 那么如果想要让一定时间范围的延迟数据不会被丢弃，可以使用**Allowed Lateness(允许迟到机制/侧道输出机制)**设定一个允许延迟的时间和侧道输出对象来解决，即使用**WaterMark + EventTimeWindow + Allowed Lateness方案**（包含侧道输出），可以做到数据不丢失。
 
@@ -1155,7 +1163,11 @@ A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
 
 **watermark=数据的事件时间-允许乱序时间值**
 
-随着新数据的到来，watermark的值会更新为最新数据事件时间-允许乱序时间值，但是如果这时候来了一条历史数据，watermark值则不会更新。
+> 注意一点，这里的事件时间是最晚到来的数据的事件事件。
+
+重点理解下面这句话：
+
+随着新数据的到来，**watermark的值会更新为最新数据事件时间-允许乱序时间值，但是如果这时候来了一条历史数据，watermark值则不会更新。**
 
 **总的来说，watermark永远不会倒退它是为了能接收到尽可能多的乱序数据。**
 
@@ -1165,7 +1177,7 @@ A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
 
 - sideOutputLateData(outputTag:OutputTag[T])--保存延迟数据
 
-该方法是将迟来的数据保存至给定的outputTag参数，而OutputTag则是用来标记延迟数据的一个对象。
+**该方法是将迟来的数据保存至给定的outputTag参数，而OutputTag则是用来标记延迟数据的一个对象**。
 
 - DataStream.getSideOutput(tag:OutputTag[X])--获取延迟数据
 
@@ -1175,7 +1187,7 @@ A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
 
 ![1636195849710](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185051-765132.png)
 
- 在Flink中，状态被称作state，是用来 **保存**中间的 计算结果或者**缓存数据**。
+ 在Flink中，状态被称作state，是用来**保存**中间的 计算结果或者**缓存数据**。
 
 根据状态是否需要保存中间结果，分为**无状态计算** 和 **有状态计算。**
 
@@ -1191,7 +1203,7 @@ A 用户在11:02 对 App 进行操作，B用户在11:03 操作了 App，
 
 #### 23、Flink 状态包括哪些？
 
-**（1）**按照由 Flink管理 还是 用户管理，状态可以分为 **原始状态(Raw State)**和**托管状态（ManagedState）**
+(1)按照由 Flink管理 还是 用户管理，状态可以分为 **原始状态(Raw State)**和**托管状态（ManagedState）**
 
 **托管状态（ManagedState）**:由Flink 自行进行管理的State。
 

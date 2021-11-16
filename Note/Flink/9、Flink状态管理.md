@@ -1,4 +1,27 @@
+
+<!-- TOC -->
+
+- [Flink状态管理](#flink状态管理)
+    - [无状态计算](#无状态计算)
+    - [有状态计算](#有状态计算)
+    - [Flink中的状态分类](#flink中的状态分类)
+    - [Flink中的状态](#flink中的状态)
+    - [算子状态（Operator State）](#算子状态operator-state)
+      - [算子状态数据结构](#算子状态数据结构)
+    - [键控状态（Keyed State）](#键控状态keyed-state)
+      - [键控状态数据结构](#键控状态数据结构)
+      - [键控状态的使用](#键控状态的使用)
+      - [练习](#练习)
+    - [状态后端（State Backends）](#状态后端state-backends)
+      - [状态后端分类](#状态后端分类)
+      - [状态后端配置](#状态后端配置)
+    - [案例说明](#案例说明)
+
+<!-- /TOC -->
+
 ## Flink状态管理
+
+![20211116093249](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116093249.png)
 
 目前Flink已经可以做到状态的自动管理。
 
@@ -8,7 +31,7 @@
 
 #### 有状态计算
 
-![1623139250027](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623139250027.png)
+![1623139250027](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/090016-926526.png)
 
 #### Flink中的状态分类
 
@@ -30,10 +53,10 @@
 ![1614671349533](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/03/101838-752218.png)
 
 - **由一个任务维护，并且用来计算某个结果的所有数据，都属于这个任务的状态**
-- 可以认为状态就是一个本地变量，可以被任务的业务逻辑访问
+- 可以认为状态就是一个**本地变量**，可以被任务的业务逻辑访问
 - Flink会进行状态管理，包括状态一致性、故障处理以及高效存储和访问，以便开发人员可以专注于应用程序的逻辑
 - Flink中的状态是和任务绑定在一起的，可以认为是任务的一个**本地变量**。
-- 在Flink中，状态始终与特定算子相关联
+- 在Flink中，**状态始终与特定算子相关联**
 - 为了使运行时的Flink了解算子的状态，算子需要预先注册其状态
 
 **有两种类型的状态：**
@@ -145,15 +168,15 @@ public class StateTest {
 
 声明一个键控状态
 
-![1614736400065](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614736400065.png)
+![1614736400065](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/090525-748769.png)
 
 读取状态
 
-![1614736439159](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614736439159.png)
+![1614736439159](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/090527-536107.png)
 
 对状态赋值
 
-![1614736465644](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614736465644.png)
+![1614736465644](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/090526-942864.png)
 
 **案例**
 
@@ -331,7 +354,7 @@ public class ApplicationCase {
 - 每传入一条数据，有状态的算子任务都会读取和更新状态
 - 由于有效的状态访问对于处理数据的低延迟至关重要，因此每个并行任务都会在本地维护其状态，以确保快速的状态访问
 - 状态的存储、访问以及维护，由一个可插入的组件决定，这个组件就叫做状态后端（state backend）
-- 状态后端主要负责两件事：本地的状态管理（也就是内存中的状态管理），以及将检查点（checkpoint）状态写入远程存储。容错性的保证，备份状态。
+- 状态后端主要负责两件事：**本地的状态管理（也就是内存中的状态管理），以及将检查点（checkpoint）状态写入远程存储。容错性的保证，备份状态**。
 
 ##### 状态后端分类
 
@@ -339,7 +362,7 @@ public class ApplicationCase {
 
 ![1623389433434](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/11/133035-909589.png)
 
-- 内存级的状态后端，会将键控状态作为内存中的对象进行管理，将它们存储在TaskManager的JVM堆上，而将checkpoint存储在JobManager的内存中
+- 内存级的状态后端，会将键控状态作为内存中的对象进行管理，**将它们存储在TaskManager的JVM堆上，而将checkpoint存储在JobManager的内存中**
 - 特点：快速、低延迟，但不稳定
 
 **FsStateBackend**
@@ -407,7 +430,7 @@ public class StateBackend {
 
 #### 案例说明
 
-![1623143547852](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623143547852.png)
+![1623143547852](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/092147-275587.png)
 
 **代码演示**
 

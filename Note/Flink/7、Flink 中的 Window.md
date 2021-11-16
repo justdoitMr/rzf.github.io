@@ -19,6 +19,11 @@
       - [其他API](#其他api)
       - [案例](#案例)
       - [Window API总览](#window-api总览)
+  - [Window工作原理](#window工作原理)
+    - [Window 的实现](#window-的实现)
+    - [源码分析](#源码分析)
+      - [Count Window 实现](#count-window-实现)
+      - [Time Window 实现](#time-window-实现)
 
 <!-- /TOC -->
 
@@ -920,3 +925,160 @@ public class Test19 {
 ##### Window API总览
 
 ![1614587298004](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/01/162821-962794.png)
+
+
+### Window工作原理
+
+先来回顾一下Flink中都有哪几种窗口：
+
+![20211116082114](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116082114.png)
+
+Flink Window API 松耦合设计，我们可以非常灵活地定义符合特定业务的窗口。Flink 中定义一个窗口主要需要以下三个组件。
+
+
+**Window Assigner**：用来决定某个元素被分配到哪个/哪些窗口中去。
+
+![20211116082219](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116082219.png)
+
+**Trigger**：触发器。决定了一个窗口何时能够被计算或清除，每个窗口都会拥有一个自己的Trigger。
+
+![20211116082310](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116082310.png)
+
+**Evictor**：可以译为“驱逐者”。在Trigger触发之后，在窗口被处理之前，Evictor（如果有Evictor的话）会用来剔除窗口中不需要的元素，相当于一个filter。
+
+![20211116082345](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116082345.png)
+
+上述三个组件的不同实现的不同组合，可以定义出非常复杂的窗口。Flink 中内置的窗口也都是基于这三个组件构成的，当然内置窗口有时候无法解决用户特殊的需求，所以 Flink 也暴露了这些窗口机制的内部接口供用户实现自定义的窗口。下面我们将基于这三者探讨窗口的实现机制。
+
+
+#### Window 的实现
+
+下图描述了 Flink 的窗口机制以及各组件之间是如何相互工作的。
+
+![20211116082434](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116082434.png)
+
+首先上图中的组件都位于一个**算子**（window operator）中，数据流源源不断地进入算子，每一个到达的元素都会被交给 WindowAssigner。**WindowAssigner 会决定元素被放到哪个或哪些窗口（window），可能会创建新窗口**。因为一个元素可以被放入多个窗口中，所以同时存在多个窗口是可能的。注意，Window本身只是一个ID标识符，其内部可能存储了一些元数据，如TimeWindow中有开始和结束时间，但是并不会存储窗口中的元素。窗口中的元素实际存储在 Key/Value State 中，key为Window，value为元素集合（或聚合值）。为了保证窗口的容错性，该实现依赖了 Flink 的 State 机制
+
+每一个窗口都拥有一个属于自己的**Trigger**，Trigger上会有**定时器**，用来决定一个窗口何时能够被计算或清除。每当有元素加入到该窗口，或者之前注册的定时器超时了，那么Trigger都会被调用。Trigger的返回结果可以是 continue（不做任何操作），fire（处理窗口数据），purge（移除窗口和窗口中的数据），或者 fire + purge。一个Trigger的调用结果只是fire的话，那么会计算窗口并保留窗口原样，也就是说窗口中的数据仍然保留不变，等待下次Trigger fire的时候再次执行计算。一个窗口可以被重复计算多次知道它被 purge 了。在purge之前，窗口会一直占用着内存。
+
+当Trigger fire了，窗口中的元素集合就会交给Evictor（如果指定了的话）。Evictor 主要用来遍历窗口中的元素列表，并决定最先进入窗口的多少个元素需要被移除。剩余的元素会交给用户指定的函数进行窗口的计算。如果没有 Evictor 的话，窗口中的所有元素会一起交给函数进行计算。
+
+计算函数收到了窗口的元素（可能经过了 Evictor 的过滤），并计算出窗口的结果值，并发送给下游。窗口的结果值可以是一个也可以是多个。DataStream API 上可以接收不同类型的计算函数，包括预定义的sum(),min(),max()，还有 ReduceFunction，FoldFunction，还有WindowFunction。WindowFunction 是最通用的计算函数，其他的预定义的函数基本都是基于该函数实现的。
+
+Flink 对于一些聚合类的窗口计算（如sum,min）做了优化，因为聚合类的计算不需要将窗口中的所有数据都保存下来，只需要保存一个result值就可以了。每个进入窗口的元素都会执行一次聚合函数并修改result值。这样可以大大降低内存的消耗并提升性能。但是如果用户定义了 Evictor，则不会启用对聚合窗口的优化，因为 Evictor 需要遍历窗口中的所有元素，必须要将窗口中所有元素都存下来。
+
+#### 源码分析
+
+上述的三个组件构成了 Flink 的窗口机制。为了更清楚地描述窗口机制，以及解开一些疑惑（比如 purge 和 Evictor 的区别和用途），我们将一步步地解释 Flink 内置的一些窗口（Time Window，Count Window，Session Window）是如何实现的。
+
+##### Count Window 实现
+
+Count Window 是使用三组件的典范，我们可以在 KeyedStream 上创建 Count Window，其源码如下所示：
+
+```java
+// tumbling count window
+public WindowedStream<T, KEY, GlobalWindow> countWindow(long size) {
+    return window(GlobalWindows.create())  // create window stream using GlobalWindows
+        .trigger(PurgingTrigger.of(CountTrigger.of(size))); // trigger is window size
+}
+
+// sliding count window
+public WindowedStream<T, KEY, GlobalWindow> countWindow(long size, long slide) {
+    return window(GlobalWindows.create())
+        .evictor(CountEvictor.of(size))  // evictor is window size
+        .trigger(CountTrigger.of(slide)); // trigger is slide size
+}
+```
+
+第一个函数是申请滚动的计数窗口，参数为窗口大小。第二个函数是申请滑动计数窗口，参数分别为窗口大小和滑动大小。它们都是基于 GlobalWindows 这个 WindowAssigner 来创建的窗口，该assigner会将所有元素都分配到同一个global window中，所有GlobalWindows的返回值一直是 GlobalWindow 单例。基本上自定义的窗口都会基于该assigner实现。
+
+滚动计数窗口并不带evictor，只注册了一个trigger。该trigger是带purge功能的 CountTrigger。也就是说每当窗口中的元素数量达到了 window-size，trigger就会返回fire+purge，窗口就会执行计算并清空窗口中的所有元素，再接着储备新的元素。从而实现了tumbling的窗口之间无重叠。
+
+滑动计数窗口的各窗口之间是有重叠的，但我们用的 GlobalWindows assinger 从始至终只有一个窗口，不像 sliding time assigner 可以同时存在多个窗口。所以trigger结果不能带purge，也就是说计算完窗口后窗口中的数据要保留下来（供下个滑窗使用）。另外，trigger的间隔是slide-size，evictor的保留的元素个数是window-size。也就是说，每个滑动间隔就触发一次窗口计算，并保留下最新进入窗口的window-size个元素，剔除旧元素。
+
+假设有一个滑动计数窗口，每2个元素计算一次最近4个元素的总和，那么窗口工作示意图如下所示：
+
+![20211116083224](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116083224.png)
+
+图中所示的各个窗口逻辑上是不同的窗口，但在物理上是同一个窗口。该滑动计数窗口，trigger的触发条件是元素个数达到2个（每进入2个元素就会触发一次），evictor保留的元素个数是4个，每次计算完窗口总和后会保留剩余的元素。所以第一次触发trigger是当元素5进入，第三次触发trigger是当元素2进入，并驱逐5和2，计算剩余的4个元素的总和（22）并发送出去，保留下2,4,9,7元素供下个逻辑窗口使用。
+
+##### Time Window 实现
+
+同样的，我们也可以在 KeyedStream 上申请 Time Window，其源码如下所示：
+
+```JAVA
+// tumbling time window
+public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size) {
+    if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+        return window(TumblingProcessingTimeWindows.of(size));
+    } else {
+        return window(TumblingEventTimeWindows.of(size));
+    }
+}
+// sliding time window
+public WindowedStream<T, KEY, TimeWindow> timeWindow(Time size, Time slide) {
+    if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+        return window(SlidingProcessingTimeWindows.of(size, slide));
+    } else {
+        return window(SlidingEventTimeWindows.of(size, slide));
+    }
+}
+```
+
+在方法体内部会根据当前环境注册的时间类型，使用不同的WindowAssigner创建window。可以看到，EventTime和IngestTime都使用了XXXEventTimeWindows这个assigner，因为EventTime和IngestTime在底层的实现上只是在Source处为Record打时间戳的实现不同，在window operator中的处理逻辑是一样的。
+
+这里我们主要分析sliding process time window，如下是相关源码：
+
+```JAVA
+public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
+    private static final long serialVersionUID = 1L;
+
+    private final long size;
+
+    private final long slide;
+
+    private SlidingProcessingTimeWindows(long size, long slide) {
+        this.size = size;
+        this.slide = slide;
+    }
+
+    @Override
+    public Collection<TimeWindow> assignWindows(Object element, long timestamp) {
+        timestamp = System.currentTimeMillis();
+        List<TimeWindow> windows = new ArrayList<>((int) (size / slide));
+        // 对齐时间戳
+        long lastStart = timestamp - timestamp % slide;
+        for (long start = lastStart;
+            start > timestamp - size;
+            start -= slide) {
+            // 当前时间戳对应了多个window
+            windows.add(new TimeWindow(start, start + size));
+        }
+        return windows;
+    }
+    ...
+}
+public class ProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
+    @Override
+    // 每个元素进入窗口都会调用该方法
+    public TriggerResult onElement(Object element, long timestamp, TimeWindow window, TriggerContext ctx) {
+        // 注册定时器，当系统时间到达window end timestamp时会回调该trigger的onProcessingTime方法
+        ctx.registerProcessingTimeTimer(window.getEnd());
+        return TriggerResult.CONTINUE;
+    }
+
+    @Override
+    // 返回结果表示执行窗口计算并清空窗口
+    public TriggerResult onProcessingTime(long time, TimeWindow window, TriggerContext ctx) {
+        return TriggerResult.FIRE_AND_PURGE;
+    }
+    ...
+}
+```
+
+首先，SlidingProcessingTimeWindows会对每个进入窗口的元素根据系统时间分配到(size / slide)个不同的窗口，并会在每个窗口上根据窗口结束时间注册一个定时器（相同窗口只会注册一份），当定时器超时时意味着该窗口完成了，这时会回调对应窗口的Trigger的onProcessingTime方法，返回FIRE_AND_PURGE，也就是会执行窗口计算并清空窗口。整个过程示意图如下：
+
+![20211116083805](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116083805.png)
+
+如上图所示横轴代表时间戳（为简化问题，时间戳从0开始），第一条record会被分配到[-5,5)和[0,10)两个窗口中，当系统时间到5时，就会计算[-5,5)窗口中的数据，并将结果发送出去，最后清空窗口中的数据，释放该窗口资源。
+
