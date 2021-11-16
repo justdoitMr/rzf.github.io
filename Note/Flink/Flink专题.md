@@ -1245,7 +1245,7 @@ Operator State特点：
 
 ![1636196080594](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/185441-552390.png)
 
-这里的fromElements会调用***FromElementsFunction**的类，其中就使用了类型为Liststate 的 operator state
+这里的fromElements会调用**FromElementsFunction**的类，其中就使用了类型为Liststate 的 operator state
 
 #### 24、Flink广播状态了解吗？
 
