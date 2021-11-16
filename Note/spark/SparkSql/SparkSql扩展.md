@@ -2,19 +2,33 @@
 <!-- TOC -->
 
 - [SparkSql扩展](#sparksql扩展)
-  - [数据源与格式](#数据源与格式)
-    - [DataFrameReader](#dataframereader)
-    - [text数据读取](#text数据读取)
-    - [Json数据读取](#json数据读取)
-    - [CSV格式](#csv格式)
-    - [Parquet数据](#parquet数据)
-    - [jdbc数据](#jdbc数据)
-    - [数据读取框架案例](#数据读取框架案例)
-  - [DataFrameWriter](#dataframewriter)
-  - [Parquet文件格式](#parquet文件格式)
-    - [Parquet文件](#parquet文件)
-    - [写入文件指定分区](#写入文件指定分区)
-  - [JSON格式文件](#json格式文件)
+    - [数据源与格式](#数据源与格式)
+        - [DataFrameReader](#dataframereader)
+        - [text数据读取](#text数据读取)
+        - [Json数据读取](#json数据读取)
+        - [CSV格式](#csv格式)
+        - [Parquet数据](#parquet数据)
+        - [jdbc数据](#jdbc数据)
+        - [数据读取框架案例](#数据读取框架案例)
+    - [DataFrameWriter](#dataframewriter)
+    - [Parquet文件格式](#parquet文件格式)
+        - [Parquet文件](#parquet文件)
+        - [写入文件指定分区](#写入文件指定分区)
+    - [JSON格式文件](#json格式文件)
+    - [加载/保存数据-API](#加载保存数据-api)
+        - [Load加载数据](#load加载数据)
+        - [Save保存数据](#save保存数据)
+        - [保存模式（SaveMode）](#保存模式savemode)
+    - [小项目](#小项目)
+        - [数据格式](#数据格式)
+        - [代码实现](#代码实现)
+    - [扩展阅读：Catalyst 优化器](#扩展阅读catalyst-优化器)
+    - [SparkSQL自定义UDF函数](#sparksql自定义udf函数)
+        - [如何自定义函数](#如何自定义函数)
+    - [Spark On Hive](#spark-on-hive)
+        - [HiveOnSpark和SparkOnHive](#hiveonspark和sparkonhive)
+        - [spark-sql中集成Hive](#spark-sql中集成hive)
+        - [Spark代码中集成Hive](#spark代码中集成hive)
 
 <!-- /TOC -->
 
@@ -459,6 +473,12 @@ def csv(paths: String*): DataFrame = format("csv").load(paths : _*)
 
 ### DataFrameWriter
 
+SparkSQL提供一套通用外部数据源接口，方便用户从数据源加载和保存数据，例如从MySQL表中既可以加载读取数据：load/read，又可以保存写入数据：save/write。
+
+![20211116151241](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151241.png)
+
+由于SparkSQL没有内置支持从HBase表中加载和保存数据，但是只要实现外部数据源接口，也能像上面方式一样读取加载数据。
+
 ![1622013978207](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/152627-708490.png)
 
 ![1622014095287](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/152815-241737.png)
@@ -555,7 +575,7 @@ spark默认读取和写入的都是parquet格式的文件。
 
 ![1622020819885](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/172021-707124.png)
 
-![1622018506792](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622018506792.png)
+![1622018506792](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/155115-631730.png)
 
 表分区不仅在parquet格式的文件上面有，在其他格式的文件也有分区。
 
@@ -643,3 +663,435 @@ df.toJSON.show()
 ```
 
 ![1622022486043](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/174806-270779.png)
+
+
+### 加载/保存数据-API
+
+SparkSQL提供一套通用外部数据源接口，方便用户从数据源加载和保存数据，例如从MySQL表中既可以加载读取数据：load/read，又可以保存写入数据：save/write。
+
+![20211116151449](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151449.png)
+
+由于SparkSQL没有内置支持从HBase表中加载和保存数据，但是只要实现外部数据源接口，也能像上面方式一样读取加载数据。
+
+#### Load加载数据
+
+在SparkSQL中读取数据使用SparkSession读取，并且封装到数据结构Dataset/DataFrame中。
+
+![20211116151521](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151521.png)
+
+DataFrameReader专门用于加载load读取外部数据源的数据，基本格式如下：
+
+![20211116151602](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151602.png)
+
+SparkSQL模块本身自带支持读取外部数据源的数据：
+
+![20211116151624](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151624.png)
+
+总结起来三种类型数据，也是实际开发中常用的：
+
+**文件格式数据**
+
+文本文件text、csv文件和json文件
+
+**列式存储数据**
+
+Parquet格式、ORC格式
+
+**数据库表**
+
+关系型数据库RDBMS：MySQL、DB2、Oracle和MSSQL
+
+此外加载文件数据时，可以直接使用SQL语句，指定文件存储格式和路径：
+
+![20211116151813](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151813.png)
+
+
+#### Save保存数据
+
+SparkSQL模块中可以从某个外部数据源读取数据，就能向某个外部数据源保存数据，提供相应接口，通过DataFrameWrite类将数据进行保存。
+
+![20211116151933](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116151933.png)
+
+与DataFrameReader类似，提供一套规则，将数据Dataset保存，基本格式如下：
+
+![20211116152014](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116152014.png)
+
+SparkSQL模块内部支持保存数据源如下：
+![20211116152050](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116152050.png)
+
+所以使用SpakrSQL分析数据时，从数据读取，到数据分析及数据保存，链式操作，更多就是ETL操作。当将结果数据DataFrame/Dataset保存至Hive表中时，可以设置分区partition和分桶bucket，形式如下：
+
+![20211116152118](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116152118.png)
+
+#### 保存模式（SaveMode）
+
+将Dataset/DataFrame数据保存到外部存储系统中，考虑是否存在，存在的情况下的下如何进行保存，DataFrameWriter中有一个mode方法指定模式：
+
+通过源码发现SaveMode时枚举类，使用Java语言编写，如下四种保存模式：
+1. Append 追加模式，当数据存在时，继续追加；
+2. Overwrite 覆写模式，当数据存在时，覆写以前数据，存储当前最新数据；
+3. ErrorIfExists 存在及报错；
+4. Ignore 忽略，数据存在时不做任何操作；
+
+实际项目依据具体业务情况选择保存模式，通常选择Append和Overwrite模式。
+
+
+### 小项目
+
+#### 数据格式
+
+![20211116152724](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116152724.png)
+
+**需求**
+
+对电影评分数据进行统计分析，分别使用DSL编程和SQL编程，获取电影平均分Top10，要求电影的评分次数大于200。
+
+#### 代码实现
+
+```scala
+object SparkSQLDemo06_MovieTop10 {
+  def main(args: Array[String]): Unit = {
+    //1.准备SparkSQL开发环境
+    val spark: SparkSession = SparkSession.builder().appName("SparkSQL").master("local[*]").getOrCreate()
+    val sc: SparkContext = spark.sparkContext
+    sc.setLogLevel("WARN")
+    import spark.implicits._
+
+    //2.获取DF/DS
+    //也可以用rdd-->df
+    val fileDS: Dataset[String] = spark.read.textFile("data/input/rating_100k.data")
+    val rowDS: Dataset[(Int, Int)] = fileDS.map(line => {
+      val arr: Array[String] = line.split("\t")
+      (arr(1).toInt, arr(2).toInt)
+    })
+    val cleanDF: DataFrame = rowDS.toDF("mid","score")
+    cleanDF.printSchema()
+    cleanDF.show(false)
+    /*
+    +----+-----+
+    |mid |score|
+    +----+-----+
+    |242 |3    |
+    |302 |3    |
+    |377 |1    |
+    |51  |2    |
+    |346 |1    |
+      ...
+    */
+
+    //3.完成需求:统计评分次数>200的电影的平均分最高的Top10
+    //TODO SQL
+    cleanDF.createOrReplaceTempView("t_scores")
+    val sql:String =
+      """
+        |select mid, round(avg(score),2) avg,count(*) counts
+        |from t_scores
+        |group by mid
+        |having counts > 200
+        |order by avg desc,counts desc
+        |limit 10
+        |""".stripMargin
+    spark.sql(sql).show(false)
+
+    //TODO DSL
+    import org.apache.spark.sql.functions._
+    cleanDF
+      .groupBy("mid")
+        .agg(
+          round(avg('score),2) as "avg",
+          count('mid) as "counts"
+        )//聚合函数可以写在这里
+        .orderBy('avg.desc,'counts.desc)
+        .filter('counts > 200)
+        .limit(10)
+        .show(false)
+    /*
+    +---+----+------+
+    |mid|avg |counts|
+    +---+----+------+
+    |318|4.47|298   |
+    |483|4.46|243   |
+    |64 |4.45|283   |
+    |12 |4.39|267   |
+    |603|4.39|209   |
+    |50 |4.36|583   |
+    |98 |4.29|390   |
+    |357|4.29|264   |
+    |427|4.29|219   |
+    |127|4.28|413   |
+    +---+----+------+
+     */
+
+    //4.关闭资源
+    sc.stop()
+    spark.stop()
+  }
+}
+```
+
+### 扩展阅读：Catalyst 优化器
+
+在上面案例中，运行应用程序代码，通过WEB UI界面监控可以看出，无论使用DSL还是SQL，构建Job的DAG图一样的，性能是一样的，原因在于SparkSQL中引擎：Catalyst：**将SQL和DSL转换为相同逻辑计划。**
+
+![20211116153101](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116153101.png)
+
+Spark SQL是Spark技术最复杂的组件之一，Spark SQL的核心是Catalyst优化器，它以一种新颖的方式利用高级编程语言功能（例如Scala的模式匹配和quasiquotes）来构建可扩展的查询优化器。
+
+![20211116153126](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116153126.png)
+
+SparkSQL的Catalyst优化器是整个SparkSQL pipeline的中间核心部分，其执行策略主要两方向：
+
+- 基于规则优化/Rule Based Optimizer/RBO；
+- 基于代价优化/Cost Based Optimizer/CBO；
+
+
+![20211116153210](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116153210.png)
+
+从上图可见，无论是直接使用SQL语句还是使用 ataFrame，都会经过一些列步骤转换成DAG对RDD的操作。
+
+Catalyst工作流程：
+
+1. SQL语句首先通过Parser模块被解析为语法树，此棵树称为Unresolved Logical Plan；
+2. Unresolved Logical Plan通过Analyzer模块借助于数据元数据解析为Logical Plan；
+3. 此时再通过各种基于规则的Optimizer进行深入优化，得到Optimized Logical Plan；
+4. 优化后的逻辑执行计划依然是逻辑的，需要将逻辑计划转化为Physical Plan。
+
+
+![20211116153316](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116153316.png)
+
+Catalyst的三个核心点：
+
+1. Parser，第三方类库ANTLR实现。将sql字符串切分成Token,根据语义规则解析成一颗AST语法树；
+2. Analyzer，Unresolved Logical Plan，进行数据类型绑定和函数绑定；
+3. Optimizer，规则优化就是模式匹配满足特定规则的节点等价转换为另一颗语法树；
+
+![20211116153556](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116153556.png)
+
+### SparkSQL自定义UDF函数
+
+无论Hive还是SparkSQL分析处理数据时，往往需要使用函数，SparkSQL模块本身自带很多实现公共功能的函数，在org.apache.spark.sql.functions中。SparkSQL与Hive一样支持定义函数：UDF和UDAF，尤其是UDF函数在实际项目中使用最为广泛。
+
+**回顾Hive中自定义函数有三种类型：**
+
+1：UDF（User-Defined-Function） 函数
+一对一的关系，输入一个值经过函数以后输出一个值；
+在Hive中继承UDF类，方法名称为evaluate，返回值不能为void，其实就是实现一个方法；
+
+2：UDAF（User-Defined Aggregation Function） 聚合函数
+多对一的关系，输入多个值输出一个值，通常与groupBy联合使用；
+
+3：UDTF（User-Defined Table-Generating Functions） 函数一对多的关系，输入一个值输出多个值（一行变为多行）；
+用户自定义生成函数，有点像flatMap；
+
+注意：在SparkSQL中，目前仅仅支持UDF函数和UDAF函数
+
+目前来说Spark 框架各个版本及各种语言对自定义函数的支持：
+
+
+#### 如何自定义函数
+
+UDF函数也有DSL和SQL两种方式
+
+**SQL方式**
+
+使用SparkSession中udf方法定义和注册函数，在SQL中使用，使用如下方式定义：
+
+![20211116154123](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116154123.png)
+
+**DSL方式**
+
+使用org.apache.sql.functions.udf函数定义和注册函数，在DSL中使用，如下方式：
+
+![20211116154219](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116154219.png)
+
+**案例**
+
+```scala
+object SparkSQLDemo08_UDF {
+  def main(args: Array[String]): Unit = {
+    //1.准备SparkSQL开发环境
+    val spark: SparkSession = SparkSession.builder().appName("hello").master("local[*]").getOrCreate()
+    val sc: SparkContext = spark.sparkContext
+    sc.setLogLevel("WARN")
+
+    import org.apache.spark.sql.functions._
+    import spark.implicits._
+
+    //2.获取数据DF->DS->RDD
+    val df: DataFrame = spark.read.text("data/input/udf.txt")
+    df.printSchema()
+    df.show(false)
+    /*
+    root
+   |-- value: string (nullable = true)
+
+  +-----+
+  |value|
+  +-----+
+  |hello|
+  |haha |
+  |hehe |
+  |xixi |
+  +-----+
+     */
+
+    //TODO =======SQL风格=======
+    //3.自定义UDF:String-->大写
+    spark.udf.register("small2big",(value:String)=>{
+      value.toUpperCase
+    })
+
+    //4.执行查询转换
+    df.createOrReplaceTempView("t_words")
+    val sql =
+      """
+        |select value,small2big(value) big_value
+        |from t_words
+        |""".stripMargin
+    spark.sql(sql).show(false)
+
+    //TODO =======DSL风格=======
+    //3.自定义UDF:String-->大写
+
+
+    //4.执行查询转换
+    val small2big2 = udf((value:String)=>{
+      value.toUpperCase
+    })
+    df.select('value,small2big2('value).as("big_value2")).show(false)
+
+
+    //5.关闭资源
+    sc.stop()
+    spark.stop()
+  }
+}
+```
+
+### Spark On Hive
+
+Spark SQL模块从发展来说，从Apache Hive框架而来，发展历程：Hive（MapReduce）-> Shark (Hive on Spark) -> Spark SQL（SchemaRDD -> DataFrame -> Dataset)，
+SparkSQL天然无缝集成Hive，可以加载Hive表数据进行分析。
+
+
+#### HiveOnSpark和SparkOnHive
+
+HiveOnSpark：SparkSql诞生之前的Shark项目使用的，是把Hive的执行引擎换成Spark,剩下的使用Hive的，严重依赖Hive，早就淘汰了没有人用了
+
+SparkOnHive：SparkSQL诞生之后，Spark提出的，是仅仅使用Hive的元数据(库/表/字段/位置等信息...)，剩下的用SparkSQL的，如:执行引擎,语法解析,物理执行计划,SQL优化
+
+![20211116154513](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116154513.png)
+
+#### spark-sql中集成Hive
+
+**本质**
+
+SparkSQL集成Hive本质就是：SparkSQL读取Hive的元数据MetaStore
+
+**操作**
+
+1、启动Hive的元数据库服务
+
+hive所在机器node2上启动
+
+nohup /export/server/hive/bin/hive --service metastore &
+
+注意:Spark3.0需要Hive2.3.7版本
+
+2、告诉SparkSQL:Hive的元数据库在哪里
+
+哪一台机器需要使用spark-sql命令行整合hive就把下面的配置放在哪一台
+
+也可以将hive-site.xml分发到集群中所有Spark的conf目录，此时任意机器启动应用都可以访问Hive表数据。
+
+cd /export/server/spark/conf/
+vim hive-site.xml
+
+```xml
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+    <property>
+      <name>hive.metastore.warehouse.dir</name>
+      <value>/user/hive/warehouse</value>
+    </property>
+    <property>
+      <name>hive.metastore.local</name>
+      <value>false</value>
+    </property>
+    <property>
+      <name>hive.metastore.uris</name>
+      <value>thrift://node2:9083</value>
+    </property>
+</configuration>
+```
+
+使用sparksql操作hive
+
+```sql
+/export/server/spark/bin/spark-sql --master local[2] --conf spark.sql.shuffle.partitions=2
+
+show databases;
+show tables;
+CREATE TABLE person3 (id int, name string, age int) row format delimited fields terminated by ' ';
+LOAD DATA LOCAL INPATH 'file:///root/person.txt' 
+
+INTO TABLE person3;
+
+show tables;
+
+select * from person3;
+```
+
+#### Spark代码中集成Hive
+
+**操作**
+
+1.开启hive元数据库
+
+nohup /export/server/hive/bin/hive --service metastore &
+
+2.添加依赖
+
+```xml
+<!--SparkSQL+ Hive依赖-->
+<dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-hive_2.12</artifactId>
+            <version>${spark.version}</version>
+</dependency>
+```
+
+3.在代码中告诉SparkSQL:Hive的元数据服务的配置
+
+SparkSQL-OnHive的元数据库(语法解析,物理执行计划生成,执行引擎,SQL优化都是用的Spark的。
+
+**完整代码**
+
+```scala
+object SparkSQLDemo09_SparkOnHive {
+  def main(args: Array[String]): Unit = {
+    //1.准备SparkSQL开发环境
+    val spark: SparkSession = SparkSession.builder().appName("SparkSQL").master("local[*]")
+      .config("spark.sql.shuffle.partitions", "4")//默认是200,本地测试给少一点
+      .config("spark.sql.warehouse.dir", "hdfs://node1:8020/user/hive/warehouse")//指定Hive数据库在HDFS上的位置
+      .config("hive.metastore.uris", "thrift://node2:9083")
+      .enableHiveSupport()//开启对hive语法的支持
+      .getOrCreate()
+    val sc: SparkContext = spark.sparkContext
+    sc.setLogLevel("WARN")
+
+    //2.执行Hive-SQL
+    spark.sql("show databases").show(false)
+    spark.sql("show tables").show(false)
+    spark.sql("CREATE TABLE person2 (id int, name string, age int) row format delimited fields terminated by ' '")
+    spark.sql("LOAD DATA LOCAL INPATH 'file:///D:/person.txt' INTO TABLE person2")
+    spark.sql("show tables").show(false)
+    spark.sql("select * from person2").show(false)
+
+    //5.关闭资源
+    sc.stop()
+    spark.stop()
+  }
+}
+```

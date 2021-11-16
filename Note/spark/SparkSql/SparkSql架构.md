@@ -14,7 +14,7 @@ Spark SQL兼容Hive，这是因为Spark SQL架构与Hive底层结构相似，Spa
 
 ![20211115162312](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211115162312.png)
 
-从上图中可以看出，Spark SQL架构与Hive架构相比，**除了把底层的MapReduce执行引擎更改为Spark，还修改了Catalyst优化器**，Spark SQL快速的计算效率得益于Catalyst优化器。从HiveQL被解析成语法抽象树起，执行计划生成和优化的工作全部交给Spark SQL的Catalyst优化器进行负责和管理。
+从上图中可以看出，Spark SQL架构与Hive架构相比，**除了把底层的MapReduce执行引擎更改为Spark，还修改了Catalyst优化器**，Spark SQL快速的计算效率得益于Catalyst优化器。从HiveQL被解析成语法抽象树起，**执行计划生成和优化的工作全部交给Spark SQL的Catalyst优化器进行负责和管理**。
 
 Catalyst优化器是一个新的可扩展的查询优化器，它是基于Scala函数式编程结构，Spark SQL开发工程师设计可扩展架构主要是为了在今后的版本迭代时，能够轻松地添加新的优化技术和功能，尤其是为了解决大数据生产环境中遇到的问题（例如，针对半结构化数据和高级数据分析），另外，Spark作为开源项目，外部开发人员可以针对项目需求自行扩展Catalyst优化器的功能。下面通过下图描述Spark SQL的工作原理。
 

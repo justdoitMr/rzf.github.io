@@ -92,9 +92,20 @@ Hive是基于**进程**并行的，因为MapReduce是基于**进程**并行执�
 
 ![1621772066975](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/201428-702440.png)
 
+![20211116133823](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116133823.png)
+
+可以发现Hive框架底层就是MapReduce，所以在Hive中执行SQL时，往往很慢很慢。
+
+Spark SQL的前身是Shark，它发布时Hive可以说是SQL on Hadoop的唯一选择（Hive负责将SQL编译成可扩展的MapReduce作业），鉴于Hive的性能以及与Spark的兼容，Shark由此而生。Shark即Hive on Spark，本质上是通过Hive的HQL进行解析，把HQL翻译成Spark上对应的RDD操作，然后通过Hive的Metadata获取数据库里表的信息，实际为HDFS上的数据和文件，最后有Shark获取并放到Spark上计算。
+但是Shark框架更多是对Hive的改造，替换了Hive的物理执行引擎，使之有一个较快的处理速度。然而不容忽视的是Shark继承了大量的Hive代码，因此给优化和维护带来大量的麻烦。为了更好的发展，Databricks在2014年7月1日Spark Summit上宣布终止对Shark的开发，将重点放到SparkSQL模块上。
+
 **Spark sql**
 
 ![1621772322369](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/201842-808650.png)
+
+SparkSQL模块主要将以前依赖Hive框架代码实现的功能自己实现，称为Catalyst引擎。
+
+![20211116134237](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116134237.png)
 
 **DataSet**
 
@@ -151,8 +162,8 @@ spark sql用于处理什么类型的数据？
 
 sparksession
 
-- 因为老的sparkcontext已经不适用于sparksql
-- sparksql需要读取更多的数据源，更多的数据写入
+- 因为老的sparkcontext已经不适用于sparksql，读取数据没有结构信息。
+- sparksql需要读取更多的数据源，更多的数据写入。
 
 ### DataFrame&Dataset
 
@@ -163,6 +174,15 @@ sparksession
 为了解决这一矛盾，Spark SQL 1.3在Spark1.0原有SchemaRDD的基础上提供了与R和Pandas风格类似的DataFrame API。
 
 新的DataFrame AP不仅可以大幅度降低普通开发者的学习门槛，同时还支持Scala、Java与Python三种语言。更重要的是，由于脱胎自SchemaRDD，DataFrame天然适用于分布式大数据场景。
+
+**DataFrame是什么**
+
+![20211116135251](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116135251.png)
+
+在Spark中，DataFrame是一种以RDD为基础的分布式数据集，类似于传统数据库中的二维表格。
+
+DataFrame与RDD的主要区别在于，前者带有schema元信息，即DataFrame所表示的二维表数据集的每一列都带有名称和类型。
+
 
 **注意:**
 
@@ -256,7 +276,9 @@ object Test02 {
 
 ![1622027975957](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/191938-278834.png)
 
-上图中左侧的RDD[Person]虽然以Person为类型参数，但Spark框架本身不了解Person类的内部结构。而中间的DataFrame却提供了详细的结构信息，使得Spark SQL可以清楚地知道该数据集中包含哪些列，每列的名称和类型各是什么。了解了这些信息之后，Spark SQL的查询优化器就可以进行针对性的优化。后者由于在编译期有详尽的类型信息，编译期就可以编译出更加有针对性、更加优化的可执行代码。
+上图中左侧的RDD[Person]虽然以Person为类型参数，但Spark框架本身不了解Person类的内部结构。
+
+而中间的DataFrame却提供了详细的结构信息，使得Spark SQL可以清楚地知道该数据集中包含哪些列，每列的名称和类型各是什么。了解了这些信息之后，Spark SQL的查询优化器就可以进行针对性的优化。后者由于在编译期有详尽的类型信息，编译期就可以编译出更加有针对性、更加优化的可执行代码。
 
 **Schema 信息**
 
@@ -296,7 +318,7 @@ Schema信息封装在StructType中，包含很多StructField对象
 
 ![1621901991722](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153239-874331.png)
 
-生成元数据信息，也就是给相应的数据添加类型信息。
+生成元数据信息，也就是给相应的数据添加类型信息，进行数据类型的绑定和函数的绑定。
 
 **第三步**
 

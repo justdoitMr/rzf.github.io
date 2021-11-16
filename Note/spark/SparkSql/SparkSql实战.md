@@ -1,22 +1,39 @@
 <!-- TOC -->
 
 - [SparkSql实战](#sparksql实战)
-  - [SparkSql初体验](#sparksql初体验)
-  - [获取DataFrame/DataSet](#获取dataframedataset)
-    - [使用样例类](#使用样例类)
-    - [指定类型+列名](#指定类型列名)
-    - [自定义Schema](#自定义schema)
-  - [RDD、DF、DS相互转换](#rdddfds相互转换)
-    - [转换API](#转换api)
-    - [代码演示](#代码演示)
-  - [SparkSQL花式查询](#sparksql花式查询)
-    - [基于SQL查询](#基于sql查询)
-    - [基于DSL分析](#基于dsl分析)
-    - [代码演示](#代码演示-1)
+    - [准备工作](#准备工作)
+    - [SparkSql初体验](#sparksql初体验)
+    - [获取DataFrame/DataSet](#获取dataframedataset)
+        - [使用样例类](#使用样例类)
+        - [指定类型+列名](#指定类型列名)
+        - [自定义Schema](#自定义schema)
+    - [RDD、DF、DS相互转换](#rdddfds相互转换)
+        - [转换API](#转换api)
+        - [代码演示](#代码演示)
+    - [SparkSQL花式查询](#sparksql花式查询)
+        - [基于SQL查询](#基于sql查询)
+        - [基于DSL分析](#基于dsl分析)
+        - [代码演示](#代码演示-1)
+    - [使用SparkSQL的SQL和DSL两种方式完成WordCount](#使用sparksql的sql和dsl两种方式完成wordcount)
 
 <!-- /TOC -->
 
 ## SparkSql实战
+
+### 准备工作
+
+**添加依赖**
+
+```java
+<dependency>
+	    <groupId>org.apache.spark</groupId>
+		    <artifactId>spark-sql_2.11</artifactId>
+		    <version>2.4.5</version>
+</dependency>
+```
+**SparkSession应用入口**
+
+Spark 2.0开始，SparkSession取代了原本的SQLContext与HiveContext作为SparkSQL应用程序的入口，可以加载不同数据源的数据，封装到DataFrame/Dataset集合数据结构中，使得编程更加简单，程序运行更加快速高效。注意原本的SQLContext与HiveContext仍然保留，以支持向下兼容。
 
 ### SparkSql初体验
 
@@ -31,6 +48,44 @@ SparkSession对象实例通过建造者模式构建，代码如下：
 ③表示导入SparkSession类中implicits对象object中隐式转换函数。
 
 ![1622029318667](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/15/153348-225540.png)
+
+```scala
+object SparkSQLDemo00_hello {
+  def main(args: Array[String]): Unit = {
+    //1.准备SparkSQL开发环境
+    println(this.getClass.getSimpleName)
+    println(this.getClass.getSimpleName.stripSuffix("$"))
+    val spark: SparkSession = SparkSession.builder().appName(this.getClass.getSimpleName.stripSuffix("$")).master("local[*]").getOrCreate()
+    val sc: SparkContext = spark.sparkContext
+    sc.setLogLevel("WARN")
+
+    val df1: DataFrame = spark.read.text("data/input/text")
+    val df2: DataFrame = spark.read.json("data/input/json")
+    val df3: DataFrame = spark.read.csv("data/input/csv")
+    val df4: DataFrame = spark.read.parquet("data/input/parquet")
+
+    df1.printSchema()
+    df1.show(false)
+    df2.printSchema()
+    df2.show(false)
+    df3.printSchema()
+    df3.show(false)
+    df4.printSchema()
+    df4.show(false)
+
+
+    df1.coalesce(1).write.mode(SaveMode.Overwrite).text("data/output/text")
+    df2.coalesce(1).write.mode(SaveMode.Overwrite).json("data/output/json")
+    df3.coalesce(1).write.mode(SaveMode.Overwrite).csv("data/output/csv")
+    df4.coalesce(1).write.mode(SaveMode.Overwrite).parquet("data/output/parquet")
+
+    //关闭资源
+    sc.stop()
+    spark.stop()
+  }
+}
+```
+
 
 ### 获取DataFrame/DataSet
 
@@ -195,7 +250,7 @@ object Test17 {
   - dataframe.rdd 或者dataset.rdd
 - DataFrame与Dataset之间转换
   - 由于DataFrame为Dataset特例，所以Dataset直接调用**toDF**函数转换为DataFrame
-  - 当将DataFrame转换为Dataset时，使用函数**as[Type]**，指定CaseClass类型即可。
+  - 当将DataFrame转换为Dataset时，使用函数**as[Type]**，指定CaseClass类型即可,因为DataSet有具体的类型信息。
 
 **RDD、DataFrame和DataSet之间的转换如下:**
 
@@ -271,7 +326,7 @@ object Test18 {
 
 在SparkSQL模块中，将结构化数据封装到DataFrame或Dataset集合中后，提供了两种方式分析处理数据：
 
-1. SQL 编程，将DataFrame/Dataset注册为临时视图或表，编写SQL语句，类似HiveQL；
+1. SQL 编程，将DataFrame/Dataset注册为**临时视图或表**，编写SQL语句，类似HiveQL；
 2. DSL（domain-specific language）编程，调用DataFrame/Dataset API（函数），类似RDD中函数；
 
 #### 基于SQL查询
@@ -280,11 +335,11 @@ object Test18 {
 
 1. 注册为临时视图
 
-![1622030824685](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622030824685.png)
+![1622030824685](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/145832-272994.png)
 
 2. 编写sql执行分析
 
-![1622030855659](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622030855659.png)
+![1622030855659](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/145834-392343.png)
 
 其中SQL语句类似Hive中SQL语句，查看Hive官方文档，SQL查询分析语句语法，官方文档文档：
 
@@ -300,7 +355,7 @@ object Test18 {
 
 1. 选择函数**select**：选取某些列的值
 
-![1622030990520](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1622030990520.png)
+![1622030990520](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/16/150209-263994.png)
 
 2. 过滤函数**filter/where**：设置过滤条件，类似SQL中WHERE语句
 
@@ -436,5 +491,111 @@ object Test19 {
 	}
 
 	case class Person(id: Int, name: String, age: Int)
+}
+```
+
+### 使用SparkSQL的SQL和DSL两种方式完成WordCount
+
+```scala
+object SparkSQLDemo05_WordCount {
+  def main(args: Array[String]): Unit = {
+    //1.准备SparkSQL开发环境
+    val spark: SparkSession = SparkSession.builder().appName("hello").master("local[*]").getOrCreate()
+    val sc: SparkContext = spark.sparkContext
+    sc.setLogLevel("WARN")
+    import spark.implicits._
+
+    //2.获取DF/DS
+    //获取DF/DS方式一:通过RDD->DF/DS
+    val fileRDD: RDD[String] = sc.textFile("data/input/words.txt")
+    val df: DataFrame = fileRDD.toDF("value")
+    val ds: Dataset[String] = df.as[String]
+    df.printSchema()
+    df.show(false)
+    ds.printSchema()
+    ds.show(false)
+
+    //获取DF/DS方式二:
+    val df2: DataFrame = spark.read.text("data/input/words.txt")
+    df2.printSchema()
+    df2.show(false)
+    val ds2: Dataset[String] = spark.read.textFile("data/input/words.txt")
+    ds2.printSchema()
+    ds2.show(false)
+    /*
+    root
+   |-- value: string (nullable = true)
+
+  +----------------+
+  |value           |
+  +----------------+
+  |hello me you her|
+  |hello you her   |
+  |hello her       |
+  |hello           |
+  +----------------+
+     */
+
+    //3.计算WordCount
+    //df.flatMap(_.split(" ")) //报错:DF没有泛型,不知道_是String
+    //df2.flatMap(_.split(" "))//报错:DF没有泛型,不知道_是String
+    val wordDS: Dataset[String] = ds.flatMap(_.split(" "))
+    //ds2.flatMap(_.split(" "))
+
+    wordDS.printSchema()
+    wordDS.show(false)
+    /*
+    +-----+
+    |value|
+    +-----+
+    |hello|
+    |me   |
+    |you  |
+    ....
+     */
+
+    //TODO SQL风格
+    wordDS.createOrReplaceTempView("t_words")
+    val sql: String =
+      """
+        |select value as word,count(*) as counts
+        |from t_words
+        |group by word
+        |order by counts desc
+        |""".stripMargin
+    spark.sql(sql).show(false)
+
+    //TODO DSL风格
+    wordDS.groupBy("value")
+      .count()
+      .orderBy('count.desc)
+      .show(false)
+    /*
+    +-----+------+
+    |word |counts|
+    +-----+------+
+    |hello|4     |
+    |her  |3     |
+    |you  |2     |
+    |me   |1     |
+    +-----+------+
+
+    +-----+-----+
+    |value|count|
+    +-----+-----+
+    |hello|4    |
+    |her  |3    |
+    |you  |2    |
+    |me   |1    |
+    +-----+-----+
+     */
+
+
+    //4.关闭资源
+    sc.stop()
+    spark.stop()
+  }
+
+  case class Person(id: Int, name: String, age: Int)
 }
 ```

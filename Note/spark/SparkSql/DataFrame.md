@@ -2,16 +2,16 @@
 <!-- TOC -->
 
 - [DataFrame](#dataframe)
-  - [DataFrame是什么](#dataframe是什么)
-  - [创建DataFrame](#创建dataframe)
-    - [通过隐式转换](#通过隐式转换)
-    - [通过集合创建](#通过集合创建)
-    - [通过读取外部数据集](#通过读取外部数据集)
-  - [操作DataFrame](#操作dataframe)
-  - [DataSet和DataFrame的区别](#dataset和dataframe的区别)
-  - [Row对象](#row对象)
-  - [RDD、DataFrame和Dataset](#rdddataframe和dataset)
-  - [小结](#小结)
+	- [DataFrame是什么](#dataframe是什么)
+	- [创建DataFrame](#创建dataframe)
+		- [通过隐式转换](#通过隐式转换)
+		- [通过集合创建](#通过集合创建)
+		- [通过读取外部数据集](#通过读取外部数据集)
+	- [操作DataFrame](#操作dataframe)
+	- [DataSet和DataFrame的区别](#dataset和dataframe的区别)
+	- [Row对象](#row对象)
+	- [RDD、DataFrame和Dataset](#rdddataframe和dataset)
+	- [小结](#小结)
 
 <!-- /TOC -->
 
@@ -20,6 +20,45 @@
 ### DataFrame是什么
 
 ![1622027869159](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/191749-972388.png)
+
+![20211116140624](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116140624.png)
+
+上图中左侧的RDD[Person]虽然以Person为类型参数，但Spark框架本身不了解Person类的内部结构。而中间的DataFrame却提供了详细的结构信息，使得Spark SQL可以清楚地知道该数据集中包含哪些列，每列的名称和类型各是什么。了解了这些信息之后，Spark SQL的查询优化器就可以进行针对性的优化。后者由于在编译期有详尽的类型信息，编译期就可以编译出更加有针对性、更加优化的可执行代码。
+
+**Schema 信息**
+
+查看DataFrame中Schema是什么，执行如下命令：df.schema
+
+Schema信息封装在StructType中，包含很多StructField对象
+
+![20211116140754](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116140754.png)
+
+
+**Row**
+DataFrame中每条数据封装在Row中，Row表示每行数据如何构建Row对象：要么是传递value，要么传递Seq，官方实例代码：
+
+```java
+import org.apache.spark.sql._
+
+// Create a Row from values.
+Row(value1, value2, value3, ...)
+
+// Create a Row from a Seq of values.
+Row.fromSeq(Seq(value1, value2, ...))
+```
+如何获取Row中每个字段的值呢？
+
+**方式1：下标获取，从0开始，类似数组下标获取**
+
+![20211116141018](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116141018.png)
+
+**方式2：指定下标，知道类型**
+
+![20211116141055](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116141055.png)
+
+**方式3：通过As转换类型**
+
+![20211116141119](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211116141119.png)
 
 ![1621906546993](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/093548-398551.png)
 
@@ -224,6 +263,8 @@ package object sql {
 
 ![1621911860684](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/100000-205409.png)
 
+
+
 ```java
 object Test08 {
 
@@ -258,6 +299,13 @@ object Test08 {
 DataFrame代表的弱类型在编译的时候是不安全的，Dataset是编译时类型安全的。
 
 ![1621995099988](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/101141-948512.png)
+
+**DataFrame和DataSet的区别**
+
+1. DataFrame表达的含义是一个支持函数式编程的二维表格。DataSet表达的是一个类似RDD的东西，DataSet可以处理任何对象类型
+2. DataFrame里面存放的是Row对象，DataSet里面可以存放任何类型的对象。
+3. DataFrame代表的是弱类型，DataSet代表的是强类型。
+4. DataFrame只能运行时检查类型安全，但是DataSet可以做到编译时和运行时的类型安全检查。
 
 ### Row对象
 
@@ -315,7 +363,7 @@ object Test09 {
 
 ![1621996372128](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/26/103329-417977.png)
 
-很明显，我们可以看出，对于Dataset中，数据是按照对象的格式存储在每一行中，每一行都表示一个对象，表头的schema信息也是一个对象。我们说DataFrame是存储了类型为Row的Dataset，可以把Row想象为一个一位数组，那么对象的每一个属性信息就存储在数组的每一个单元中，就是相当于把数据更加细粒度的存储。
+很明显，我们可以看出，对于Dataset中，数据是按照对象的格式存储在每一行中，每一行都表示一个对象，表头的schema信息也是一个对象，并且每一行表示具体的类型，不再是Row类型，我们说DataFrame是存储了类型为Row的Dataset，也就是说DataFrame的每一行类型被封装为Row类型，不能代表具体的类型。
 
 ### RDD、DataFrame和Dataset
 
