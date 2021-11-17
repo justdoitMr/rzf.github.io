@@ -1590,7 +1590,7 @@ Barrier 接着向下游传递。当一个非数据源算子从所有的输入流
 
 ![20211114172900](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211114172900.png)
 
-**一旦Operator从输入流接收到CheckPoint barrier n，它就不能处理来自该流的任何数据记录，直到它从其他所有输入接收到barrier n为止。否则，它会混合属于快照n的记录和属于快照n + 1的记录**；
+**一旦Operator从输入流接收到CheckPoint barrier n，它就不能处理来自该流的任何数据记录（收到的数据只能缓存起来），直到它从其他所有输入接收到barrier n为止。否则，它会混合属于快照n的记录和属于快照n + 1的记录**；
 
 **如上图所示：**
 
@@ -1604,7 +1604,7 @@ Barrier 接着向下游传递。当一个非数据源算子从所有的输入流
 
 #### 38、什么是Barrier不对齐？
 
-checkpoint 是要等到所有的barrier全部都到才算完成
+checkpoint 是要等到所有的barrier全部都到才算完成，因为一个算子可能存在多条输入流，所以有多个barrier。
 
 上述图2中，当还有其他输入流的barrier还没有到达时，会把已到达的barrier之后的数据1、2、3搁置在缓冲区，等待其他流的barrier到达后才能处理。
 
@@ -1612,7 +1612,7 @@ checkpoint 是要等到所有的barrier全部都到才算完成
 
 #### 39、为什么要进行barrier对齐？不对齐到底行不行？
 
-答：Exactly Once时必须barrier对齐，如果barrier不对齐就变成了At Least Once；
+答：**Exactly Once时必须barrier对齐，如果barrier不对齐就变成了At Least Once**；
 
 CheckPoint的目的就是为了保存快照，如果不对齐，那么在chk-100快照之前，已经处理了一些chk-100 对应的offset之后的数据，当程序从chk-100恢复任务时，chk-100对应的offset之后的数据还会被处理一次，所以就出现了重复消费。
 
@@ -1625,23 +1625,23 @@ Exactly-Once语义 : 指端到端的一致性，从数据读取、引擎计算�
 
 ![1636786126215](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/144847-531017.png)
 
-**Source端：**数据从上游进入Flink，必须保证消息严格一次消费。同时Source 端必须满足可重放（replay）。否则 Flink 计算层收到消息后未计算，却发生 failure 而重启，消息就会丢失。
+**Source端**：数据从上游进入Flink，必须保证消息严格一次消费。同时Source 端必须满足可重放（replay）。否则 Flink 计算层收到消息后未计算，却发生 failure 而重启，消息就会丢失。
 
-**Flink计算层：**利用 Checkpoint 机制，把状态数据定期持久化存储下来，Flink程序一旦发生故障的时候，可以选择状态点恢复，避免数据的丢失、重复。
+**Flink计算层**：利用 Checkpoint 机制，把状态数据定期持久化存储下来，Flink程序一旦发生故障的时候，可以选择状态点恢复，避免数据的丢失、重复。
 
 **Sink端**:Flink将处理完的数据发送到Sink端时，通过 **两阶段提交协议 ，**即 TwoPhaseCommitSinkFunction 函数。该 SinkFunction 提取并封装了两阶段提交协议中的公共逻辑，保证Flink 发送Sink端时实现严格一次处理语义。   **同时：**Sink端必须支持**事务机制**，能够进行数据**回滚**或者满足**幂等性。**
 
-**回滚机制：**即当作业失败后，能够将部分写入的结果回滚到之前写入的状态。
+**回滚机制**：即当作业失败后，能够将部分写入的结果回滚到之前写入的状态。
 
-**幂等性：**就是一个相同的操作，无论重复多少次，造成的结果和只操作一次相等。即当作业失败后，写入部分结果，但是当重新写入全部结果时，不会带来负面结果，重复写入不会带来错误结果。
+**幂等性**：就是一个相同的操作，无论重复多少次，造成的结果和只操作一次相等。即当作业失败后，写入部分结果，但是当重新写入全部结果时，不会带来负面结果，重复写入不会带来错误结果。(可以理解为覆盖操作)
 
 #### 42、什么是两阶段提交协议？
 
 **两阶段提交协议（Two -Phase Commit，2PC）是解决分布式事务问题最常用的方法，它可以保证在分布式事务中，**要么所有参与进程都提交事务，要么都取消**，即实现ACID中的 A（原子性）。**
 
-两阶段提交协议中 有两个重要角色**，协调者（Coordinator）**和 **参与者（Participant）**,其中协调者只有一个，起到分布式事务的协调管理作用，参与者有多个。
+两阶段提交协议中 有两个重要角色，**协调者(Coordinator)**和**参与者（Participant）**,其中协调者只有一个，起到分布式事务的协调管理作用，参与者有多个。
 
-两阶段提交阶段分为两个阶段：**投票阶段（Voting）**和 **提交阶段（Commit）。**
+两阶段提交阶段分为两个阶段：**投票阶段（Voting）**和**提交阶段（Commit）。**
 
 **投票阶段：**
 
@@ -1657,7 +1657,7 @@ Exactly-Once语义 : 指端到端的一致性，从数据读取、引擎计算�
 
 若所有参与者都返回 yes，说明事务可以提交：
 
-- 协调者向所有参与者发送 commit 请求。
+- 协调者向所有参与者发送 **commit** 请求。
 - 参与者收到 commit 请求后，将事务真正地提交上去，并释放占用的事务资源，并向协调者返回 ack 。
 - 协调者收到所有参与者的 ack 消息，事务成功完成，如下图：
 
@@ -1673,11 +1673,11 @@ Exactly-Once语义 : 指端到端的一致性，从数据读取、引擎计算�
 
 #### 43、Flink 如何保证 Exactly-Once 语义？
 
-Flink通过两阶段提交协议来保证Exactly-Once语义。
+Flink通过两阶段提交协议和检查点来保证Exactly-Once语义。
 
-**对于Source端：**Source端严格一次处理比较简单，因为数据要进入Flink 中，所以Flink 只需要保存消费数据的偏移量 （offset）即可。如果Source端为 kafka，Flink 将 Kafka Consumer 作为 Source，可以将偏移量保存下来，如果后续任务出现了故障，恢复的时候可以由连接器重置偏移量，重新消费数据，保证一致性。
+**对于Source端**：Source端严格一次处理比较简单，因为数据要进入Flink 中，所以Flink 只需要保存消费数据的偏移量 （offset）即可。如果Source端为 kafka，Flink 将 Kafka Consumer 作为 Source，可以将偏移量保存下来，如果后续任务出现了故障，恢复的时候可以由连接器重置偏移量，重新消费数据，保证一致性。
 
-**对于 Sink 端：**Sink 端是最复杂的，因为数据是落地到其他系统上的，数据一旦离开 Flink 之后，Flink 就监控不到这些数据了，所以严格一次处理语义必须也要应用于 Flink 写入数据的外部系统，**故这些外部系统必须提供一种手段允许提交或回滚这些写入操作**，同时还要保证与 Flink Checkpoint 能够协调使用（**Kafka 0.11 版本已经实现精确一次处理语义**）。
+**对于 Sink 端**:Sink 端是最复杂的，**因为数据是落地到其他系统上的，数据一旦离开 Flink 之后，Flink 就监控不到这些数据了**，所以严格一次处理语义必须也要应用于 Flink 写入数据的外部系统，**故这些外部系统必须提供一种手段允许提交或回滚这些写入操作**，同时还要保证与 Flink Checkpoint 能够协调使用（**Kafka 0.11 版本已经实现精确一次处理语义**）。
 
 我们以 **Kafka - Flink -Kafka** 为例 说明如何保证Exactly-Once语义。
 
@@ -1691,7 +1691,7 @@ Flink通过两阶段提交协议来保证Exactly-Once语义。
 
 （3）一个Sink算子，将结果写会到Kafka（即kafkaProducer）
 
-Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交（Commit）阶段保证端到端严格一次。**
+Flink使用两阶段提交协议 **预提交(Pre-commit)**阶段和**提交（Commit）阶段保证端到端严格一次。**
 
 **（1）预提交阶段**
 
@@ -1699,7 +1699,7 @@ Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交
 
 ![1636786863780](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150104-39956.png)
 
-**2、Source 端：***Flink Data Source 负责保存 KafkaTopic 的 offset偏移量**，当 Checkpoint 成功时 Flink 负责提交这些写入，否则就终止取消掉它们，当 Checkpoint 完成位移保存，它会将 checkpoint barrier（检查点分界线） 传给下一个 Operator，然后每个算子会对当前的状态做个快照，保存到**状态后端（State Backend）。
+**2、Source 端**:Flink Data Source 负责保存 KafkaTopic 的 offset偏移量，当 Checkpoint 成功时 Flink 负责提交这些写入，否则就终止取消掉它们，当 Checkpoint 完成位移保存，它会将 checkpoint barrier（检查点分界线） 传给下一个 Operator，然后每个算子会对当前的状态做个快照，保存到**状态后端（State Backend）。**
 
 **对于 Source 任务而言，就会把当前的 offset 作为状态保存起来。下次从 Checkpoint 恢复时，Source 任务可以重新提交偏移量，从上次保存的位置开始重新消费数据，如下图所示：**
 
@@ -1707,7 +1707,7 @@ Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交
 
 预处理阶段：checkpoint barrier传递 及 offset 保存
 
-**3、Slink 端：**从 Source 端开始，每个内部的 transformation 任务遇到 checkpoint barrier（检查点分界线）时，都会把状态存到 Checkpoint 里。数据处理完毕到 Sink 端时，Sink 任务首先把数据写入外部 Kafka，**这些数据都属于预提交的事务（还不能被消费）**，**此时的 Pre-commit 预提交阶段下Data Sink 在保存状态到状态后端的同时还必须预提交它的外部事务，**如下图所示：
+**3、Slink 端**：从 Source 端开始，每个内部的 transformation 任务遇到 checkpoint barrier（检查点分界线）时，都会把状态存到 Checkpoint 里。数据处理完毕到 Sink 端时，Sink 任务首先把数据写入外部 Kafka，**这些数据都属于预提交的事务（还不能被消费）**，**此时的 Pre-commit 预提交阶段下Data Sink 在保存状态到状态后端的同时还必须预提交它的外部事务**，如下图所示：
 
 ![1636786988260](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/150310-459870.png)
 
@@ -1715,7 +1715,7 @@ Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交
 
 **（2）提交阶段**
 
-**4、当所有算子任务的快照完成**（所有创建的快照都被视为是 Checkpoint 的一部分），**也就是这次的 Checkpoint 完成时**，**JobManager 会向所有任务发通知，确认这次 Checkpoint 完成，此时 Pre-commit 预提交阶段才算完成**。才正式到两阶段提交协议的**第二个阶段：**commit 阶段。该阶段中 JobManager 会为应用中每个 Operator 发起 Checkpoint 已完成的回调逻辑。
+**4、当所有算子任务的快照完成**（所有创建的快照都被视为是 Checkpoint 的一部分），**也就是这次的 Checkpoint 完成时**，**JobManager 会向所有任务发通知，确认这次 Checkpoint 完成，此时 Pre-commit 预提交阶段才算完成**。才正式到两阶段提交协议的第二个阶段：**commit 阶段**。该阶段中 JobManager 会为应用中每个 Operator 发起 Checkpoint 已完成的回调逻辑。
 
 本例中的 Data Source 和窗口操作无外部状态，因此在该阶段，这两个 Opeartor 无需执行任何逻辑，**但是 Data Sink 是有外部状态的，此时我们必须提交外部事务**，当 Sink 任务收到确认通知，就会正式提交之前的事务，Kafka 中未确认的数据就改为“已确认”，数据就真正可以被消费了，如下图所示：
 
@@ -1724,6 +1724,8 @@ Flink使用两阶段提交协议 **预提交（Pre-commit）**阶段和 **提交
 提交阶段：数据精准被消费
 
 > 注：Flink 由 JobManager 协调各个 TaskManager 进行 Checkpoint 存储，Checkpoint 保存在 StateBackend（状态后端） 中，默认 StateBackend 是内存级的，也可以改为文件级的进行持久化保存。
+
+当开启一个检查点的时候，也就开启了一个kafka事务，在灭一个算子包括sink端灭有完成检查点之前，所有的操作都是与提交阶段。
 
 #### 44、对Flink 端到端 严格一次Exactly-Once 语义做个总结
 
@@ -1790,9 +1792,9 @@ Flink支持的数据类型如下图所示：
 
 所谓序列化和反序列化的含义：
 
-**序列化：**就是将一个内存对象转换成二进制串，形成网络传输或者持久化的数据流。
+**序列化**:就是将一个内存对象转换成二进制串，形成网络传输或者持久化的数据流。
 
-**反序列化：**将二进制串转换为内存对。
+**反序列化**:将二进制串转换为内存对。
 
 **TypeInformation 是 Flink 类型系统的核心类** 
 
@@ -1800,7 +1802,7 @@ Flink支持的数据类型如下图所示：
 
 ![1636787880390](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151803-512600.png)
 
-**对于大多数数据类型** **Flink 可以自动生成对应的序列化器***，能非常高效地对数据集进行序列化和反序列化 ，如下图：
+**对于大多数数据类型,Flink 可以自动生成对应的序列化器**，能非常高效地对数据集进行序列化和反序列化 ，如下图：
 
 ![1636787916777](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/13/151839-161760.png)
 
@@ -1826,17 +1828,17 @@ Flink支持的数据类型如下图所示：
 
 JVM 内存管理的不足： 
 
-**1）Java 对象存储密度低。**Java 的对象在内存中存储包含 3 个主要部分：对象头、实例 数据、对齐填充部分。例如，一个只包含 boolean 属性的对象占 16byte：对象头占 8byte， boolean 属性占 1byte，为了对齐达到 8 的倍数额外占 7byte。而实际上只需要一个 bit（1/8 字节）就够了。
+**1）Java 对象存储密度低**:Java 的对象在内存中存储包含 3 个主要部分：**对象头、实例数据、对齐填充**部分。例如，一个只包含 boolean 属性的对象占 16byte：对象头占 8byte， boolean 属性占 1byte，为了对齐达到 8 的倍数额外占 7byte。而实际上只需要一个 bit（1/8 字节）就够了。
 
-**2）Full GC 会极大地影响性能。**尤其是为了处理更大数据而开了很大内存空间的 JVM 来说，GC 会达到秒级甚至分钟级。
+**2）Full GC 会极大地影响性能**:尤其是为了处理更大数据而开了很大内存空间的 JVM 来说，GC 会达到秒级甚至分钟级。
 
-**3）OOM 问题影响稳定性。**OutOfMemoryError 是分布式计算框架经常会遇到的问题， 当JVM中所有对象大小超过分配给JVM的内存大小时，就会发生OutOfMemoryError错误， 导致 JVM 崩溃，分布式框架的健壮性和性能都会受到影响。
+**3）OOM 问题影响稳定性**:OutOfMemoryError 是分布式计算框架经常会遇到的问题， 当JVM中所有对象大小超过分配给JVM的内存大小时，就会发生OutOfMemoryError错误， 导致 JVM 崩溃，分布式框架的健壮性和性能都会受到影响。
 
-**4）缓存未命中问题。**CPU 进行计算的时候，是从 CPU 缓存中获取数据。现代体系的 CPU 会有多级缓存，而加载的时候是以 Cache Line 为单位加载。如果能够将对象连续存储， 这样就会大大降低 Cache Miss。使得 CPU 集中处理业务，而不是空转。
+**4）缓存未命中问题**:CPU 进行计算的时候，是从 CPU 缓存中获取数据。现代体系的 CPU 会有多级缓存，而加载的时候是以 Cache Line 为单位加载。如果能够将对象连续存储， 这样就会大大降低 Cache Miss。使得 CPU 集中处理业务，而不是空转。
 
 #### 52、那Flink自主内存是如何管理对象的？
 
-Flink 并不是将大量对象存在堆内存上，而是将对象都序列化到一个预分配的内存块上， 这个内存块叫做 **MemorySegment**，它代表了一段固定长度的内存（默认大小为 32KB），也 是 **Flink 中最小的内存分配单元**，并且提供了非常高效的读写方法，很多运算可以直接操作 二进制数据，不需要反序列化即可执行。每条记录都会以序列化的形式存储在一个或多个 MemorySegment 中。如果需要处理的数据多于可以保存在内存中的数据，Flink 的运算符会 将部分数据溢出到磁盘
+Flink 并不是将大量对象存在堆内存上，而是将对象都序列化到一个预分配的内存块上， 这个内存块叫做 **MemorySegment**，它代表了一段固定长度的内存（默认大小为 32KB），也 是 **Flink 中最小的内存分配单元**，并且提供了非常高效的读写方法，很多运算可以直接操作 二进制数据，不需要反序列化即可执行。每条记录都会以序列化的形式存储在一个或多个 MemorySegment 中。如果需要处理的数据多于可以保存在内存中的数据，Flink 的运算符会 将部分数据溢出到磁盘.
 
 #### 53、Flink内存模型介绍一下？
 
@@ -1864,11 +1866,11 @@ Flink总体内存类图如下：
 
 **JVM Heap：JVM 堆上内存** 
 
-**1、Framework Heap Memory：**Flink 框架本身使用的内存，即 TaskManager 本身所 占用的堆上内存，不计入 Slot 的资源中。 
+**1、Framework Heap Memory**:Flink 框架本身使用的内存，即 TaskManager 本身所 占用的堆上内存，不计入 Slot 的资源中。 
 
 配置参数：taskmanager.memory.framework.heap.size=128MB,默认 128MB
 
-**2、Task Heap Memory：**Task 执行用户代码时所使用的堆上内存。
+**2、Task Heap Memory**:Task 执行用户代码时所使用的堆上内存。
 
 配置参数：taskmanager.memory.task.heap.size
 
@@ -1876,15 +1878,15 @@ Flink总体内存类图如下：
 
 **1、DirectMemory：JVM 直接内存** 
 
-1）Framework Off-Heap Memory：Flink框架本身所使用的内存，即TaskManager 本身所占用的对外内存，不计入 Slot 资源。
+1）**Framework Off-Heap Memory**：Flink框架本身所使用的内存，即TaskManager 本身所占用的对外内存，不计入 Slot 资源。
 
 配置参数：taskmanager.memory.framework.off-heap.size=128MB，默认 128MB 
 
-2）Task Off-Heap Memory：Task 执行用户代码所使用的对外内存。
+2）**Task Off-Heap Memory**：Task 执行用户代码所使用的对外内存。
 
  配置参数：taskmanager.memory.task.off-heap.size=0,默认 0 
 
-3）Network Memory：网络数据交换所使用的堆外内存大小，如网络数据交换 缓冲区 
+3）**Network Memory**：网络数据交换所使用的堆外内存大小，如网络数据交换 缓冲区 
 
 **2、Managed Memory：Flink 管理的堆外内存**，
 
@@ -1894,7 +1896,7 @@ Flink总体内存类图如下：
 
 **1、JVM metaspace：JVM 元空间** 
 
-**2、JVM over-head 执行开销：**JVM 执行时自身所需要的内容，包括线程堆栈、IO、 编译缓存等所使用的内存。
+**2、JVM over-head 执行开销**:JVM 执行时自身所需要的内容，包括线程堆栈、IO、 编译缓存等所使用的内存。
 
 配置参数：taskmanager.memory.jvm-overhead.min=192mb
 
@@ -1904,13 +1906,13 @@ taskmanager.memory.jvm-overhead.fraction=0.1
 
 **总体内存** 
 
-**1、总进程内存：**Flink Java 应用程序（包括用户代码）和 JVM 运行整个进程所消 耗的总内存。
+**1、总进程内存**:Flink Java 应用程序（包括用户代码）和 JVM 运行整个进程所消耗的总内存。
 
 总进程内存 = Flink 使用内存 + JVM 元空间 + JVM 执行开销 
 
 配置项：taskmanager.memory.process.size: 1728m
 
-**2、Flink 总内存：**仅 Flink Java 应用程序消耗的内存，包括用户代码，但不包括 JVM 为其运行而分配的内存。
+**2、Flink 总内存**:仅 Flink Java 应用程序消耗的内存，包括用户代码，但不包括 JVM 为其运行而分配的内存。
 
 Flink 使用内存：框架堆内外 + task 堆内外 + network + manage
 
@@ -1945,7 +1947,7 @@ TM也叫做worker，用于执行数据流图中的任务，缓存并交换数据
 
 ### 2、Slot与资源管理
 
-每个TM是一个独立的JVM进程，内部基于独立的线程执行一个或多个任务。TM为了控制每个任务的执行资源，使用task slot来进行管理。每个task slot代表TM中的一部分固定的资源，比如一个TM有3个slot，每个slot将会得到TM的1/3内存资源。不同任务之间不会进行资源的抢占，注意GPU目前没有进行隔离，目前slot只能划分内存资源。
+每个TM是一个**独立的JVM进程**，内部基于独立的线程执行一个或多个任务。TM为了控制每个任务的执行资源，使用task slot来进行管理。每个task slot代表TM中的一部分固定的资源，比如一个TM有3个slot，每个slot将会得到TM的1/3内存资源。不同任务之间不会进行资源的抢占，注意GPU目前没有进行隔离，目前slot只能划分内存资源。
 
 比如下面的数据流图，在扩展成并行流图后，同一的task可能分拆成多个任务并行在集群中执行。操作链可以把多个不同的任务进行合并，从而支持在一个线程中先后执行多个任务，无需频繁释放申请线程。同时操作链还可以统一缓存数据，增加数据处理吞吐量，降低处理延迟。
 
