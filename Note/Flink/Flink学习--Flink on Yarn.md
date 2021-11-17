@@ -1,3 +1,31 @@
+
+<!-- TOC -->
+
+- [Flink学习--Flink on Yarn](#flink学习--flink-on-yarn)
+  - [Flink整体架构](#flink整体架构)
+  - [Flink架构概述](#flink架构概述)
+    - [Flink 架构概览–Job](#flink-架构概览job)
+    - [Flink 架构概览–JobManager](#flink-架构概览jobmanager)
+    - [Flink 架构概览–TaskManager](#flink-架构概览taskmanager)
+  - [Flink 集群运行时相关组件](#flink-集群运行时相关组件)
+    - [逻辑层次](#逻辑层次)
+    - [两层资源调度](#两层资源调度)
+    - [机制与策略(Flink1.10)](#机制与策略flink110)
+      - [TaskManager有哪些资源？](#taskmanager有哪些资源)
+      - [Slot有哪些资源？](#slot有哪些资源)
+      - [TaskManager管理](#taskmanager管理)
+      - [Cluster -> Job 资源调度的过程](#cluster---job-资源调度的过程)
+      - [Job -> Task 资源调度的过程](#job---task-资源调度的过程)
+      - [资源调优](#资源调优)
+  - [Flink on Yarn 原理及实践](#flink-on-yarn-原理及实践)
+    - [Yarn 架构原理–总览](#yarn-架构原理总览)
+    - [Yarn 架构原理–组件](#yarn-架构原理组件)
+    - [Yarn 架构原理–交互](#yarn-架构原理交互)
+  - [Flink on Yarn–Per Job](#flink-on-yarnper-job)
+  - [Flink on Yarn–Session](#flink-on-yarnsession)
+  - [Yarn 模式特点](#yarn-模式特点)
+
+<!-- /TOC -->
 ## Flink学习--Flink on Yarn
 
 ### Flink整体架构

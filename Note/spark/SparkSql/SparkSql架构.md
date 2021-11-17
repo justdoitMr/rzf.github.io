@@ -51,6 +51,8 @@ Spark要想很好地支持SQL，就需要完成
 
 ## Spark Sql工作流程
 
+![20211117143741](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211117143741.png)
+
 在了解了上述组件的作用后，下面分步骤讲解Spark SQL工作流程。
 
 1. 在解析SQL语句之前，会创建SparkSession，涉及到表名、字段名称和字段类型的元数据都将保存在Catalog中；
