@@ -85,6 +85,9 @@
     - [74、Flink调度行为包含几种？](#74flink调度行为包含几种)
     - [75、Flink调度模式包含几种？](#75flink调度模式包含几种)
     - [76、Flink调度策略包含几种？](#76flink调度策略包含几种)
+    - [77、Flink作业生命周期包含哪些状态？](#77flink作业生命周期包含哪些状态)
+    - [78、Task的作业生命周期包含哪些状态？](#78task的作业生命周期包含哪些状态)
+    - [79、Flink的任务调度流程讲解一下？](#79flink的任务调度流程讲解一下)
     - [80、Flink的任务槽是什么意思？](#80flink的任务槽是什么意思)
     - [81、Flink 槽共享又是什么意思？](#81flink-槽共享又是什么意思)
   - [04、Flink SQL篇](#04flink-sql篇)
@@ -160,6 +163,12 @@ Flink的设计思想是以**流**为核心，**批是流的特例**，擅长处�
 **集群级容错:** Flink与集群管理器紧密连接，如YARN、Kubernetes，当进程挂掉后，自动重启新进程接管之前的工作。同时具备**高可用**性,可消除所有**单点故障**。
 
 **应用级容错**:Flink使用轻量级分布式快照，设计检查点（**checkpoint**）实现可靠容错。Flink 利用检查点特性，在框架层面 提供 **Exactly-once** 语义，即端到端的一致性，确保数据仅处理一次，不会重复也不会丢失，即使出现故障，也能保证数据只写一次。
+
+> Storm：没有 SQL 和高阶 API 的支持、无法支持 exactly once；
+> 
+> Spark Streaming：对实时计算来说，微批处理天生是有架构上的缺陷；
+> 
+> Flink: 有 Streaming SQL 的支持，支持 exactly once 等等；
 
 #### 3、Flink 和 Spark Streaming的区别？
 
@@ -258,6 +267,14 @@ JobManager根据并行度将Flink客户端提交的Flink 应用分解为**子任
 **(3)、TaskManager**
 
 TaskManager 接收 JobManage 分发的子任务，根据自身的资源情况 管理子任务的启动、 停止、销毁、异常恢复等生命周期阶段。Flink程序中必须有一个TaskManager。
+
+> 一个 Flink 集群，主要包含了两个核心组件：
+
+JobManager（master）：它会负责整个任务的协调工作，包括：调度 task、触发协调 Tasks 做 Checkpoint、协调容错恢复等等（HA 模式下，一个集群会启动多个 JobManager，但只会有一个处在 leader 状态，其他处在热备状态 —— standby）；
+
+TaskManager（workers）：负责执行一个 DataFlow Graph 的各个 tasks 以及 data streams 的 buffer 和数据交换。
+
+JobManager/TaskManager 都是进程级别，TaskManager 在启动时，会根据配置将其内部的资源分为多个 slot，每个 slot 只会启动一个 Task，Task 是线程级别，从这里可以看出 Flink 是多线程调度模型，一个 TM 中可能会有来自多个任务的 task，从资源利用的角度看，这样的设计是有一些收益的，但是从资源隔离的角度看，这种设计就不是那么好了，不过好在现在业内的使用方式基本都是 On Yarn 的单集群单作业模式，相当于把资源隔离这个问题避过去了，但不可否认，这种设计是有缺陷的。
 
 #### 7、Flink的并行度介绍一下？
 
@@ -2009,11 +2026,11 @@ Flink也支持slot的共享，即把不同任务根据任务的依赖关系分�
 
 **Flink的作业提交分为两种方式**
 
-1. **Local 方式：**即本地提交模式，直接在IDEA运行代码。
+1. **Local 方式**：即本地提交模式，直接在IDEA运行代码。
 
-2. **远程提交方式：**分为Standalone方式、yarn方式、K8s方式
+2. **远程提交方式**：分为Standalone方式、yarn方式、K8s方式（这种方式就是提交到我们的集群中运行）
 
-3. **Yarn 方式分为三种提交模式：**Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式
+3. **Yarn 方式分为三种提交模式**：Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式
 
 #### 57、FLink JobGraph是在什么时候生成的？
 
@@ -2027,7 +2044,7 @@ StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集
 
 （2）运行命令行后，会通过run脚本调用CliFrontend入口，CliFrontend会触发用户提交的jar文件中的main方法，然后交给PipelineExecuteor # execute方法，最终根据提交的模式选择触发一个具体的PipelineExecutor执行。
 
-（3）根据具体的PipelineExecutor执行，将对用户的代码进行编译生成streamGraph，经过优化后生成jobgraph。
+（3）根据具体的PipelineExecutor执行，将对用户的代码进行编译生成streamGraph，经过优化后生成Jobgraph。
 
 **具体流程图如下：**
 
@@ -2059,7 +2076,7 @@ StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集
 
 5. 作业执行完成后，结果将发送回客户端。
 
-**源码分析：**通过Flink1.12.2源码进行分析的
+**源码分析**：通过Flink1.12.2源码进行分析的
 
 **（1）创建获取对应的StreamExecutionEnvironment对象**：LocalStreamEnvironment
 
@@ -2097,13 +2114,13 @@ StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集
 
 #### 61、远程提交模式都有哪些？
 
-**远程提交方式：**分为Standalone方式、yarn方式、K8s方式
+**远程提交方式**：分为Standalone方式、yarn方式、K8s方式
 
-**Standalone：**包含session模式
+**Standalone**：包含session模式
 
-**Yarn 方式分为三种提交模式：**Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式。
+**Yarn 方式分为三种提交模**：Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式。
 
-**K8s方式：**包含 session模式
+**K8s方式**：包含 session模式
 
 #### 62、Standalone模式简单介绍一下？
 
@@ -2126,7 +2143,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 #### 63、yarn集群提交方式介绍一下？
 
-通过yarn集群提交分为3种提交方式：分别为session模式、perjob模式、application模式
+通过yarn集群提交分为3种提交方式：**分别为session模式、perjob模式、application模式**
 
 #### 64、yarn - session模式特点？
 
@@ -2140,7 +2157,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 **特点：**
 
-**Session-Cluster模式需要先启动集群**，**然后再提交作业**，接着会向yarn申请一块空间后，资源永远保持不变。如果资源满了，下一个作业就无法提交，只能等到 yarn中的其中一个作业执行完成后，释放了资源，下个作业才会正常提交。所有作业共享Dispatcher和ResourceManager；共享资源；适合规模小执行时间短的 作业。
+**Session-Cluster模式需要先启动集群**，**然后再提交作业**，接着会向yarn申请一块空间后，资源永远保持不变。如果资源满了，下一个作业就无法提交，只能等到 yarn中的其中一个作业执行完成后，释放了资源，下个作业才会正常提交。所有作业共享Dispatcher和ResourceManager；共享资源；**适合规模小执行时间短的 作业**。
 
 **原理图如下：**
 
@@ -2154,7 +2171,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 ./bin/flink run -t yarn-per-job --detached  xxx.jar
 ```
 
-**Yarn-Per-Job模式：**每个作业单独启动集群，隔离性好，JM负载均衡，main方法在客户端执行。在per-job模式下，每个Job都有一个JobManager，每个TaskManager只有单个Job。
+**Yarn-Per-Job模式**：每个作业单独启动集群，隔离性好，JM负载均衡，main方法在客户端执行。在per-job模式下，每个Job都有一个JobManager，每个TaskManager只有单个Job。
 
 **特点：**
 
@@ -2172,7 +2189,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 ./bin/flink run-application -t yarn-application xxx.jar
 ```
 
-**Yarn-Application模式：**每个作业单独启动集群，隔离性好，JM负载均衡，**main方法在JobManager上执行**。
+**Yarn-Application模式**：每个作业单独启动集群，隔离性好，JM负载均衡，**main方法在JobManager上执行**。
 
 **特点：**
 
@@ -2218,7 +2235,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 **2、作业提交**
 
-**（3）Flink Client 通过Rest 向Dispatcher 提交编译好的JobGraph。**Dispatcher 是 Rest 接口，不负责实际的调度、指定工作。
+**（3）Flink Client 通过Rest 向Dispatcher 提交编译好的JobGraph**。Dispatcher 是 Rest 接口，不负责实际的调度、指定工作。
 
 **（4）Dispatcher 收到 JobGraph 后，为作业创建一个JobMaster，将工作交给JobMaster，**JobMaster负责作业调度，管理作业和Task的生命周期**，构建ExecutionGraph（**JobGraph的并行化版本，调度层最核心的数据结构**）**
 
@@ -2318,7 +2335,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 ​    **2）StreamEdge边**
 
-**StreamEdge 是 StreamGraph 的边，**用来连接两个StreamNode 点，一个StreamEdge可以有多个出边、入边等信息。
+**StreamEdge 是 StreamGraph 的边**，用来连接两个StreamNode 点，一个StreamEdge可以有多个出边、入边等信息。
 
 #### 71、作业图介绍一下？
 
@@ -2334,15 +2351,15 @@ JobGraph是由StreamGraph优化而来，是通过**OperationChain** 机制将算
 
 **1）JobVertex 点** 
 
-经过算子融合优化后符合条件的多个StreamNode 可能会融合在一起生成一个 JobVertex，即一个JobVertex 包含一个或多个算子， **JobVertex 的输入是 JobEdge.** **输出是** **IntermediateDataSet** 
+经过算子融合优化后符合条件的多个StreamNode 可能会融合在一起生成一个 JobVertex，**即一个JobVertex 包含一个或多个算子**， **JobVertex 的输入是 JobEdge.** **输出是** **IntermediateDataSet** 
 
-**2）**JobEdge 边
+**2）JobEdge 边**
 
 **Job**Edge表示 JobGraph 中的一 个数据流转通道， 其上游数据源是 **IntermediateDataSet** ，下游消费者是 **JobVertex** 。
 
 **Job**Edge中的数据分发模式会直接影响执行时 Task 之间的数据连接关系是**点对点连接**还是**全连接**。
 
-**3）**IntermediateDataSet 中间数据集
+**3）IntermediateDataSet 中间数据集**
 
 中间数据集 **IntermediateDataSet**  是一种逻辑结构.用来表示 **JobVertex** 的输出，即该 JobVertex 中包含的算子会产生的数据集。不同的执行模式下，其对应的结果分区类型不同，决 定了在执行时刻数据交换的模式。
 
@@ -2366,7 +2383,7 @@ ExecutionJobVertex、ExecutionVertex、IntermediateResult、IntermediateResultPa
 
 **1）ExecutionJobVertex**
 
-该对象和 JobGraph 中的 JobVertex 一 一对应。该对象还包含一组 ExecutionVertex， 数量 与该 JobVertex 中所包含的StreamNode 的并行度一致，假设 StreamNode 的并行度为5 ，那么**ExecutionJobVertex**中也会包含 5个**ExecutionVertex**。
+**该对象和 JobGraph 中的 JobVertex 一 一对应**。该对象还包含一组 ExecutionVertex， 数量 与该 JobVertex 中所包含的StreamNode 的并行度一致，假设 StreamNode 的并行度为5 ，那么**ExecutionJobVertex**中也会包含 5个**ExecutionVertex**。
 
 **ExecutionJobVertex**用来将一个JobVertex 封装成 **ExecutionJobVertex**，并依次创建 ExecutionVertex、Execution、IntermediateResult 和  IntermediateResultPartition，用于丰富**ExecutionGraph。**
 
@@ -2376,7 +2393,7 @@ ExecutionJobVertex、ExecutionVertex、IntermediateResult、IntermediateResultPa
 
 **3）IntermediateResult**
 
-**IntermediateResult** 又叫作中间结果集，该对象是个逻辑概念 表示 **ExecutionJobVertex**输出，和 JobGrap 中的IntermediateDalaSet 一 一对应，同样 一个**ExecutionJobVertex**  可以有多个中间结果，取决于当前 JobVertex 有几个出边(JobEdge)。
+**IntermediateResult** 又叫作中间结果集，**该对象是个逻辑概念 表示 **ExecutionJobVertex**输出，和 JobGrap 中的IntermediateDalaSet 一 一对应**，同样 一个**ExecutionJobVertex**  可以有多个中间结果，取决于当前 JobVertex 有几个出边(JobEdge)。
 
 **4）IntermediateResultPartition**
 
@@ -2386,7 +2403,7 @@ ExecutionJobVertex、ExecutionVertex、IntermediateResult、IntermediateResultPa
 
 表示**ExecutionVertex** 的输入，连按到上游产生的**IntermediateResultPartition** 。1个Execution对应唯一的1个**IntermediateResultPartition** 和1个**ExecutionVertex**。1个**ExecutionVertex** 可以有多个**ExecutionEdge。**
 
-**6）**Execution
+**6）Execution**
 
 **ExecutionVertex** 相当于每个 Task 的模板，在真正执行的时候，会将**ExecutionVertex中的信息包装为1个**Execution，执行一个ExecutionVertex的一次尝试。
 
@@ -2452,17 +2469,17 @@ SchedulerStrategy接口定义了调度行为，其中包含4种行为：
 
 调度策略全部实现于调度器SchedulingStrategy，有三种实现：
 
-**1） EagerSchedulingStrategy：**适用于流计算，同时调度所有的 task
+**1） EagerSchedulingStrategy**：适用于流计算，同时调度所有的 task
 
-**2） LazyFromSourcesSchedulingStrategy：**适用于批处理，当输入数据准备好时（上游处理完）进行 vertices 调度。
+**2） LazyFromSourcesSchedulingStrategy**：适用于批处理，当输入数据准备好时（上游处理完）进行 vertices 调度。
 
-**3） PipelinedRegionSchedulingStrategy：**以流水线的局部为粒度进行调度
+**3） PipelinedRegionSchedulingStrategy**：以流水线的局部为粒度进行调度
 
 　　PipelinedRegionSchedulingStrategy 是 1.11 加入的，从 1.12 开始，将以 pipelined region为单位进行调度。
 
 pipelined region 是一组流水线连接的任务。这意味着，对于包含多个 region的流作业，在开始部署任务之前，它不再等待所有任务获取 slot。取而代之的是，一旦任何region 获得了足够的任务 slot 就可以部署它。对于批处理作业，将不会为任务分配 slot，也不会单独部署任务。取而代之的是，一旦某个 region 获得了足够的 slot，则该任务将与所有其他任务一起部署在同一区域中。
 
-> 77、Flink作业生命周期包含哪些状态？
+#### 77、Flink作业生命周期包含哪些状态？
 
 在Flink集群中，**JobMaster** 负责**作业**的生命周期管理，具体的管理行为在调度器和ExecutionGraph中实现。
 
@@ -2480,7 +2497,7 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 
 **完成状态（finished）**，取消状态（canceled）**和**失败状态（failed）**表示一个全局的终结状态，并且触发清理工作，**而暂停状态（suspended）仅处于本地终止状态**。意味着作业的执行在相应的 JobManager 上终止，但集群的另一个 JobManager 可以从持久的HA存储中恢复这个作业并重新启动。因此，处于暂停状态的作业将不会被完全清理。
 
-> 78、Task的作业生命周期包含哪些状态？
+#### 78、Task的作业生命周期包含哪些状态？
 
 **TaskManager** 负责**Task** 的生命周期管理，并将状态的变化通知到JobMaster,在ExecutionGraph中跟踪Execution的状态变化，一个Execution对于一个Task。
 
@@ -2490,7 +2507,7 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 
 **在执行 ExecutionGraph 期间，每个并行任务经过多个阶段，从创建（created）到完成（finished）或失败（failed） ，下图说明了它们之间的状态和可能的转换。任务可以执行多次（例如故障恢复）。每个 Execution 跟踪一个 ExecutionVertex 的执行，每个 ExecutionVertex 都有一个当前 Execution（current execution）和一个前驱 Execution（prior execution）。**
 
-> 79、Flink的任务调度流程讲解一下？
+#### 79、Flink的任务调度流程讲解一下？
 
 任务调度流程图如下：
 
