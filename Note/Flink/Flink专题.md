@@ -2052,7 +2052,7 @@ StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集
 
 #### 59、看你提到PipeExecutor，它有哪些实现类？
 
-（1）PipeExecutor 在Flink中被叫做 流水线执行器，它是一个接口，是Flink Client生成JobGraph 之后，将作业提交给集群的重要环节，前面说过，作业提交到集群有好几种方式，最常用的是yarn方式，yarn方式包含3种提交模式，主要使用 session模式，perjob模式。Application模式 jaobGraph是在集群中生成。
+（1）PipeExecutor 在Flink中被叫做 **流水线执行器**，它是一个接口，是Flink Client生成JobGraph 之后，将作业提交给集群的重要环节，前面说过，作业提交到集群有好几种方式，最常用的是yarn方式，yarn方式包含3种提交模式，主要使用 session模式，perjob模式。Application模式 jaobGraph是在集群中生成。
 
 所以PipeExecutor 的实现类如下图所示：（在代码中按CTRL+H就会出来）
 
@@ -2118,7 +2118,7 @@ StreamGraph、JobGraph全部是在Flink Client 客户端生成的，即提交集
 
 **Standalone**：包含session模式
 
-**Yarn 方式分为三种提交模**：Yarn-perJob模式、Yarn-Sessionmo模式、Yarn-Application模式。
+**Yarn 方式分为三种提交模**：Yarn-perJob模式、Yarn-Session模式、Yarn-Application模式。
 
 **K8s方式**：包含 session模式
 
@@ -2141,6 +2141,16 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 3. JobManager分发任务给TaskManager执行
 4. TaskManager定期向JobManager汇报状态
 
+
+> 注意一下，一个Flink集群包括：
+> 
+> Dispatcher
+> 
+> ResourceManager 
+> 
+> JobManager
+> 
+
 #### 63、yarn集群提交方式介绍一下？
 
 通过yarn集群提交分为3种提交方式：**分别为session模式、perjob模式、application模式**
@@ -2157,7 +2167,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 **特点：**
 
-**Session-Cluster模式需要先启动集群**，**然后再提交作业**，接着会向yarn申请一块空间后，资源永远保持不变。如果资源满了，下一个作业就无法提交，只能等到 yarn中的其中一个作业执行完成后，释放了资源，下个作业才会正常提交。所有作业共享Dispatcher和ResourceManager；共享资源；**适合规模小执行时间短的 作业**。
+**Session-Cluster模式需要先启动集群**，**然后再提交作业**，接着会向yarn申请一块空间后，资源永远保持不变。如果资源满了，下一个作业就无法提交，只能等到 yarn中的其中一个作业执行完成后，释放了资源，下个作业才会正常提交。所有作业共享Dispatcher和ResourceManager；共享资源；**适合规模小执行时间短的作业**。
 
 **原理图如下：**
 
@@ -2171,7 +2181,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 ./bin/flink run -t yarn-per-job --detached  xxx.jar
 ```
 
-**Yarn-Per-Job模式**：每个作业单独启动集群，隔离性好，JM负载均衡，main方法在客户端执行。在per-job模式下，每个Job都有一个JobManager，每个TaskManager只有单个Job。
+**Yarn-Per-Job模式**：每个作业单独启动集群，隔离性好，JM负载均衡，**main方法在客户端执行**。在per-job模式下，每个Job都有一个JobManager，每个TaskManager只有单个Job。
 
 **特点：**
 
@@ -2189,7 +2199,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 ./bin/flink run-application -t yarn-application xxx.jar
 ```
 
-**Yarn-Application模式**：每个作业单独启动集群，隔离性好，JM负载均衡，**main方法在JobManager上执行**。
+**Yarn-Application模式**：每个作业单独启动集群，隔离性好，JM负载均衡，**main方法在JobManager上执行**。这个要和per-Job的区分开，per-Job的main()方法在客户端执行。
 
 **特点：**
 
@@ -2205,7 +2215,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 只有在这些都完成之后，才会通过env.execute()方法 触发 Flink运行时真正地开始执行作业。**如果所有用户都在同一个客户端上提交作业**，**较大的依赖会消耗更多的带宽**，而较复杂的作业逻辑翻译成JobGraph也需要吃掉更多的CPU和内存，**客户端的资源反而会成为瓶颈**。
 
-为了解决它，社区在传统部署模式的基础上实现了 Application模式。原本需要客户端做的三件事被转移到了JobManager里，也就是说main()方法在集群中执行(入口点位于 ApplicationClusterEntryPoint )，客 户端只需要负责发起部署请求了
+为了解决它，社区在传统部署模式的基础上实现了 Application模式。原本需要客户端做的三件事被转移到了JobManager里，也就是说main()方法在集群中执行(入口点位于 ApplicationClusterEntryPoint )，客 户端只需要负责发起部署请求了。
 
 **原理图如下：**
 
@@ -2223,9 +2233,9 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 **（1）Flink Client向Yarn ResourceManager提交任务信息。**
 
-​       1）Flink Client将应用配置（Flink-conf.yaml、logback.xml、log4j.properties）和相关文件（Flink Jar、配置类文件、用户Jar文件、JobGraph对象等）上传至分布式存储HDFS中。
+​1）Flink Client将应用配置（Flink-conf.yaml、logback.xml、log4j.properties）和相关文件（Flink Jar、配置类文件、用户Jar文件、JobGraph对象等）上传至分布式存储HDFS中。
 
-​       2）Flink Client向Yarn ResourceManager提交任务信息
+2）Flink Client向Yarn ResourceManager提交任务信息。
 
 **（2）Yarn 启动 Flink集群，做2步操作：**
 
