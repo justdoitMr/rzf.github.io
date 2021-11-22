@@ -2606,23 +2606,23 @@ Flink SQL也是面试的重点考察点，不仅需要你掌握扎实的SQL编�
 
 在标准SQL中，SQL语句包含四种类型
 
-DML(Data Manipulation Language):数据操作语言，用来定义数据库记录（数据）。
+**DML(Data Manipulation Language)**:数据操作语言，用来定义数据库记录（数据）。
 
-DCL (Data Control Language):数据控制语言，用来定义访问权限和安全级别。
+**DCL (Data Control Language)**:数据控制语言，用来定义访问权限和安全级别。
 
-DQL (Data Query Language):数据查询语言，用来查询记录（数据）。
+**DQL (Data Query Language)**:数据查询语言，用来查询记录（数据）。
 
-DDL(Data Definition Language):数据定义语言，用来定义数据库对象（库，表，列等）。
+**DDL(Data Definition Language)**:数据定义语言，用来定义数据库对象（库，表，列等）。
 
-**Flink SQL包含 DML 数据操作语言、 DDL 数据语言， DQL 数据查询语言**，**不包含DCL语言。**
+**Flink SQL包含 DML 数据操作语言、 DDL 数据语言， DQL 数据查询语言，不包含DCL语言。**
 
 #### 83、Flink被称作流批一体，那从哪个版本开始，真正实现流批一体的？
 
-从1.9.0版本开始，引入了阿里巴巴的 Blink ，对 FIink TabIe & SQL 模块做了重大的重构，保留了 Flink Planner 的同时，引入了 Blink PIanner，没引入以前，Flink 没考虑流批作业统一，针对流批作业，底层实现两套代码，引入后，基于流批一体理念，重新设计算子，以流为核心，流作业和批作业最终都会被转为transformation。
+从**1.9.0**版本开始，引入了阿里巴巴的Blink，对FIink TabIe & SQL 模块做了重大的重构，保留了 Flink Planner 的同时，引入了 Blink PIanner，没引入以前，Flink 没考虑流批作业统一，针对流批作业，底层实现两套代码，引入后，基于流批一体理念，重新设计算子，以流为核心，流作业和批作业最终都会被转为transformation。
 
 #### 84、Flink SQL 使用哪种解析器？
 
-Flink SQL使用 Apache Calcite作为解析器和优化器。
+Flink SQL使用 **Apache Calcite作为解析器和优化器**。
 
 **Calcite** 一种动态数据管理框架，它具备很多典型数据库管理系统的功能 如SQL 解析、 SQL 校验、 SQL 查询优化、 SQL 生成以及数据连接查询等，但是又省略了一些关键的功能，如 Calcite并**不存储**相关的**元数据**和**基本数据**，不完全包含相关处理数据的算法等。
 
@@ -2684,13 +2684,13 @@ Calcite中的优化器RelOptPlanner有两种，一是**基于规则优化（RBO�
 
 如下图为执行流程图
 
-![1636856644137](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102406-730684.png)
+![20211122191718](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211122191718.png)
 
 **总结就是：**
 
-先解析，然后验证，将SqlNode转化为Operation来创建表，然后调用rel方法将sqlNode变成 逻辑计划 （RelNodeTree）紧接着对逻辑计划进行优化；
+先解析，然后验证，将SqlNode转化为Operation来创建表，然后调用rel方法将sqlNode变成逻辑计划（RelNodeTree）紧接着对逻辑计划进行优化；
 
-优化之前 会根据Calcite中的优化器中的基于规则优化的HepPlanner**针对四种规则进行预处理**，处理完之后得到Logic RelNode，紧接着**使用代价优化的VolcanoPlanner使用**  Logical_Opt_Rules（逻辑计划优化）找到最优的执行Planner,并转换为FlinkLogical RelNode。
+优化之前 会根据Calcite中的优化器中的**基于规则优化的HepPlanner针对四种规则进行预处理**，处理完之后得到Logic RelNode，紧接着**使用代价优化的VolcanoPlanner使用  Logical_Opt_Rules（逻辑计划优化）找到最优的执行Planner**,并转换为FlinkLogical RelNode。
 
 最后运用 Flink包含的优化规则，如DataStream_Opt_Rules：流式计算优化，DataStream_Deco_Rules：装饰流式计算优化   将优化后的逻辑计划转换为物理计划。
 
@@ -2702,7 +2702,7 @@ Expand_plan_rules：扩展计划优化
 
 Post_expand_clean_up_rules：扩展计划优化
 
-Datastream_norm_rules：正常化流处理                        
+Datastream_norm_rules：正常化处理                  
 
 Logical_Opt_Rules：逻辑计划优化          
 
@@ -2718,7 +2718,7 @@ DataStream_Deco_Rules：装饰流式计算优化
 
 **Operation执行在优化前**，执行的函数为executeQperation,如下图所示，为执行的所有Operation。
 
-![1636856679270](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/102440-554664.png)
+![20211122192416](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211122192416.png)
 
 #### 89、Flink Hive有没有使用过？
 
@@ -2754,7 +2754,7 @@ Flink1.11 版本新增的一大功能是实时数仓，可以实时的将kafka�
 
 针对这个特点，Flink1.11 版本将 **FlieSystemStreaming Sink** 重新修改，增加了**分区提交**和**滚动策略机制**，让HiveStreaming  sink 重新使用文件系统流接收器。
 
-Flink 1.11 的 Table/SQL API 中，**FileSystemConnector 是靠增强版 StreamingFileSink组件实现**，在源码中名为 StreamingFileWriter。***** **只有在Checkpoint 成功时，StreamingFileSink写入的文件才会由 Pending状态变成 Finished状态，从而能够安全地被下游读取。所以，我们一定要打开 Checkpointing，并设定合理的间隔。**
+Flink 1.11 的 Table/SQL API 中，**FileSystemConnector 是靠增强版 StreamingFileSink组件实现**，在源码中名为 StreamingFileWriter。**只有在Checkpoint 成功时，StreamingFileSink写入的文件才会由 Pending状态变成 Finished状态，从而能够安全地被下游读取。所以，我们一定要打开 Checkpointing，并设定合理的间隔。**
 
 #### 93、Flink -Hive实时写数据介绍下？
 
