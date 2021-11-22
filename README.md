@@ -132,7 +132,8 @@
 15. [Flink一致性快照](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%80%E8%87%B4%E6%80%A7%E5%BF%AB%E7%85%A7.md)
 16. [Flink中Task的划分](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%AD%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%88%92%E5%88%86.md)
 17. [Flink学习--Flink on Yarn](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%AD%A6%E4%B9%A0--Flink%20on%20Yarn.md)
-18. [Flink专题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
+18. [Flink内存管理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.md)
+19. [Flink专题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
 
 
 ### 分布式
