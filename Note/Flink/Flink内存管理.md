@@ -215,7 +215,7 @@ Flink使用内存：框架堆内外 + task堆内外 + network + manage
 
 JVM内存参数控制如下：
 
-1. JVM堆上内存，使用-Xmx和-Xms参数进行控制
+1. JVM堆上内存，使用-Xmx和-Xms参数进行控制。
 2. JVM直接内存，使用-XX：MaxDirectMemorySize进行控制。对于托管内存，使用Unsafe.allocateMemory()申请，不受该参数控制。
 3. JVM MetaSpace使用-XX：MaxMetaspaceSize进行控制。
 
