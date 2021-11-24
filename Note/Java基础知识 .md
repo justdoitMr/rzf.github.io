@@ -17,7 +17,7 @@
   - [标识符和关键字的区别是什么？](#标识符和关键字的区别是什么)
   - [Java 中有哪些常见的关键字？](#java-中有哪些常见的关键字)
   - [自增自减运算符](#自增自减运算符)
-  - [continue、break、和 return 的区别是什么？](#continue-break-和-return-的区别是什么)
+  - [continue、break、和 return 的区别是什么？](#continuebreak和-return-的区别是什么)
   - [Java 泛型了解么？什么是类型擦除？介绍一下常用的通配符？](#java-泛型了解么什么是类型擦除介绍一下常用的通配符)
   - [==和 equals 的区别](#和-equals-的区别)
   - [hashCode()与 equals()](#hashcode与-equals)
@@ -57,7 +57,7 @@
   - [Throwable 类常用方法](#throwable-类常用方法)
   - [try-catch-finally](#try-catch-finally)
   - [使用 `try-with-resources` 来代替`try-catch-finally`](#使用-try-with-resources-来代替try-catch-finally)
-- [I\O 流](#io-流)
+- [I/O 流](#io-流)
   - [什么是序列化?什么是反序列化?](#什么是序列化什么是反序列化)
   - [Java 序列化中如果有些字段不想进行序列化，怎么办？](#java-序列化中如果有些字段不想进行序列化怎么办)
   - [获取用键盘输入常用的两种方法](#获取用键盘输入常用的两种方法)
@@ -93,6 +93,7 @@ Java 虚拟机（JVM）是运行 Java 字节码的虚拟机。JVM 有针对不�
 > 在 Java 中，JVM 可以理解的代码就叫做`字节码`（即扩展名为 `.class` 的文件），它不面向任何特定的处理器，只面向虚拟机。Java 语言通过字节码的方式，在一定程度上解决了传统解释型语言执行效率低的问题，同时又保留了解释型语言可移植的特点。所以 Java 程序运行时比较高效，而且，由于字节码并不针对一种特定的机器，因此，Java 程序无须重新编译便可在多种不同操作系统的计算机上运行。
 
 **Java 程序从源代码到运行一般有下面 3 步：**
+
 
 ![Java程序运行过程](https://my-blog-to-use.oss-cn-beijing.aliyuncs.com/Java%20%E7%A8%8B%E5%BA%8F%E8%BF%90%E8%A1%8C%E8%BF%87%E7%A8%8B.png)
 
