@@ -2465,9 +2465,7 @@ SchedulerStrategy接口定义了调度行为，其中包含4种行为：
 
 **3）分阶段 Slot 重用调度**
 
-　　LAZY_FROM_SOURCES_WITH_BATCH_SLOT_REQUEST **适用于批处理**。与分阶段调度基本一样，区别在于该模式下使用批处理资源申请模式，可以在资源不足的情况下执行作
-
-业，但是需要确保在本阶段的作业执行中没有 Shuffle 行为。
+　　LAZY_FROM_SOURCES_WITH_BATCH_SLOT_REQUEST **适用于批处理**。与分阶段调度基本一样，区别在于该模式下使用批处理资源申请模式，可以在资源不足的情况下执行作业，但是需要确保在本阶段的作业执行中没有 Shuffle 行为。
 
 　　目前视线中的 Eager 模式和 LAZY_FROM_SOURCES 模式的资源申请逻辑一样，LAZY_FROM_SOURCES_WITH_BATCH_SLOT_REQUEST 是单独的资源申请逻辑。
 
@@ -2501,11 +2499,13 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 
 （2）在失败的情况下，作业首先切换到失败状态（failing），取消所有正在运行任务。
 
-如果所有节点都已达到最终状态，并且作业不可重新启动，则状态将转换为失败（failed）。（3）如果作业可以重新启动，那么它将进入重新启动状态（restarting）。一旦完成重新启动，它将变成创建状态（created）。
+如果所有节点都已达到最终状态，并且作业不可重新启动，则状态将转换为失败（failed）。
+
+（3）如果作业可以重新启动，那么它将进入重新启动状态（restarting）。一旦完成重新启动，它将变成创建状态（created）。
 
 （4）在用户取消作业的情况下，将进入取消状态（cancelling），会取消所有当前正在运行的任务。一旦所有运行的任务已经达到最终状态，该作业将转换到已取消状态（canceled）。
 
-**完成状态（finished）**，取消状态（canceled）**和**失败状态（failed）**表示一个全局的终结状态，并且触发清理工作，**而暂停状态（suspended）仅处于本地终止状态**。意味着作业的执行在相应的 JobManager 上终止，但集群的另一个 JobManager 可以从持久的HA存储中恢复这个作业并重新启动。因此，处于暂停状态的作业将不会被完全清理。
+**完成状态（finished），取消状态（canceled）和失败状态（failed）表示一个全局的终结状态，并且触发清理工作**，而暂停状态（suspended）仅处于本地终止状态。意味着作业的执行在相应的 JobManager 上终止，但集群的另一个 JobManager 可以从持久的HA存储中恢复这个作业并重新启动。因此，处于暂停状态的作业将不会被完全清理。
 
 #### 78、Task的作业生命周期包含哪些状态？
 
@@ -2522,6 +2522,7 @@ pipelined region 是一组流水线连接的任务。这意味着，对于包含
 任务调度流程图如下：
 
 ![1636856013600](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/14/101334-396786.png)
+
 
 1. 当Flink执行executor会自动根据程序代码生成**DAG数据流图** ，即 **Jobgraph；**
 
