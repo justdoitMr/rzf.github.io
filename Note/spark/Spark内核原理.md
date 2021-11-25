@@ -198,6 +198,10 @@ Driver 启动后向 Master 注册应用程序，Master 根据 submit 脚本的�
 在 Standalone Client  模式下，Driver  在任务提交的本地机器上运行。Driver启动后向Master 注册应用程序，Master 根据 submit 脚本的资源需求找到内部资源至少可以启动一个
 Executor 的所有 Worker，然后在这些 Worker 之间分配 Executor，Worker 上的 Executor 启动后会向 Driver 反向注册，所有的 Executor 注册完成后，Driver 开始执行 main 函数，之后执行到 Action 算子时，开始划分 Stage，每个 Stage 生成对应的 TaskSet，之后将 Task 分发到各个Executor 上执行。
 
+> 那么这两种部署模式有什么特点呢?
+> cluster模式是把Driver运行在集群中，这样由集群来管理作业的运行，如果作业运行失败的话，可以进行重试机制，并且Driver运行在集群中可以减小客户端的压力，解耦作用，有利于集群中Executor和Driver进行通信，减小网络资源的消耗。
+> 
+> Driver运行在客户端，在提交任务之后可以返回一些作业的信息，缺点是如果很多用户都在客户端提交作业，那么客户端的压力会很大，消耗网络资源。
 
 ## Spark通讯架构
 
