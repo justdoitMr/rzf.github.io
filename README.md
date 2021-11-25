@@ -5,7 +5,7 @@
 
 ## 计算机基础
 
-1. [计算机网络(一)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C.md)
+1. [计算机网络(一)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C(%E4%B8%80).md)
 2. [计算机网络(二)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C(%E4%BA%8C).md)
 3. [计算机网络总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%BD%91%E7%BB%9C%E9%9D%A2%E8%AF%95.md)
 4. [操作系统](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F.md)
