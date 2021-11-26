@@ -35,6 +35,12 @@
 
 #### 集合:(重难点👍)
 
+1. [ArrayList源码+扩容机制分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/ArrayList%E6%BA%90%E7%A0%81%2B%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E5%88%86%E6%9E%90.md)
+2. [LinkedList源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/LinkedList%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90.md)
+3. [HashMap(JDK1.8)源码+底层数据结构分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/HashMap(JDK1.8)%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
+4. [ConcurrentHashMap源码+底层数据结构分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/ConcurrentHashMap%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
+5. [Java集合框架常见面试题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98.md)
+
 
 #### 多线程:(重难点👍)
 
