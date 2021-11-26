@@ -110,10 +110,9 @@
 7. [Spark调优(一)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Spark%E8%B0%83%E4%BC%98.md)
 8. [Spark调优(二)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98.md)
 9. [Spark 的 Yarn-cluster 模式和 Yarn-client 模式](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%20%E7%9A%84%20Yarn-cluster%20%E6%A8%A1%E5%BC%8F%E5%92%8C%20Yarn-client%20%E6%A8%A1%E5%BC%8F.md)
-10. [深入理解Spark原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Spark%E5%8E%9F%E7%90%86.md)
-11. [Spark内核原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E5%86%85%E6%A0%B8%E5%8E%9F%E7%90%86.md)
-12. [Spark是多进程还是多线程编程模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%98%AF%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%A8%A1%E5%9E%8B%E8%BF%98%E6%98%AF%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B.md)
-13. [Spark面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E9%9D%A2%E8%AF%95.md)
+10. [Spark内核原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E5%86%85%E6%A0%B8%E5%8E%9F%E7%90%86.md)
+11. [Spark是多进程还是多线程编程模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%98%AF%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%A8%A1%E5%9E%8B%E8%BF%98%E6%98%AF%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B.md)
+12. [Spark面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E9%9D%A2%E8%AF%95.md)
 
 ### Spark Sql
 
@@ -141,12 +140,11 @@
 11. [ProcessFunction API(底层 API)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/ProcessFunction%20API%EF%BC%88%20%E5%BA%95%E5%B1%82%20API%EF%BC%89.md)
 12. [Flink高级特性](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/%E9%AB%98%E7%BA%A7%E7%89%B9%E6%80%A7.md)
 13. [Flink监控与优化](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/13%E3%80%81Flink%E7%9B%91%E6%8E%A7%E4%B8%8E%E4%BC%98%E5%8C%96.md#flink%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96)
-14. [深入理解Flink原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Flink%E5%8E%9F%E7%90%86.md)
-15. [Flink一致性快照](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%80%E8%87%B4%E6%80%A7%E5%BF%AB%E7%85%A7.md)
-16. [Flink中Task的划分](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%AD%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%88%92%E5%88%86.md)
-17. [Flink学习--Flink on Yarn](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%AD%A6%E4%B9%A0--Flink%20on%20Yarn.md)
-18. [Flink内存管理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.md)
-19. [Flink专题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
+14. [Flink一致性快照](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%80%E8%87%B4%E6%80%A7%E5%BF%AB%E7%85%A7.md)
+15. [Flink中Task的划分](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%AD%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%88%92%E5%88%86.md)
+16. [Flink学习--Flink on Yarn](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%AD%A6%E4%B9%A0--Flink%20on%20Yarn.md)
+17. [Flink内存管理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.md)
+18. [Flink专题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
 
 
 ### 分布式
