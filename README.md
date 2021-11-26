@@ -13,7 +13,11 @@
 
 ### 操作系统
 
-4. [操作系统](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F.md)
+1. [操作系统基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E5%9F%BA%E7%A1%80.md)
+2. [进程和线程](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%BF%9B%E7%A8%8B%E5%92%8C%E7%BA%BF%E7%A8%8B%E7%AF%87.md)
+3. [内存管理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86%E7%AF%87.md)
+4. [IO](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/IO%20%E7%AF%87.md)
+5. [死锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E6%AD%BB%E9%94%81%E7%AF%87.md)
 
 ---
 
