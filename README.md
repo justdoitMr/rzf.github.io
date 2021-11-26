@@ -29,27 +29,14 @@
 
 #### 基础知识点/面试重难点:(重点看👍)
 
-1. [java基础知识](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%20.md)
-2. [java基础知识疑难点](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E7%96%91%E9%9A%BE%E7%82%B9.md)
-3. [java常用关键字总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%B8%B8%E8%A7%81%E5%85%B3%E9%94%AE%E5%AD%97%E6%80%BB%E7%BB%93.md)
-4. [IO模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/IO%E6%A8%A1%E5%9E%8B.md)
+
 
 #### 集合:(重难点👍)
 
-1. [Java集合框架常见面试题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98.md)
-2. [LinkedList源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LinkedList%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90.md)
-3. [ArrayList源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/ArrayList%E6%BA%90%E7%A0%81%2B%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E5%88%86%E6%9E%90.md)
-4. [Hashmap源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/HashMap(JDK1.8)%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
-5. [ConcurrentHashMap源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/ConcurrentHashMap%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
 
 #### 多线程:(重难点👍)
 
-1. [多线程一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%80%20.md)
-2. [多线程二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BA%8C.md)
-3. [Java并发基础常见面试题总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%BB%E7%BB%93.md)
-4. [AQS原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/AQS%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8AAQS%E5%90%8C%E6%AD%A5%E7%BB%84%E4%BB%B6%E6%80%BB%E7%BB%93.md)
-5. [Atomic原子类介绍](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Atomic%E5%8E%9F%E5%AD%90%E7%B1%BB%E6%80%BB%E7%BB%93.md)
-6. [Java线程池总总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93.md)
+
 
 #### JVM:(重点👍)
 
@@ -158,11 +145,6 @@
 
 1. [使用sklearn学习决策树](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%86%B3%E7%AD%96%E6%A0%91.md)
 
-## 面试系列
-
-1. [jvm&juc](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%AB%98%E9%A2%91%E9%9D%A2%E7%BB%8F.md)
-
-
 ---
 
 ## 面试手册
@@ -176,13 +158,6 @@
 ### [Java手册-上](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8A.pdf)
 
 ### [Java手册-下](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8B.pdf)
-
-## 算法系列
-
-### LeetCode笔记
-
-1. [数据结构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode.md)
-2. [LeetCode刷题笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/LeetCode%E5%88%B7%E9%A2%98%E7%AC%94%E8%AE%B0.md)
 
 ---
 
