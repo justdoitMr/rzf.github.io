@@ -25,16 +25,17 @@
 
 ## JAVA
 
-### 基础
-
-#### 基础知识点/面试重难点:(重点看👍)
-
-
+#### 基础
 
 #### 集合:(重难点👍)
 
 
 #### 多线程:(重难点👍)
+
+1. [程序，进程，线程的理解](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/%E7%A8%8B%E5%BA%8F%EF%BC%8C%E8%BF%9B%E7%A8%8B%EF%BC%8C%E7%BA%BF%E7%A8%8B%E7%9A%84%E7%90%86%E8%A7%A3.md)
+2. [Java线程](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E7%BA%BF%E7%A8%8B.md)
+3. [共享模型 之管程(悲观锁)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/%E5%85%B1%E4%BA%AB%E6%A8%A1%E5%9E%8B%20%E4%B9%8B%E7%AE%A1%E7%A8%8B(%E6%82%B2%E8%A7%82%E9%94%81).md)
+4. [共享模型之内存](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/%E5%85%B1%E4%BA%AB%E6%A8%A1%E5%9E%8B%E4%B9%8B%E5%86%85%E5%AD%98.md)
 
 
 
