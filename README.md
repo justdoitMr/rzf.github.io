@@ -31,6 +31,7 @@
 2. [Java基础知识疑难点](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/Java%E5%9F%BA%E7%A1%80%E7%9F%A5%E8%AF%86%E7%96%91%E9%9A%BE%E7%82%B9.md)
 3. [Java常见关键字总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/Java%E5%B8%B8%E8%A7%81%E5%85%B3%E9%94%AE%E5%AD%97%E6%80%BB%E7%BB%93.md)
 4. [IO模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/IO%E6%A8%A1%E5%9E%8B.md)
+5. [排序](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/%E6%8E%92%E5%BA%8F.md)
 
 #### 集合:(重难点👍)
 
@@ -43,10 +44,11 @@
 4. [共享模型之内存](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/%E5%85%B1%E4%BA%AB%E6%A8%A1%E5%9E%8B%E4%B9%8B%E5%86%85%E5%AD%98.md)
 5. [Atomic原子类总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Atomic%E5%8E%9F%E5%AD%90%E7%B1%BB%E6%80%BB%E7%BB%93.md)
 6. [AQS原理以及AQS同步组件总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/AQS%E5%8E%9F%E7%90%86%E4%BB%A5%E5%8F%8AAQS%E5%90%8C%E6%AD%A5%E7%BB%84%E4%BB%B6%E6%80%BB%E7%BB%93.md)
-7. [多线程基础面试题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%BB%E7%BB%93.md)
-8. [多线程进阶面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%80%BB%E7%BB%93.md)
-9. [多线程高频](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/%E9%AB%98%E9%A2%91%E9%9D%A2%E7%BB%8F.md)
-10. [多线程进阶](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BA%8C.md)
+7. [线程池小结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/java%E7%BA%BF%E7%A8%8B%E6%B1%A0%E5%AD%A6%E4%B9%A0%E6%80%BB%E7%BB%93.md)
+8. [多线程基础面试题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E5%B9%B6%E5%8F%91%E5%9F%BA%E7%A1%80%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98%E6%80%BB%E7%BB%93.md)
+9. [多线程进阶面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%80%BB%E7%BB%93.md)
+10. [多线程高频](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/%E9%AB%98%E9%A2%91%E9%9D%A2%E7%BB%8F.md)
+11. [多线程进阶](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%A4%9A%E7%BA%BF%E7%A8%8B/Java%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%BA%8C.md)
 
 
 
