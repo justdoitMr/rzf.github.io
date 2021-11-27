@@ -41,6 +41,7 @@
 
 ## Hadoop基础概述
 
+
 ### Hadoop是什么
 
 1. `Hadoop`是一个`Apache`基金会开发的分布式系统的架构。
