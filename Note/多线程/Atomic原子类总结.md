@@ -1,24 +1,26 @@
 <!-- TOC -->
 
-- [1 Atomic 原子类介绍](#1-atomic-原子类介绍)
-- [2 基本类型原子类](#2-基本类型原子类)
-    - [2.1 基本类型原子类介绍](#21-基本类型原子类介绍)
-    - [2.2 AtomicInteger 常见方法使用](#22-atomicinteger-常见方法使用)
-    - [2.3 基本数据类型原子类的优势](#23-基本数据类型原子类的优势)
-    - [2.4 AtomicInteger 线程安全原理简单分析](#24-atomicinteger-线程安全原理简单分析)
-- [3 数组类型原子类](#3-数组类型原子类)
-    - [3.1 数组类型原子类介绍](#31-数组类型原子类介绍)
-    - [3.2 AtomicIntegerArray 常见方法使用](#32-atomicintegerarray-常见方法使用)
-- [4 引用类型原子类](#4-引用类型原子类)
-    - [4.1  引用类型原子类介绍](#41--引用类型原子类介绍)
-    - [4.2 AtomicReference 类使用示例](#42-atomicreference-类使用示例)
-    - [4.3 AtomicStampedReference 类使用示例](#43-atomicstampedreference-类使用示例)
-    - [4.4 AtomicMarkableReference 类使用示例](#44-atomicmarkablereference-类使用示例)
-- [5 对象的属性修改类型原子类](#5-对象的属性修改类型原子类)
-    - [5.1 对象的属性修改类型原子类介绍](#51-对象的属性修改类型原子类介绍)
-    - [5.2 AtomicIntegerFieldUpdater 类使用示例](#52-atomicintegerfieldupdater-类使用示例)
+    - [1 Atomic 原子类介绍](#1-atomic-原子类介绍)
+    - [2 基本类型原子类](#2-基本类型原子类)
+        - [2.1 基本类型原子类介绍](#21-基本类型原子类介绍)
+        - [2.2 AtomicInteger 常见方法使用](#22-atomicinteger-常见方法使用)
+        - [2.3 基本数据类型原子类的优势](#23-基本数据类型原子类的优势)
+        - [2.4 AtomicInteger 线程安全原理简单分析](#24-atomicinteger-线程安全原理简单分析)
+    - [3 数组类型原子类](#3-数组类型原子类)
+        - [3.1 数组类型原子类介绍](#31-数组类型原子类介绍)
+        - [3.2 AtomicIntegerArray 常见方法使用](#32-atomicintegerarray-常见方法使用)
+    - [4 引用类型原子类](#4-引用类型原子类)
+        - [4.1  引用类型原子类介绍](#41--引用类型原子类介绍)
+        - [4.2 AtomicReference 类使用示例](#42-atomicreference-类使用示例)
+        - [4.3 AtomicStampedReference 类使用示例](#43-atomicstampedreference-类使用示例)
+        - [4.4 AtomicMarkableReference 类使用示例](#44-atomicmarkablereference-类使用示例)
+    - [5 对象的属性修改类型原子类](#5-对象的属性修改类型原子类)
+        - [5.1 对象的属性修改类型原子类介绍](#51-对象的属性修改类型原子类介绍)
+        - [5.2 AtomicIntegerFieldUpdater 类使用示例](#52-atomicintegerfieldupdater-类使用示例)
+- [Reference](#reference)
 
 <!-- /TOC -->
+
 
 ### 1 Atomic 原子类介绍
 
