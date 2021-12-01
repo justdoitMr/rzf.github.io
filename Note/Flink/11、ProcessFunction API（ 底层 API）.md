@@ -12,7 +12,7 @@
 
 基于此， DataStream API 提供了一系列的 Low-Level 转换算子。可以访问时间戳、 watermark 以及注册定时事件。还可以输出特定的一些事件，例如超时事件等。Process Function 用来构建事件驱动的应用以及实现自定义的业务逻辑(使用之前的window 函数和转换算子无法实现)。例如， Flink SQL 就是使用 Process Function 实现的。 
 
-**Flink 提供了 8 个 Process Function： **
+**Flink 提供了 8 个 Process Function：**
 
 - ProcessFunction
 - KeyedProcessFunction

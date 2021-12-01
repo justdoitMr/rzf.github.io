@@ -21,8 +21,8 @@
     - [算子分类](#算子分类)
     - [基本转换](#基本转换)
       - [map()](#map)
-      - [**flatMap **](#flatmap-)
-      - [**Filter **](#filter-)
+      - [**flatMap**](#flatmap)
+      - [**Filter**](#filter)
       - [sum()](#sum)
       - [reduce()](#reduce)
       - [综合案例](#综合案例)
@@ -62,17 +62,16 @@
 
 <!-- /TOC -->
 
+### 概述
 
 Flink中的流一般分为**有边界的流和无边界的流**，有边界的流就是批处理。
-
-### 概述
 
 **API层次结构**
 
 ![1621574171278](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/23/135540-53159.png)
 
-- Table api一般是面向对象进行编程。
-- DataStream是面向流和批的处理，DataSet api是面向批处理的，现在已经被淘汰。
+- Table Api一般是面向对象进行编程。
+- DataStream是面向流和批的处理，**DataSet api是面向批处理的，现在已经被淘汰**。
 
 入门案例使用DataSet面向批处理写，后面使用流处理和批处理一体的DataStream
 
@@ -85,7 +84,7 @@ Flink中的流一般分为**有边界的流和无边界的流**，有边界的�
 ![1621574558280](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/21/132241-692408.png)
 
 - Data Source是加载数据
-- Transformations是处理数据做转换0
+- Transformations是处理数据做转换
 - Data Sink是输出结果
 
 **编程模型说明**
@@ -99,7 +98,8 @@ Flink中的流一般分为**有边界的流和无边界的流**，有边界的�
 ```java
 @Public
 public class ExecutionEnvironment {}
-//ExecutionEnvironment是一个工具类，是操作DataSet批处理的一个工具类
+//ExecutionEnvironment是一个工具类，
+//是操作DataSet批处理的一个工具类
 ```
 
 **DataSet版本wordcount**
@@ -176,17 +176,17 @@ public class Test01 {
 
 ![1614430440646](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/27/205401-717813.png)
 
-继承结构图
+**继承结构图**
 
 ![1614474745877](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/28/091227-963313.png)
 
-**流处理Api的分类--Flink程序的构成**
+**流处理Api的分类,Flink程序的构成**
 
 ![1614392944297](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/27/213317-534420.png)
 
 **Flink程序的执行**
 
-- Flink 程序都是通过**延迟计算** (**lazily execute**) 的方式执行(Spark程序也是懒加载方式执行)。也就是说，那些创建数据流和转换操作的 API 调用不会立即触发数据处理，而只会在执行环境中构建一个执行计划（就是最初的数据流图）。计划中包含了从环境创建的流式数据源以及应用于这些数据源之上的一系列转换。只有在调用 execute ()方法时，系统才会触发程序执行。
+- Flink 程序都是通过**延迟计算** (**lazily execute**) 的方式执行(Spark程序也是懒加载方式执行)。也就是说，那些创建数据流和转换操作的 API 调用不会立即触发数据处理，而只会在执行环境中构建一个执行计划（就是最初的数据流图）。计划中包含了从环境创建的流式数据源以及应用于这些数据源之上的一系列转换。只有在调用 execute ()方法时，系统才会触发程序执行。在spark中式遇到一个行动算子会触发作业的执行。
 - 构建完的计划会被转成 JobGraph 并提交至 JobManager 执行。根据执行环境类型的不同，系统可能需要将 JobGraph 发送到作为本地线程启动的JobManager 上(本地执行环境) ，也可能会将其发送到远程 JobManager 上。如果是后者，除 JobGraph 之外，我们还要同时提供包含应用所需全部类和依赖的 JAR 包。 
 
 #### 流处理wordcount案例
@@ -358,7 +358,6 @@ public class ReadFromCollection {
         ids.print("int");
 //        执行任务
         env.execute("作业一");
-
     }
 }
 ```
@@ -421,7 +420,6 @@ public class ReadFromFile {
 
 //        执行程序
         env.execute();
-
     }
 }
 ```
@@ -452,11 +450,12 @@ public class Test04 {
 需要引入 kafka 连接器的依赖 
 
 ```java
-  <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-connector-kafka-0.11_2.12</artifactId>
-            <version>1.10.1</version>- //flink的版本
-        </dependency>
+<dependency>
+    <groupId>org.apache.flink</groupId>
+        <artifactId>flink-connector-kafka-0.11_2.12
+        </artifactId>
+    <version>1.10.1</version>- //flink的版本
+</dependency>
 // 0.11是kafka的版本，2.12是scala的版本
 ```
 
@@ -517,7 +516,6 @@ public class Test14 {
         DataStreamSource<String> source = env.addSource(flink_kafka);
 
         env.execute();
-
     }
 }
 ```
@@ -621,7 +619,6 @@ public class Test02 {
 
     }
 }
-
 ```
 
 ##### 自定义 Source 
@@ -839,16 +836,16 @@ public class Test06 {
 
 ```java
  <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.2</version>
-            <scope>provided</scope>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.2</version>
+    <scope>provided</scope>
 </dependency>
 ```
 
 安装插件
 
-![1621754220104](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1621754220104.png)
+![1621754220104](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/30/193319-447764.png)
 
 **SourceFunction接口**
 
@@ -1011,22 +1008,18 @@ INSERT INTO `t_student` VALUES ('6', 'rose', '20');
 
 ### Transform （转换）
 
-流式转换以一个或多个数据流为输入，井将它们转换成一个或多个输出流。完成一个 DataStream API 程序在本质
+流式转换以一个或多个数据流为输入，井将它们转换成一个或多个输出流。完成一个 DataStream API 程序在本质上可以归结为:**通过组合不同的转换来创建一个满足应用逻辑的 Dataflow 图**。 
 
-上可以归结为:**通过组合不同的转换来创建一个满足应用逻辑的 Dataflow 图**。 
-
-大多数流式转换都是基于用户自定义函数来完成的。这些函数封装了用户应用逻辑，指定了输入流的元素将如何转
-
-换为输出流的元素。函数可以通过实现某个特定转换的接口类来定义 ，函数接口规定了用户需要实现的转换方法
+大多数流式转换都是基于**用户自定义函**数来完成的。这些函数封装了用户应用逻辑，指定了输入流的元素将如何转换为输出流的元素。函数可以通过实现某个特定转换的接口类来定义 ，函数接口规定了用户需要实现的转换方法
 
 #### 算子分类
 
 DataStream API的转换分为四类: 
 
-1. 作用于单个事件的基本转换。 
-2. 针对相同键值事件的 KeyedStream 转换。
-3. 将多条数据流合并为一 条或将一条数据流拆分成多条流的转换。
-4. 对流中的事件进行重新组织的分发转换 。
+1. 作用于**单个事件**的基本转换。 
+2. 针对**相同键值事件**的 KeyedStream 转换。
+3. 将多条**数据流合并为一 条或将一条数据流拆分成多条**流的转换。
+4. 对流中的事件进行**重新组织**的分发转换 。
 
 ![1621852286978](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/24/183132-651854.png)
 
@@ -1101,15 +1094,15 @@ public class TransformBase01 {
 }
 ```
 
-##### **flatMap **
+##### **flatMap**
 
 - flatMap 转换类似于 map ，但它可以对每个输入事件产生零个、 一个或多个输出事件 。事实上， flatMap 转换可以看做是 filter 和 map 的泛化，它能够实现后两者的操作。 flatMap 转换会针对每个到来事件应用一个函数 。 
-- 对应 的Fl atMapFunction 定义了 flatMap() 方法，你可以在其中通过向 Collector 对象传递数据的方式返回零个、一个或多个事件作为结果 :。
+- 对应 的FlatMapFunction 定义了 flatMap() 方法，你可以在其中通过向 Collector 对象传递数据的方式返回零个、一个或多个事件作为结果 :。
 - flatMap:将集合中的每个元素变成一个或多个元素,并返回扁平化之后的结果
 
 ![1621852739453](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/24/183901-464396.png)
 
-**Fl atMapFunction 接口**
+**FlatMapFunction 接口**
 
 ```java
 @FunctionalInterface
@@ -1165,7 +1158,7 @@ public class TransformBase01 {
 }
 ```
 
-##### **Filter **
+##### **Filter**
 
 - filter 转换利用一个作用在流中每条输入事件上的布尔条件来决定事件的去留:如果返回值为 true ，那么它会保留输入事件并将其转发到输出，否则它会把事件丢弃。通过调用 DataStream.filter() 方住可以指定 filter 转换产生一个数据类型不变的 DataStream。 
 - 可以利用 FilterFunction 接口或 Lambda 函数来实现定义布尔条件的函数。FilterFunction 接口的类型为输入流的类型，它的 filter() 方法会接收一个输入事件，返回一个布尔值: 对数据做过滤操作。
@@ -1281,7 +1274,6 @@ public class Test02 {
 //        启动程序并且等待结束
         env.execute();
 //        在后续的开发中，把一切的数据源都看做是流数据
-
     }
 }
 ```
@@ -1685,7 +1677,7 @@ map,flatMap,filter,reducer都是操作一条数据流
 
 ##### Split 和 Select 
 
-split 转换是 union 转换的逆操作。它将输入流分割成两条或多条类型和输入流相同的输出流。每一个到来的事件都可以被发往零个、 一个或多个输出流。因此， split 也可以用来过滤或复制事件。 
+split 转换是 union 转换的逆操作。它将输入流分割成**两条或多条类型和输入流相同**的输出流。每一个到来的事件都可以被发往零个、 一个或多个输出流。因此， split 也可以用来过滤或复制事件。 
 
 DataStream.split() 方法接收一个 OutputSelector ，它用来定义如何将数据流的元素分配到不同的命名输出 ( named outpu t) 中。 OutputSelector 中定 义的 select() 方也会在每个输入事件到来时被调用，并随即返回 一个 java.lang.lterable[String] 对象 。 针对某记录所返回的一 系列 String 值指定了该记录需要被发往哪些输出流。 
 
@@ -1695,13 +1687,13 @@ DataStream.split() 方法会返回 一个 SplitStream 对象，它提供的 sele
 
 **Split**
 
-![1614471868219](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614471868219.png)
+![1614471868219](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/30/194818-219338.png)
 
 DataStream → SplitStream：根据某些特征把一个 DataStream 拆分成两个或者多个 DataStream。 
 
 **Select**
 
-![1614471898093](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614471898093.png)
+![1614471898093](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/30/194819-379399.png)
 
 SplitStream→ DataStream：从一个 SplitStream 中获取一个或者多个DataStream。 
 
@@ -1831,7 +1823,7 @@ DataStream.connect() 方法接收一个 DataStream 并返回 一个 ConnectedStr
 
 DataStream,DataStream → ConnectedStreams：连接两个保持他们类型的数据流，两个数据流被 Connect 之后，只是被放在了一个同一个流中，内部依然保持各自的数据和形式不发生任何变化，两个流相互独立。 
 
-**CoMap,CoFlatMap **
+**CoMap,CoFlatMap**
 
 ![1614473760250](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/05/144255-313871.png)
 
@@ -2190,8 +2182,6 @@ public class Test11 {
     }
 }
 ```
-
-
 
 ### 并行度
 
