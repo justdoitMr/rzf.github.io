@@ -1150,3 +1150,25 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 #### UserJumpDetailApp
 
 跳出明细计算
+
+#### OrderInfo
+
+订单实体类。
+
+#### OrderDetail
+
+订单明细实体类
+
+#### OrderWideApp 
+
+#### OrderWide
+
+订单表和订单明细表join之后形成的宽表实体类。
+
+#### OrderWide
+
+通用工具类，实现向mysql或者Hbase中插入数据。
+
+#### DimUtil
+
+封装查询维度的工具类 DimUtil
