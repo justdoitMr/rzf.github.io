@@ -209,7 +209,7 @@ Flink cdc会监控我们指定的数据库，只要监控到数据库中某一�
 ### 架构对比
 
 **离线架构**
- 
+
  优点：耦合性低，解耦，稳定性高。
 
  缺点：时效性差。
@@ -566,11 +566,11 @@ mixed式statement 的升级版，一定程度上解决了，因为一些情况�
 默认还是 statement，在某些情况下譬如：
 
     当函数中包含 UUID() 时；
-
+    
     包含 AUTO_INCREMENT 字段的表被更新时；
-
+    
     执行 INSERT DELAYED 语句时；
-
+    
     用 UDF 时；
 
 会按照 ROW 的方式进行处理
@@ -691,3 +691,14 @@ gmall-realtime模块下包说明：
 - common:公共常量
 
 - utils:工具类
+
+### 实现类说明
+
+#### CustomerDeserialization
+
+实现从业务数据库读取数据自定义反序列化的操作。
+
+#### Flink CDC
+
+实现监控业务数据库的操作。
+
