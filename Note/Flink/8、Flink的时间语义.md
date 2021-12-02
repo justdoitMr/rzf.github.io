@@ -18,10 +18,15 @@
     - [案例](#案例)
     - [源码说明](#源码说明)
     - [数据丢失问题](#数据丢失问题)
+  - [小结](#小结)
 
 <!-- /TOC -->
 
 ### Flink 中的时间语义 
+
+- watermark。
+- `.allowedLateness(Time.seconds(1))`允许迟到一段时间
+- 使用侧输出流进行输出。
 
 > 不做设置的话默认是处理时间语义。
 
@@ -184,9 +189,9 @@ public final class Watermark extends StreamElement {
 ```
 
 - watermark必须单调递增，以确保任务的事件时间时钟在向前推进，而不是在后退
-- watermark与数据的时间戳相关
+- watermark与事件事件相关。
 
-watermart就代表一个含义，其之前的数据已经全部到齐了，所以watermark的设置要保证其前面的数据全部到齐，假如说当前设置的延迟时间戳是s秒，延迟时间的设置主要看最大的迟到程度，每次使用当前到来的数据的时间戳减去延迟时间进行比较，如果结果小于零，或者小于当前的watermark的值，那么watermark还使用之前的值，否则人进行更新操作，那么窗口什么时候关闭呢？一直更新watermark直到其值等于窗口大小就关闭一次窗口操作，根据watermark的值判断是否需要关闭窗口。如果窗口关闭之后，还有迟到的数据，这个时候可以输出到测输出流中。
+watermart就代表一个含义，其之前的数据已经全部到齐了，所以watermark的设置要保证其前面的数据全部到齐，假如说当前设置的延迟时间戳是s秒，**延迟时间的设置主要看最大的迟到程度**，每次使用当前到来的数据的时间戳减去延迟时间进行比较，如果结果小于零，或者小于当前的watermark的值，那么watermark还使用之前的值，否则人进行更新操作，那么窗口什么时候关闭呢？一直更新watermark直到其值等于窗口大小就关闭一次窗口操作，根据watermark的值判断是否需要关闭窗口。如果窗口关闭之后，还有迟到的数据，这个时候可以输出到测输出流中。
 
 watermark表示的数据到齐与否是左闭右开的，设置延迟的时间应该根据最大的迟到时间差来。watermark的设置是当前数据的事件时间-设置的延迟时间
 
@@ -194,17 +199,13 @@ watermark表示的数据到齐与否是左闭右开的，设置延迟的时间�
 
 时间语义的三种保证：
 
-- watermark
+- watermark。
 - `.allowedLateness(Time.seconds(1))`允许迟到一段时间
-- 使用侧输出流进行输出
-
-**图解**
-
-![1614661198149](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/03/101822-97793.png)
+- 使用侧输出流进行输出。
 
 #### watermark的传递
 
-上面考虑的是一条流，相当于一个分区，对于多个任务之间，水位线要以最小的那个值为准
+上面考虑的是一条流，相当于一个分区，对于多个任务之间，水位线要以**最小的**那个值为准
 
 ![1614661794820](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/08/135527-780703.png)
 
@@ -213,8 +214,6 @@ watermark表示的数据到齐与否是左闭右开的，设置延迟的时间�
 ![1614683588914](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/02/191311-558140.png)
 
 Event Time的使用一定要指定数据源中的时间戳调用assignTimestampAndWatermarks方法，传入一个BoundedOutOfOrdernessTimestampExtractor，就可以指定watermark，在底层提取时间要求的是毫秒数。
-
-水位线是根据时间戳生成的。
 
 watermark 的引入很简单，对于乱序数据，最常见的引用方式如下： 
 
@@ -269,7 +268,7 @@ public interface TimestampAssigner<T> extends Function {
 
 ```
 
-![1614662515762](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614662515762.png)
+![1614662515762](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/02/215326-650305.png)
 
 ```java
 //BoundedOutOfOrdernessTimestampExtractor其实就是一个周期性生成时间戳的类
@@ -410,7 +409,7 @@ public static class MyPeriodicAssigner implements
 }
 ```
 
-一种简单的特殊情况是， 如果我们事先得知数据流的时间戳是单调递增的，也就是说没有乱序， 那我们可以使用 AscendingTimestampExtractor， 这个类会直接使用数据的时间戳生成 watermark。 
+**一种简单的特殊情况是， 如果我们事先得知数据流的时间戳是单调递增的，也就是说没有乱序， 那我们可以使用 AscendingTimestampExtractor， 这个类会直接使用数据中的事件时间戳生成 watermark。**
 
 ```java
 DataStream<SensorReading> dataStream = …
@@ -439,7 +438,7 @@ return element.getTimestamp() * 1000L;
 
 ##### Assigner with punctuated watermarks 
 
-间断式地生成 watermark。和周期性生成的方式不同，这种方式不是固定时间的，而是可以根据需要对每条数据进行筛选和处理。 直接上代码来举个例子， 我们只给sensor_1 的传感器的数据流插入 watermark： 
+间断式地生成 watermark。和周期性生成的方式不同，**这种方式不是固定时间的，而是可以根据需要对每条数据进行筛选和处理**。 直接上代码来举个例子， 我们只给sensor_1 的传感器的数据流插入 watermark： 
 
 ```java
 public static class MyPunctuatedAssigner implements
@@ -525,9 +524,11 @@ public class CountWindow_eventtime_ {
 
 #### watermark的设定
 
-- 在Flink中，watermark由应用程序开发人员生成，这通常需要对相应的领域有一定的了解
+- **在Flink中，watermark由应用程序开发人员生成，这通常需要对相应的领域有一定的了解**。
 - 如果watermark设置的延迟太久，收到结果的速度可能就会很慢，解决办法是在水位线到达之前输出一个近似结果
 - 而如果watermark到达得太早，则可能收到错误结果，不过Flink处理迟到数据的机制可以解决这个问题
+
+> 总的来说，延迟时间太长，收到数据的速度会很慢，如果延迟时间太短，可能发生数据的丢失。
 
 **周期性生成中周期的设定**
 
@@ -586,8 +587,6 @@ offset是一个偏移量，也就是起始点的位置时间发生一点偏移
 ```
 
 #### 并行度问题
-
-63集
 
 假如说输入的数据流有多条，也就是有多个source，那么多条数据流的watermark之间不会相互影响，但是如果只有一条输入流，但是每一个算子的并行度不同，那么数据在多个任务之间的传输，watermark会遵循木桶原则，也就是根据最小的waternark值设置自己的watermark的值。
 
@@ -762,7 +761,7 @@ public BoundedOutOfOrdernessWatermarks(Duration maxOutOfOrderness) {
 
 #### 数据丢失问题
 
-![1623132921218](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1623132921218.png)
+![1623132921218](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/02/215931-144166.png)
 
 在这个例子中，在D数据到来时候，会触发计算，所以会导致数据A丢失问题，所以需要引入侧输出 流机制。
 
@@ -841,4 +840,11 @@ public class Test21 {
     }
 }
 ```
+
+### 小结
+
+总的来说，使用watermark机制并不能保证数据完全不丢失，对于延迟很高的数据，依然会发生数据的丢失，那么此时可以允许发生数据的延迟，设定一个延迟的时间，然后使用测输出流来收集迟到的数据。
+
+- watermark。
+- `.allowedLateness(Time.seconds(1))`允许迟到一段时间，使用侧输出流进行输出。
 
