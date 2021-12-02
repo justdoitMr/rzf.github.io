@@ -31,7 +31,7 @@
 
 ![1614644740170](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/17/105437-808486.png)
 
-- Event Time：是事件创建的时间。它通常由事件中的时间戳描述，例如采集的日志数据中，每一条日志都会记录自己的生成时间， Flink 通过时间戳分配器访问事件时间戳。 指定算子根据数据自身包含的信息决定当前时间。每个事件时间都带有一个时间戳，而系统的逻辑时间是由水位线来定义。 
+- Event Time：是事件创建的时间。它通常由事件中的时间戳描述，例如采集的日志数据中，每一条日志都会记录自己的生成时间， Flink 通过**时间戳分配器访问事件时间戳**。 指定算子根据数据自身包含的信息决定当前时间。每个事件时间都带有一个时间戳，而**系统的逻辑时间是由水位线来定义**。 
 - Ingestion Time：是数据进入 Flink 的时间。指定每个接收的记录都把在数据源算子的处理时间作为事件时间的时间戳，并自动生成水位线。  
 - Processing Time：是每一个执行基于时间操作的算子的**本地系统时间**，与机器相关，**默认的时间属性就是 Processing Time**。 指定算子根据处理机器的系统时钟决定数据流当前的时间。 处理时间窗口基于机器时间触发，它可以涵盖触发时间点之前到达算子的任意元素 
 
@@ -77,7 +77,7 @@ public class CountWindow_eventtime {
 - 怎样避免乱序数据带来计算不正确？
 - 遇到一个时间戳达到了窗口关闭时间，不应该立刻触发窗口计算，而是等待一段时间，等迟到的数据来了再关闭窗口
 - Watermark是一种衡量Event Time进展的机制，可以设定延迟触发
-- Watermark是用于处理乱序事件的，而正确的处理乱序事件，通常用Watermark机制结合window来实现；
+- **Watermark是用于处理乱序事件**的，而正确的处理乱序事件，通常用Watermark机制结合window来实现；
 - 数据流中的Watermark用于表示timestamp小于Watermark的数据，都已经到达了，因此，window的执行也是由Watermark触发的。
 - watermark用来让程序自己平衡延迟和结果正确性
 
@@ -85,13 +85,15 @@ public class CountWindow_eventtime {
 
 ![1622882548416](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/05/164231-609979.png)
 
+而watermark的时间是根据事件事件来计算的，这样就可以根据事件时间来触发窗口的计算。
+
 #### 基本概念
 
 我们知道，流处理从事件产生，到流经 source，再到 operator，中间是有一个过程和时间的，虽然大部分情况下，流到 operator 的数据都是按照事件产生的时间顺序来的，但是也不排除由于网络、分布式等原因，导致乱序的产生，所谓乱序，就是指 Flink 接收到的事件的先后顺序不是严格按照事件的 Event Time 顺序排的。 
 
 ![1614655834182](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/19/092749-699206.png)
 
-在这里设置的水位线相当于时间调慢了一段时间，对于乱序到来的数据，比如对于事件时间是5的数据，设置延迟是3秒，那么事件时间是5的数据到来是只相当于当前进展到5-3=2秒，事件时间是6秒的数据到来时候只相当于当前进展到3秒。也就是对每一条到来的数据，统一延迟3秒钟。当事件时间是8的时间到来时候，8-3=5，此时说明前面0-5秒的数据已经全部到来，可以关闭窗口，因为这里设置窗口的大小是5。
+在这里设置的水位线相当于**时间调慢了一段时间**，对于乱序到来的数据，比如对于事件时间是5的数据，设置延迟是3秒，那么事件时间是5的数据到来是只相当于当前进展到5-3=2秒，事件时间是6秒的数据到来时候只相当于当前进展到3秒。也就是对每一条到来的数据，统一延迟3秒钟。当事件时间是8的时间到来时候，8-3=5，此时说明前面0-5秒的数据已经全部到来，可以关闭窗口，因为这里设置窗口的大小是5。
 
 watermark是用来处理乱序事件的，waterMark一般设置一个相对较小的统一的延迟时间。
 
@@ -100,17 +102,17 @@ watermark是用来处理乱序事件的，waterMark一般设置一个相对较�
 - Watermark 是一种衡量 Event Time 进展的机制 
 - Watermark 是用于处理乱序事件的，而正确的处理乱序事件，通常用Watermark 机制结合 window 来实现。 
 - 数据流中的 Watermark 用于表示 timestamp 小于 Watermark 的数据，都已经到达了（如何理解这句话，比如说watermark允许延迟的时间是3，那么事件时间为5的数据到达时候，那么当前的watermarks是2，说明事件时间为2的数据以及之前的数据已经到齐了），因此， window 的执行也是由 Watermark 触发的。 
-- Watermark 可以理解成一个延迟触发机制，我们可以设置 Watermark 的延时时长 t，每次系统会校验已经到达的数据中最大的 maxEventTime，然后认定 eventTime小于 maxEventTime - t 的所有数据都已经到达，如果有窗口的停止时间等于maxEventTime – t，那么这个窗口被触发执行。 
+- **Watermark 可以理解成一个延迟触发机制，我们可以设置 Watermark 的延时时长 t，每次系统会校验已经到达的数据中最大的 maxEventTime，然后认定 eventTime小于 maxEventTime - t 的所有数据都已经到达，如果有窗口的停止时间等于maxEventTime – t，那么这个窗口被触发执行。** 
 
 有序流的 Watermarker 如下图所示：（ Watermark 设置为 0） 
 
-![1614656042731](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1614656042731.png)
+![1614656042731](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/02/214126-9523.png)
 
 乱序流的 Watermarker 如下图所示：（ Watermark 设置为 2） 
 
 ![1614656067281](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/02/113429-644739.png)
 
-当 Flink 接收到数据时， 会按照一定的规则去生成 Watermark，这条 Watermark就等于当前所有到达数据中的 maxEventTime - 延迟时长，也就是说， Watermark 是基于数据携带的时间戳生成的，一旦 Watermark 比当前未触发的窗口的停止时间要晚，那么就会触发相应窗口的执行。由于 event time 是由数据携带的，因此，如果运行过程中无法获取新的数据，那么没有被触发的窗口将永远都不被触发。 
+当 Flink 接收到数据时， 会按照一定的规则去生成 Watermark，这条 Watermark就等于当前所有到达数据中的 **maxEventTime - 延迟时长**，也就是说， **Watermark 是基于数据携带的时间戳生成的，一旦 Watermark 比当前未触发的窗口的停止时间要晚，那么就会触发相应窗口的执行**。由于 event time 是由数据携带的，因此，如果运行过程中无法获取新的数据，那么没有被触发的窗口将永远都不被触发。 
 
 上图中，我们设置的允许最大延迟到达时间为 2s，所以时间戳为 7s 的事件对应的 Watermark 是 5s，时间戳为 12s 的事件的 Watermark 是 10s，如果我们的窗口 1是 1s~5s，窗口 2 是 6s~10s，那么时间戳为 7s 的事件到达时的 Watermarker 恰好触发窗口 1，时间戳为 12s 的事件到达时的 Watermark 恰好触发窗口 2。
 
@@ -119,9 +121,13 @@ watermark是用来处理乱序事件的，waterMark一般设置一个相对较�
 
 ![1622889433596](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/05/183717-675917.png)
 
+watermark是一直单调递增的序列，当waternark值大于等于窗口结束时间时候，会触发计算。
+
 #### watermark详解
 
 ![1623129086219](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/08/131127-526004.png)![1623129595750](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202106/08/131957-442663.png)
+
+**如果数据延迟太严重，比如上面案例中，A事件在事件D触发窗口之前还没有到来，那么就只能丢失A数据了，所以说watermark机制不能完全避免数据的不丢失，只能说是避免，但是如果数据延迟太严重，那么解决的方案是使用测输出流配合watermark机制。**
 
 #### watermark的特点
 
@@ -129,7 +135,7 @@ watermark是用来处理乱序事件的，waterMark一般设置一个相对较�
 
 watermark=2插入数据流，说明事件时间为2的数据已经全部到达，接下来、有事件时间为5的数据带来，所以插入watermark=5，也就是说事件时间为5以及之前的数据已经全部到达，但是后来又有事件时间为3的数据到达，但是现在watermark是5，说明事件时间是3的数据已经迟到。watermark的时间是根据数据的事件时间产生的。
 
-- watermark是一条特殊的数据记录
+- watermark是一条特殊的数据记录，本质上可以看作是一个时间戳。
 
 ```java
 @PublicEvolving
