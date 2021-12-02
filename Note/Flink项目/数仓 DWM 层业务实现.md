@@ -47,6 +47,9 @@ UV，全称是 Unique Visitor，即独立访客，对于实时计算中，也可
 
 因为我们要统计日活跃量，而每一个访客可以多次重复登录，所以需要进行去重操作。我们可以使用Flink中的keyStated，一个mid对应于一个状态。key1-->state,状态中可以存储**年月日**时间。
 
+> 数据流：模拟生成数据->日志处理服务器->写到 kafka 的 ODS 层（ods_base_log）
+> ->BaseLogApp分流->dwd_page_log->UniqueVisitApp 读取输出
+
 ### 代码实现
 
 #### 从 Kafka 的 dwd_page_log 主题接收数据
@@ -159,7 +162,7 @@ UV，全称是 Unique Visitor，即独立访客，对于实时计算中，也可
                 .addSink(MyKafkaUtils.getKafkaProducer(sinkTopic));
 ```
 
-## DWM 层-跳出明细计算
+## DWM 层跳出明细计算
 
 ### 需求分析与思路
 
@@ -1132,3 +1135,18 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 }
 ~~~
 
+
+
+
+
+## 小结
+
+### 实现类说明
+
+#### UniqueVisitApp
+
+访客 UV 计算，也就是计算每天活跃用户。
+
+#### UserJumpDetailApp
+
+跳出明细计算
