@@ -1172,3 +1172,7 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 #### DimUtil
 
 封装查询维度的工具类 DimUtil
+
+#### RedisUtil
+
+实现Rides缓存类。
