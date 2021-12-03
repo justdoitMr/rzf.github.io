@@ -702,3 +702,151 @@ gmall-realtime模块下包说明：
 
 实现监控业务数据库的操作。
 
+## 数据格式说明
+
+### 日志数据格式
+
+#### 曝光日志
+
+~~~ java
+{"common":{
+        "ar":"110000",
+        "ba":"iPhone",
+        "ch":"Appstore",
+        "is_new":"θ",
+        "md":"iPhone8",
+        "mid":"mid26",
+        "os":"ios13.2.3",
+        "uid":"2",
+        "vc":"v2.1.134"
+    },
+    "displays":[
+        {
+            "displaytype":"query",
+            "item":"6",
+            "item_type":"sku_id",
+            "order":1,
+            "pos_id":4
+        },
+        {
+            "display_type":"query",
+            "item":"7",
+            "item_type":"sku_id",
+            "order":2,
+            "pos_id":4
+        },
+        {
+            "display_type":"recommend",
+            "item":"8",
+            "item_type":"sku_id",
+            "order":3,
+            "pos_id":2
+        },
+        {
+            "display_type":"query",
+            "item":"10",
+            "item_type":"sku_id",
+            "order":4,
+            "pos_id":2
+        },
+        {
+            "display_type":"promotion",
+            "item":"6",
+            "item_type":"sku_id",
+            "order":4,
+            "pos_id":2
+        },
+        {
+            "display_type":"recommend",
+            "item":"1",
+            "item_type":"sku_id",
+            "order":6,
+            "pos_id":3
+        },
+        {
+            "display_type":"promotion",
+            "item":"6",
+            "item_type":"sku_id",
+            "order":4,
+            "pos_id":2
+        }
+    ],
+    "page":{
+        "during_time":11578,
+        "item":"iphone11",
+        "item_type":"keyword",
+        "1ast_page_id":"search",
+        "page_id":"good_1ist"
+    },
+    "ts":160827995
+}
+~~~
+
+#### page日志
+
+~~~ java
+{"common":{
+        "ar":"110000",
+        "ba":"iPhone",
+        "ch":"Appstore",
+        "is_new":"0",
+        "md":"iPhone8",
+        "mid":"mid_20",
+        "os":"ios13.2.3",
+        "uid":"2",
+        "vc":"v2.1.134"
+    },
+    "page":{
+        "during_time":8714,
+        "1ast_page_id":"home",
+        "page_id":"search"
+    },
+    "ts":16827995909
+}
+~~~
+
+#### 启动日志
+
+~~~ java
+{
+    "common":{
+        "ar":"11989",
+        "ba":"xiaomi",
+        "ch":"oppo",
+        "is_new":"1",
+        "md":"xiaomi10P",
+        "mid":"mid15",
+        "os":"Android11.e",
+        "uid":"33",
+        "vc":"v2.1.132"
+    },
+    "start":{
+        "entry":"notice",
+        "loading_time":4886,
+        "openad_id":9,
+        "open_ad_ms":7434,
+        "open_ad_skip_ms":4279
+    },
+    "ts":168827994289
+}
+~~~
+
+### 业务数据封装格式
+
+~~~ java
+{
+    "database":"",
+    "tableName":"",
+    "before":{
+        "id":"",
+        "tm_name":""
+    },
+    "after":{
+        "id":"",
+        "tm_name":""
+    },
+    "type":"c_u_d",
+    "ts":156456135615
+}
+~~~
+
