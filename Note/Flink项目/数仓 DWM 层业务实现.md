@@ -425,6 +425,8 @@ orangeStream.join(greenStream)
 
 在一条流中的某一个时间点去join另外一条流中的某一个时间区间，如果有满足join条件的数据，全部输出。
 
+**比如上图中所示，橙色数据流在2位置开始join，此时绿色数据流相对橙色2位置左侧的数据保存在状态中，但是绿色数据流相对橙色数据流2右侧数据还没有到，那么此时会把橙色数据流2进行状态保存，等到绿色数据流右侧数据全部到齐，做join操作。**
+
 关联另一条数据流中一个范围内的数据时候，有一个时间上下界，为什么可以关联到某个时间点之前的数据呢，也就是时间下界的数据？
 
 这是因为使用了状态编程，会把某个时间点之前到时间下界之间的数据写入状态中，
@@ -1135,7 +1137,109 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 }
 ~~~
 
+#### 优化 2：异步查询
 
+再做异步IO前我们还又一种方案，就是提高并行度，但是这样需要更多的资源，比如更多task,内存，数据库连接等等。所以我们使用异步IO。
+
+##### 使用异步io的前提
+
+![1638491233402](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/03/082716-429703.png)
+
+需要有支持异步IO的客户端，但是我们的项目中，需要访问Rides和Hbase，显然提供的不能满足要求，并且做起来很麻烦，所以我们使用多线程的方式 ，模拟多个客户端进行任务的请求，使用多线程方式很通用。
+
+##### 如何使用异步IO
+
+![1638491464930](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/03/083105-700417.png)
+
+1. 实现一个AsyncFunction函数，发送自己的请求。
+2. 使用异步方式相应相求。
+3. 将产生的结果写回流中产生关联。
+
+> 实现RichAsyncFunction带Rich的接口好处就是有open()声明周期方法。
+
+##### 官方案例
+
+~~~java
+// This example implements the asynchronous request and callback with Futures that have the
+// interface of Java 8's futures (which is the same one followed by Flink's Future)
+
+/**
+ * An implementation of the 'AsyncFunction' that sends requests and sets the callback.
+ */
+class AsyncDatabaseRequest extends RichAsyncFunction<String, Tuple2<String, String>> {
+
+    /** The database specific client that can issue concurrent requests with callbacks */
+    private transient DatabaseClient client;
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        client = new DatabaseClient(host, post, credentials);
+    }
+
+    @Override
+    public void close() throws Exception {
+        client.close();
+    }
+
+    @Override
+    public void asyncInvoke(String key, final ResultFuture<Tuple2<String, String>> resultFuture) throws Exception {
+
+        // issue the asynchronous request, receive a future for result
+        final Future<String> result = client.query(key);
+
+        // set the callback to be executed once the request by the client is complete
+        // the callback simply forwards the result to the result future
+        CompletableFuture.supplyAsync(new Supplier<String>() {
+
+            @Override
+            public String get() {
+                try {
+                    return result.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    // Normally handled explicitly.
+                    return null;
+                }
+            }
+        }).thenAccept( (String dbResult) -> {
+            resultFuture.complete(Collections.singleton(new Tuple2<>(key, dbResult)));
+        });
+    }
+}
+
+// create the original stream
+DataStream<String> stream = ...;
+
+// apply the async I/O transformation
+DataStream<Tuple2<String, String>> resultStream =
+    AsyncDataStream.unorderedWait(stream, new AsyncDatabaseRequest(), 1000, TimeUnit.MILLISECONDS, 100);
+~~~
+
+AsyncDataStream这个方法是把异步产生的结果和流进行关联，
+
+- **unorderedWait**：是说异步产生的结果是否保持原来的顺序，因为异步发送请求，有的请求可能处理慢，所以返回时间晚，那么使用这个方法的话，就是说不保证产生结果的顺序，如果对顺序没有要求，可以使用。
+- **Unordered**：异步结果按照顺序到达。
+
+**异步编程三步**
+
+1. 继承RichAsyncFunction类
+2. 实现asyncInvoke方法发送请求。
+3. 实现AsyncDataStream将产生的结果作用到流上。
+
+##### 为什么要异步IO
+
+在 Flink 流处理过程中，经常需要和外部系统进行交互，用维度表补全事实表中的字段。例如：在电商场景中，需要一个商品的 skuid 去关联商品的一些属性，例如商品所属行业、商品的生产厂家、生产厂家的一些情况；在物流场景中，知道包裹 id，需要去关联包裹的行业属性、发货信息、收货信息等等。
+
+默认情况下，在 Flink 的 MapFunction 中，单个并行只能用同步方式去交互: 将请求发送到外部存储，IO 阻塞，等待请求返回，然后继续发送下一个请求。这种同步交互的方式往往在网络等待上就耗费了大量时间。为了提高处理效率，可以增加 MapFunction 的并行度，但增加并行度就意味着更多的资源，并不是一种非常好的解决方式。
+
+Flink 在 1.2 中引入了 Async I/O，在异步模式下，将 IO 操作异步化，单个并行可以连续发送多个请求，哪个请求先返回就先处理，从而在连续的请求间不需要阻塞式等待，大大提高了流处理效率。
+
+Async I/O 是阿里巴巴贡献给社区的一个呼声非常高的特性，解决与外部系统交互时网络延迟成为了系统瓶颈的问题。
+
+![1638492075675](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1638492075675.png)
+
+异步查询实际上是把维表的查询操作托管给单独的线程池完成，这样不会因为某一个查询造成阻塞，单个并行可以连续发送多个请求，提高并发效率。
+
+这种方式特别针对涉及网络 IO 的操作，减少因为请求等待带来的消耗。
 
 
 
@@ -1171,8 +1275,22 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 
 #### DimUtil
 
-封装查询维度的工具类 DimUtil
+封装查询维度的工具类 DimUtil，在查询维度信息的时候，只有表名字和我们传输的过滤条件不同，其他的sql基本都一样，所以我们再做一次封装。
 
 #### RedisUtil
 
-实现Rides缓存类。
+实现Rides缓存类。因为直接访问hbase进行数据的查询延迟非常高，如果连接不关闭，大概处理一条数据是13毫秒，也就是单并行度，一秒钟大概处理80条数据，80次访问，所以使用Rides进行优化。
+
+在删除数据的时候，我们先删除Rides中数据，然后写入hbase中，这样做主要保证数据一致性。
+
+**由于是两个不同的进程，如果再把Rides中的数据删除之后，那orderWideApp刚好又查询了一次，那么又把查询到的老数据写入Rides，这个时候，还没有向Hbase中写入数据。此时Rides中还是老的数据。**
+
+1. 先删除Rides中数据，在改hbase中数据，在删除Rides中数据，这种方式一定程度上可以解决问题，如果任务挂掉的情况，Rides中数据没有删除掉，还不行。
+2. **我们Hbase中存储的是维度数据，那么维度数据一般是缓慢变化的，更新操作并不是很多，所以这块可以直接不删除Rides中数据，直接向Rides中写一份修改后的数据即可，这种方案最好。如果写入hbase失败怎么办，因为Rides中数据是保存24小时的，即使保存到hbase中的任务失败，那么我们可以重新启动任务，在24小时内重新写入hbase即可。所以解决了hbase中间出错的问题，如果Rides失败，那么直接去hbase中查询数据即可，Rides启动之后，再写入Rides即可，这样即使中间某一方出错，其他来查询也不会出现问题。**
+3. 为什么不使用事务或者锁方案，因为在Rides中锁是乐观锁，又处理请求的话，会释放锁。
+
+我们一共6个维度表，假设6个维度表数据全部再Rides中，那么一个维度的查询需要1毫秒，6个维度需要6毫秒，我们假设5毫秒，那么就是说，每一秒中，单个并行度可以处理200条数据，这样就不会产生反压。如果数据超过200每一秒，那么就会产生反压。再高峰期大概每一秒1000-2000条，所以还需要对这种方案进行优化。
+
+目前Rides方案是满足要求，但是我们需要考虑可拓展性，比如再搞活动的时候，或者kafka做压测的时候，最小是2000，所以我们还需要优化。
+
+> 我们一般不会对Rides加锁，因为Rides是乐观锁。
