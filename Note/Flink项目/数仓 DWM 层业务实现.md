@@ -1241,6 +1241,286 @@ Async I/O 是阿里巴巴贡献给社区的一个呼声非常高的特性，解�
 
 这种方式特别针对涉及网络 IO 的操作，减少因为请求等待带来的消耗。
 
+##### 封装线程池工具类
+
+~~~ java
+public class ThreadPoolUtil {
+
+    private static ThreadPoolExecutor threadPoolExecutor = null;
+
+//    做成懒汉式单例模式
+    private ThreadPoolUtil() {
+    }
+
+    public static ThreadPoolExecutor getThreadPool() {
+
+        if (threadPoolExecutor == null) {
+            synchronized (ThreadPoolUtil.class) {
+                if (threadPoolExecutor == null) {
+                    threadPoolExecutor = new ThreadPoolExecutor(8,
+                            16,
+                            1L,
+                            TimeUnit.MINUTES,
+                            new LinkedBlockingDeque<>());
+                }
+            }
+        }
+
+        return threadPoolExecutor;
+    }
+}
+~~~
+
+##### 自定义维度查询接口
+
+这个异步维表查询的方法适用于各种维表的查询，用什么条件查，查出来的结果如何合并到数据流对象中，需要使用者自己定义。
+
+这就是自己定义了一个接口 DimJoinFunction<T>包括两个方法。
+
+~~~ java
+public interface DimAsyncJoinFunction<T> {
+
+
+    String getKey(T input);
+
+    void join(T input, JSONObject dimInfo) throws ParseException;
+
+}
+~~~
+
+封装维度异步查询的函数类 DimAsyncFunction
+
+该类继承异步方法类 RichAsyncFunction，实现自定义维度查询接口，其中 RichAsyncFunction<IN,OUT>是 Flink 提供的异步方法类，此处因为是查询操作输入类和返回类一致，所以是<T,T>。
+
+RichAsyncFunction 这个类要实现两个方法:
+
+- open 用于初始化异步连接池。
+- asyncInvoke 方法是核心方法，里面的操作必须是异步的，如果你查询的数据库有异步api 也可以用线程的异步方法，如果没有异步方法，就要自己利用线程池等方式实现异步查询。
+
+~~~ java
+public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T, T> implements DimAsyncJoinFunction<T> {
+
+    private Connection connection;
+    private ThreadPoolExecutor threadPoolExecutor;
+
+    private String tableName;
+
+    public DimAsyncFunction(String tableName) {
+        this.tableName = tableName;
+    }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+        Class.forName(GmallConfig.PHOENIX_DRIVER);
+        connection = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
+
+        threadPoolExecutor = ThreadPoolUtil.getThreadPool();
+    }
+
+    @Override
+    public void asyncInvoke(T input, ResultFuture<T> resultFuture) throws Exception {
+
+//        使用线程提交一个任务
+        threadPoolExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    //获取查询的主键
+                    String id = getKey(input);
+
+                    //查询维度信息
+                    JSONObject dimInfo = DimUtil.getDimInfo(connection, tableName, id);
+
+                    //补充维度信息
+                    if (dimInfo != null) {
+                        join(input, dimInfo);
+                    }
+
+                    //将数据输出
+                    resultFuture.complete(Collections.singletonList(input));
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+    }
+
+    /**
+     * 如果请求没有被处理，那么就会发生超时
+     * @param input
+     * @param resultFuture
+     * @throws Exception
+     */
+    @Override
+    public void timeout(T input, ResultFuture<T> resultFuture) throws Exception {
+        System.out.println("TimeOut:" + input);
+    }
+}
+~~~
+
+在这里为什么提出一个接口，因为再这个类中，我们使用的是泛型，而泛型的话，我们不知道具体的类型，也就无法获取里面的属性等信息，比如表明，如何关联两个表，所以我们提出两个方法放到接口中，让使用者自己去根据类型实现。
+
+如何使用这个 DimAsyncFunction，核心的类是 AsyncDataStream，这个类有两个方法一个是有序等待（orderedWait），一个是无序等待（unorderedWait）。
+
+**无序等待（unorderedWait）**
+
+后来的数据，如果异步查询速度快可以超过先来的数据，这样性能会更好一些，但是会有乱序出现。
+
+**有序等待（orderedWait）**
+
+严格保留先来后到的顺序，所以后来的数据即使先完成也要等前面的数据。所以性能会差一些。
+
+**注意**
+
+- 这里实现了用户维表的查询，那么必须重写装配结果 join 方法和获取查询 rowkey的 getKey 方法。
+- 方法的最后两个参数 10, TimeUnit. SECONDS ，标识次异步查询最多执行 10 秒，否则会报超时异常。
+
+##### 关联用户维度（在 OrderWideApp 中）
+
+~~~ java
+  //4.1 关联用户维度
+        /**
+         * 这里只是关联维度，和顺序没有关系，所以使用unorderedWait
+         */
+        SingleOutputStreamOperator<OrderWide> orderWideWithUserDS = AsyncDataStream.unorderedWait(
+                orderWideWithNoDimDS,
+//*****************************************************************************************************
+//                因为再DimAsyncFunction中类型式泛型，我们无法具体直到表明，所以把方法修改为抽象的，让使用者自己去实现
+                new DimAsyncFunction<OrderWide>("DIM_USER_INFO") {
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        return orderWide.getUser_id().toString();
+                    }
+
+                    @Override
+                    public void join(OrderWide orderWide, JSONObject dimInfo) throws ParseException {
+                        orderWide.setUser_gender(dimInfo.getString("GENDER"));
+
+                        String birthday = dimInfo.getString("BIRTHDAY");
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+
+                        long currentTs = System.currentTimeMillis();
+                        long ts = sdf.parse(birthday).getTime();
+
+                        long age = (currentTs - ts) / (1000 * 60 * 60 * 24 * 365L);
+
+                        orderWide.setUser_age((int) age);
+                    }
+                },
+                60,//访问hbase之前会访问zk，访问zk时间超时式60s，所以需要设置超时时间大于等于60
+                TimeUnit.SECONDS);
+
+        //打印测试
+//        orderWideWithUserDS.print("orderWideWithUserDS");
+
+        //4.2 关联地区维度
+        SingleOutputStreamOperator<OrderWide> orderWideWithProvinceDS = AsyncDataStream.unorderedWait(orderWideWithUserDS,//这里关联的流应该式在哦用户流基础上关联
+                new DimAsyncFunction<OrderWide>("DIM_BASE_PROVINCE") {
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        return orderWide.getProvince_id().toString();
+                    }
+
+                    @Override
+                    public void join(OrderWide orderWide, JSONObject dimInfo) throws ParseException {
+                        orderWide.setProvince_name(dimInfo.getString("NAME"));
+                        orderWide.setProvince_area_code(dimInfo.getString("AREA_CODE"));
+                        orderWide.setProvince_iso_code(dimInfo.getString("ISO_CODE"));
+                        orderWide.setProvince_3166_2_code(dimInfo.getString("ISO_3166_2"));
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        //4.3 关联SKU维度
+        SingleOutputStreamOperator<OrderWide> orderWideWithSkuDS = AsyncDataStream.unorderedWait(
+                orderWideWithProvinceDS, new DimAsyncFunction<OrderWide>("DIM_SKU_INFO") {
+                    @Override
+                    public void join(OrderWide orderWide, JSONObject jsonObject) throws ParseException {
+                        orderWide.setSku_name(jsonObject.getString("SKU_NAME"));
+                        orderWide.setCategory3_id(jsonObject.getLong("CATEGORY3_ID"));
+                        orderWide.setSpu_id(jsonObject.getLong("SPU_ID"));
+                        orderWide.setTm_id(jsonObject.getLong("TM_ID"));
+                    }
+
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        return String.valueOf(orderWide.getSku_id());
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        //4.4 关联SPU维度
+        SingleOutputStreamOperator<OrderWide> orderWideWithSpuDS = AsyncDataStream.unorderedWait(
+                orderWideWithSkuDS, new DimAsyncFunction<OrderWide>("DIM_SPU_INFO") {
+                    @Override
+                    public void join(OrderWide orderWide, JSONObject jsonObject) throws ParseException {
+                        orderWide.setSpu_name(jsonObject.getString("SPU_NAME"));
+                    }
+
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        return String.valueOf(orderWide.getSpu_id());
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        //4.5 关联TM维度
+        SingleOutputStreamOperator<OrderWide> orderWideWithTmDS = AsyncDataStream.unorderedWait(
+                orderWideWithSpuDS, new DimAsyncFunction<OrderWide>("DIM_BASE_TRADEMARK") {
+                    @Override
+                    public void join(OrderWide orderWide, JSONObject jsonObject) throws ParseException {
+                        orderWide.setTm_name(jsonObject.getString("TM_NAME"));
+                    }
+
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        return String.valueOf(orderWide.getTm_id());
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        //4.6 关联Category维度
+        SingleOutputStreamOperator<OrderWide> orderWideWithCategory3DS = AsyncDataStream.unorderedWait(
+                orderWideWithTmDS, new DimAsyncFunction<OrderWide>("DIM_BASE_CATEGORY3") {
+                    @Override
+                    public void join(OrderWide orderWide, JSONObject jsonObject) throws ParseException {
+                        orderWide.setCategory3_name(jsonObject.getString("NAME"));
+                    }
+
+                    @Override
+                    public String getKey(OrderWide orderWide) {
+                        return String.valueOf(orderWide.getCategory3_id());
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        orderWideWithCategory3DS.print("orderWideWithCategory3DS>>>>>>>>>>>");
+~~~
+
+**关联的思路**
+
+关联维度信息  维度表在HBase Phoenix，现在假如关联用户的维度信息：
+
+1. 关联用户维度，比如关联用户表，首先获取用户的id
+
+2. 根据user_id查询Phoenix用户信息,也就是去hbase中根据id查询用户信息，因为这一个步骤，很多地方都用，所以封装为一个工具类。
+
+3. 将用户信息补充至orderWide并且返回
+
+   简单来说就上面三个步骤，关联所有的维度信息都是使用上面的方法，关联哪一个维度表，就去除哪一个维度表的主键进行关联。比如还有地区维度，SKU,SPU。
+
+##### 结果写入 Kafka Sink
+
+~~~java
+        //TODO 5.将数据写入Kafka，写入的式dwm_order_wide主题
+        orderWideWithCategory3DS
+                .map(JSONObject::toJSONString)
+                .addSink(MyKafkaUtils.getKafkaProducer(orderWideSinkTopic));s
+~~~
+
+
+
+
+
+
+
 
 
 ## 小结
@@ -1294,3 +1574,24 @@ Async I/O 是阿里巴巴贡献给社区的一个呼声非常高的特性，解�
 目前Rides方案是满足要求，但是我们需要考虑可拓展性，比如再搞活动的时候，或者kafka做压测的时候，最小是2000，所以我们还需要优化。
 
 > 我们一般不会对Rides加锁，因为Rides是乐观锁。
+
+#### ThreadPoolUtil
+
+获取单例的线程池对象
+corePoolSize:指定了线程池中的线程数量，它的数量决定了添加的任务是开辟新的线程
+去执行，还是放到 workQueue 任务队列中去；
+maximumPoolSize:指定了线程池中的最大线程数量，这个参数会根据你使用的
+workQueue 任务队列的类型，决定线程池会开辟的最大线程数量；
+keepAliveTime:当线程池中空闲线程数量超过 corePoolSize 时，多余的线程会在多长时间
+内被销毁；
+unit:keepAliveTime 的单位
+workQueue:任务队列，被添加到线程池中，但尚未被执行的任务
+
+#### DimAsyncJoinFunction
+
+自定义维度查询接口类
+
+#### DimAsyncFunction
+
+实现异步查询功能。
+
