@@ -1515,9 +1515,239 @@ public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T, T> implem
                 .addSink(MyKafkaUtils.getKafkaProducer(orderWideSinkTopic));s
 ~~~
 
+## DWM 层-支付宽表
 
+### 需求分析和思路
 
+再支付表中，支付行为主要和订单相关，那么我们希望根据商品来计算其总金额，也就是被支付的数量，被支付的次数，但是支付表中是和订单相关，并没有商品的明细，所以我们需要做一个支付宽表。
 
+支付宽表的目的，最主要的原因是支付表没有到订单明细，支付金额没有细分到商品上，没有办法统计商品级的支付状况。
+
+所以本次宽表的核心就是要把支付表的信息与订单宽表关联上。
+
+**解决方案有两个**
+
+- 一个是把订单宽表输出到 HBase 上，在支付宽表计算时查询 HBase，这相当于把订单宽表作为一种维度进行管理。
+- 一个是用流的方式接收订单宽表，然后用双流 join 方式进行合并。因为订单与支付产生有一定的时差。所以必须用 intervalJoin 来管理流的状态时间，保证当支付到达时订单宽表还保存在状态中。
+
+在这里我们选用第二种方式，因为订单和支付中间不是连续的，可能下订单了，但是过了15分钟后支付，而这需要保存为一个状态，如果这个状态使用双流join，只需要将状态保存15分钟即可，但是Hbase默认是永久保存的，但是这里并不需要永久保存状态。
+
+另一个原因是如果把订单宽表作为维度表去查询，因为这个表很大，查询延迟必然很高。
+
+使用kafka双流Join效率高，实现起来相对容易。订单宽表本来是在kafka中，没必要再写入hbase中作为宽表处理，这样增加了难度和复杂度。
+
+### 创建支付实体类 PaymentInfo
+
+~~~ java
+@Data
+public class PaymentInfo {
+    Long id;
+    Long order_id;
+    Long user_id;
+    BigDecimal total_amount;
+    String subject;
+    String payment_type;
+    String create_time;
+    String callback_time;
+}
+~~~
+
+### 创建支付宽表实体类 PaymentWide
+
+~~~ java
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.apache.commons.beanutils.BeanUtils;
+
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class PaymentWide {
+
+    Long payment_id;
+    String subject;
+    String payment_type;
+    String payment_create_time;
+    String callback_time;
+    Long detail_id;
+    Long order_id;
+    Long sku_id;
+    BigDecimal order_price;
+    Long sku_num;
+    String sku_name;
+    Long province_id;
+    String order_status;
+    Long user_id;
+    BigDecimal total_amount;
+    BigDecimal activity_reduce_amount;
+    BigDecimal coupon_reduce_amount;
+    BigDecimal original_total_amount;
+    BigDecimal feight_fee;
+    BigDecimal split_feight_fee;
+    BigDecimal split_activity_amount;
+    BigDecimal split_coupon_amount;
+    BigDecimal split_total_amount;
+    String order_create_time;
+
+    String province_name;   //查询维表得到
+    String province_area_code;
+    String province_iso_code;
+    String province_3166_2_code;
+
+    Integer user_age;       //用户信息
+    String user_gender;
+
+    Long spu_id;           //作为维度数据 要关联进来
+    Long tm_id;
+    Long category3_id;
+    String spu_name;
+    String tm_name;
+    String category3_name;
+
+    public PaymentWide(PaymentInfo paymentInfo, OrderWide orderWide) {
+        mergeOrderWide(orderWide);
+        mergePaymentInfo(paymentInfo);
+    }
+
+    public void mergePaymentInfo(PaymentInfo paymentInfo) {
+        if (paymentInfo != null) {
+            try {
+                BeanUtils.copyProperties(this, paymentInfo);
+                payment_create_time = paymentInfo.create_time;
+                payment_id = paymentInfo.id;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void mergeOrderWide(OrderWide orderWide) {
+        if (orderWide != null) {
+            try {
+                BeanUtils.copyProperties(this, orderWide);
+                order_create_time = orderWide.create_time;
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+~~~
+
+### 支付宽表处理程序
+
+~~~ java
+//数据流：web/app -> nginx -> SpringBoot -> Mysql -> FlinkApp -> Kafka(ods) -> FlinkApp -> Kafka/Phoenix(dwd-dim) -> FlinkApp(redis) -> Kafka(dwm) -> FlinkApp -> Kafka(dwm)
+//程  序：         MockDb               -> Mysql -> FlinkCDC -> Kafka(ZK) -> BaseDbApp -> Kafka/Phoenix(zk/hdfs/hbase) -> OrderWideApp(Redis) -> Kafka -> PaymentWideApp -> Kafka
+public class PaymentWideApp {
+
+    public static void main(String[] args) throws Exception {
+
+        //TODO 1.获取执行环境
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(1);
+
+        //1.1 设置CK&状态后端
+        //env.setStateBackend(new FsStateBackend("hdfs://hadoop102:8020/gmall-flink-210325/ck"));
+        //env.enableCheckpointing(5000L);
+        //env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
+        //env.getCheckpointConfig().setCheckpointTimeout(10000L);
+        //env.getCheckpointConfig().setMaxConcurrentCheckpoints(2);
+        //env.getCheckpointConfig().setMinPauseBetweenCheckpoints(3000);
+
+        //env.setRestartStrategy(RestartStrategies.fixedDelayRestart());
+
+        //TODO 2.读取Kafka主题的数据创建流 并转换为JavaBean对象 提取时间戳生成WaterMark
+        String groupId = "payment_wide_group";
+        String paymentInfoSourceTopic = "dwd_payment_info";
+        String orderWideSourceTopic = "dwm_order_wide";
+        String paymentWideSinkTopic = "dwm_payment_wide";
+
+//        订单数据流
+        SingleOutputStreamOperator<OrderWide> orderWideDS = env.addSource(MyKafkaUtils.getKafkaConsumer(orderWideSourceTopic, groupId))
+                .map(line -> JSON.parseObject(line, OrderWide.class))
+//                forMonotonousTimestam表示时间戳是增长的方式
+                .assignTimestampsAndWatermarks(WatermarkStrategy.<OrderWide>forMonotonousTimestamps()
+                        .withTimestampAssigner(new SerializableTimestampAssigner<OrderWide>() {
+                            @Override
+                            public long extractTimestamp(OrderWide element, long recordTimestamp) {
+                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                try {
+                                    return sdf.parse(element.getCreate_time()).getTime();
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                    return recordTimestamp;
+                                }
+                            }
+                        }));
+//        支付数据流
+        SingleOutputStreamOperator<PaymentInfo> paymentInfoDS = env.addSource(MyKafkaUtils.getKafkaConsumer(paymentInfoSourceTopic, groupId))
+                .map(line -> JSON.parseObject(line, PaymentInfo.class))
+                .assignTimestampsAndWatermarks(WatermarkStrategy.<PaymentInfo>forMonotonousTimestamps()
+                        .withTimestampAssigner(new SerializableTimestampAssigner<PaymentInfo>() {
+                            @Override
+                            public long extractTimestamp(PaymentInfo element, long recordTimestamp) {
+                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                try {
+                                    return sdf.parse(element.getCreate_time()).getTime();
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                    return recordTimestamp;
+                                }
+                            }
+                        }));
+
+        //TODO 3.双流JOIN
+        SingleOutputStreamOperator<PaymentWide> paymentWideDS = paymentInfoDS.keyBy(PaymentInfo::getOrder_id)
+                .intervalJoin(orderWideDS.keyBy(OrderWide::getOrder_id))
+                .between(Time.minutes(-15), Time.seconds(5))//给5s的时间延迟
+                .process(new ProcessJoinFunction<PaymentInfo, OrderWide, PaymentWide>() {
+                    @Override
+                    public void processElement(PaymentInfo paymentInfo, OrderWide orderWide, Context ctx, Collector<PaymentWide> out) throws Exception {
+                        out.collect(new PaymentWide(paymentInfo, orderWide));
+                    }
+                });
+
+        //TODO 4.将数据写入Kafka，写入的是支付宽表主题：dwm_payment_wide
+        paymentWideDS.print(">>>>>>>>>");
+        paymentWideDS
+                .map(JSONObject::toJSONString)
+                .addSink(MyKafkaUtils.getKafkaProducer(paymentWideSinkTopic));
+
+        //TODO 5.启动任务
+        env.execute("PaymentWideApp");
+
+    }
+
+}
+~~~
+
+### 封装日期转换工具类
+
+~~~ java
+public class DateTimeUtil {
+
+    private final static DateTimeFormatter formater = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    public static String toYMDhms(Date date) {
+        LocalDateTime localDateTime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());
+        return formater.format(localDateTime);
+    }
+
+    public static Long toTs(String YmDHms) {
+        LocalDateTime localDateTime = LocalDateTime.parse(YmDHms, formater);
+        return localDateTime.toInstant(ZoneOffset.of("+8")).toEpochMilli();
+    }
+}
+~~~
 
 
 
@@ -1595,3 +1825,18 @@ workQueue:任务队列，被添加到线程池中，但尚未被执行的任务
 
 实现异步查询功能。
 
+#### PaymentInfo
+
+支付实体对象
+
+#### PaymentWide
+
+支付宽表实体类
+
+#### PaymentWideApp
+
+支付宽表处理程序
+
+#### DateTimeUtil
+
+封装日期转换工具类。
