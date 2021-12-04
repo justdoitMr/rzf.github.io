@@ -341,9 +341,9 @@ order by (stt,edt,is_new,vc,ch,ar);
 
 数据库中的字段和前面VisitorStats实体类的字段相互对应。
 
-之所以选用 ReplacingMergeTree 引擎主要是靠它来保证数据表的幂等性。
+之所以选用 ReplacingMergeTree 引擎主要是靠它来保证数据表的**幂等性**。
 
-paritition by 把日期变为数字类型（如：20201126），用于分区。所以尽量保证查询条件尽量包含 stt 字段。
+paritition by 把日期变为数字类型（如：20201126），用于分区。所以尽量保证查询条件尽量包含 stt 字段。是按照天进行分区
 
 order by 后面字段数据在同一分区下，出现重复会被去重，重复数据保留 ts 最大的数
 据。
@@ -498,6 +498,40 @@ common模块里面的数据
 
 ![1638510330206](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/03/134531-633758.png)
 
+### DWS 层商品主题宽表的计算
+
+![1638575393472](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1638575393472.png)
+
+如何分析：
+
+1. 首先分析关于商品我们要计算哪一些指标。
+2. 然后找到每一个指标对应的主题。
+3. 然后同时消费多个主题中的数据。
+4. 将多个主题中的数据变为统一的流，也就是我们需要对每一个主题中的数据做统一的处理，变成相同格式的java bean对象。
+5. 之后将所有的数据流进行union。
+6. 然后提取时间戳，分组，开窗聚合，聚合的时候，使用增量聚合和全量聚合的方式。因为我们需要拿到窗口的时间，因为我们需要使用窗口的开始和结束时间来实现幂等性的操作，所以需要用到全量窗口。
+
+>  spu：可以理解为款式
+>
+> sku：可以理解为具体的商品
+>
+> 商品有很多的维度信息：spu,sku,trademark,category等等。我们把维度信息组合起来作为主键。
+>
+> 那么组合起来的宽表字段有：spu_id,spu_name,sku_id,sku_name,tradeMark,category,时间戳，窗口开始和结束时间，还有8个需求指标，金额，下单次数，商品个数等等字段。
+
+在这里字段比较多，如果一个一个字段赋值默认值，很麻烦，所以我们使用构造者设计模式。
+
+在这里需要注意一点：在我们计算的八个指标中下单和支付有完整的商品信息，其他6个指标都没有商品的完整信息，所以我们需要去hbase中查询商品信息，针对每一条数据，都去hbase中查询一次，然后补充信息，但是这样效率很低，那么我们能否把其他6张表数据全部unuin起来，然后查询，这样的话查询次数并没有减少，但是从代码角度，代码少写很多。
+
+所以我们采取首先对所有数据按照sku_id进行分组聚合，然后再去查询，这样代码量少了，查询次数也少了。
+
+这样的话，dwm层订单和支付宽表也没必要首先聚合一次啊，在这里直接去dwd层查询也可以啊，那么为什么先要在dwm层做一次处理，为什么？
+
+需要给ads层使用。
+
+之前在离线数仓中，dws和dwt层只能应对我们生产环境中绝大多数需求和指标，不可能意义应对，有的指标还要从dwd层提取计算，所以在离线数仓中也一样，dwm层并不多余，而是给处理dws层之外的层次准备数据。
+
+每一条日志都有common，page，ts属性。
 
 
 
@@ -505,6 +539,32 @@ common模块里面的数据
 
 
 
+### DWS 层地区主题表(FlinkSQL)
+
+![1638584878434](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/04/102759-91728.png)
+
+地区主题主要是反映各个地区的销售情况。从业务逻辑上地区主题比起商品更加简单，业务逻辑也没有什么特别的就是做一次轻度聚合然后保存，所以在这里我们体验一下使用FlinkSQL，来完成该业务。
+
+#### 需求分析与思路
+
+- 定义 Table 流环境
+- 把数据源定义为动态表
+- 通过 SQL 查询出结果表
+- 把结果表转换为数据流
+- 把数据流写入目标数据库
+
+> 在这里为什们没有使用Flink sql直接向外面写数据，因为直接使用Flink sql的话我们需要去写一套功能，将Flink sql数据写入到ck，中，但是我们之前已经写好了如何将数据流写入到ck中，所以这样更加的方便。
+
+如果是Flink官方支持的数据库，也可以直接把目标数据表定义为动态表，用insert into写入。由于ClickHouse目前官方没有支持的jdbc连接器（目前支持Mysql、 PostgreSQL、Derby）。也可以制作自定义 sink，实现官方不支持的连接器。但是比较繁琐。
+
+这个宽表难点有两个：
+
+- 提取事件事件生成watermark
+- 第二个是开窗
+
+#### 功能实现
+
+##### 创建 ProvinceStatsSqlApp,定义 Table 流环境
 
 
 
@@ -512,6 +572,23 @@ common模块里面的数据
 
 
 
+### DWS 层关键词主题表(FlinkSQL)
+
+关键词主题这个主要是为了大屏展示中的字符云的展示效果，用于感性的让大屏观看者感知目前的用户都更关心的那些商品和关键词。
+
+关键词的展示也是一种维度聚合的结果，根据聚合的大小来决定关键词的大小。
+
+关键词的第一重要来源的就是用户在**搜索栏的搜索**，另外就是从以**商品为主题**的统计中获取关键词。
+
+#### 关于分词
+
+因为无论是从用户的搜索栏中，还是从商品名称中文字都是可能是比较长的，且由多个关键词组成
+
+所以我们需要根据把长文本分割成一个一个的词，这种分词技术，在搜索引擎中可能会用到。对于中文分词，现在的搜索引擎基本上都是使用的第三方分词器，咱们在计算数据中也可以，使用和搜索引擎中一致的分词器，IK。
+
+#### 搜索关键词功能实现
+
+##### IK 分词器的使用
 
 
 
@@ -519,26 +596,40 @@ common模块里面的数据
 
 
 
+在Flink中，有四种自定义函数：
 
+- Scalar Fun:标量函数,一进一出。
+- Table Fun:表函数，udtf
+- Aggregate Fun:聚合函数，udaf，多进一出。
+- table Aggregate Fun:表聚合函数，这种自定义函数只能够用在table的api里面，无法在sql中使用。
 
+> 前三种自定义函数可以在sql中使用，也可以在table api中使用。
 
+![1638595600570](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/04/132641-637262.png)
 
+~~~ java
+// define function logic
+public static class SubstringFunction extends ScalarFunction {
+  public String eval(String s, Integer begin, Integer end) {
+    return s.substring(begin, end);
+  }
+}
 
+TableEnvironment env = TableEnvironment.create(...);
 
+// call function "inline" without registration in Table API
+env.from("MyTable").select(call(SubstringFunction.class, $("myField"), 5, 12));
 
+// register function
+env.createTemporarySystemFunction("SubstringFunction", SubstringFunction.class);
 
+// call registered function in Table API
+env.from("MyTable").select(call("SubstringFunction", $("myField"), 5, 12));
 
+// call registered function in SQL
+env.sqlQuery("SELECT SubstringFunction(myField, 5, 12) FROM MyTable");
 
-
-
-
-
-
-
-
-
-
-
+~~~
 
 
 
