@@ -2,6 +2,20 @@
 
 ### DWS 层与 DWM 层的设计
 
+访客主题宽表计算
+
+要不要把多个明细的同样的维度统计在一起?
+
+因为单位时间内 mid 的操作数据非常有限不能明显的压缩数据量（如果是数据量够大，或者单位时间够长可以）
+
+所以用常用统计的四个维度进行聚合 渠道、新老用户、app 版本、省市区域。
+
+度量值包括 启动、日活（当日首次启动）、访问页面数、新增用户数、跳出数、平均页面停留时长、总访问时长。
+
+各个数据在维度聚合前不具备关联性，所以先进行维度聚合
+* 进行关联 这是一个 fulljoin
+* 可以考虑使用 flinksql 完成
+
 #### 设计思路
 
 我们在之前通过分流等手段，把数据分拆成了独立的 Kafka Topic。那么接下来如何处理数据，就要思考一下我们到底要通过实时计算出哪些指标项。
@@ -249,7 +263,7 @@ public class VisitorStats {
 
 ###### 分组
 
-分组选取四个维度作为 key , 使用 Tuple4 组合
+使用四个维度的组合作为主键进行分组操作, 使用 Tuple4 组合
 
 ~~~java
   //TODO 6.按照维度信息分组，需要拿四个字段作为key，按照这四个字段组成的主键进行分组操作
@@ -280,6 +294,8 @@ public class VisitorStats {
 ~~~
 
 ###### 窗口内聚合及补充时间字段
+
+因为我们需要保证写入ck数据库的幂等性操作，所以需要直到窗口的开始和结束时间，所以我们使用全量聚合函数，获取窗口的开始和结束时间封装到对象中。
 
 ~~~ java
  SingleOutputStreamOperator<VisitorStats> result = windowedStream.reduce(new ReduceFunction<VisitorStats>() {
@@ -321,7 +337,7 @@ public class VisitorStats {
 ###### ClickHouse 数据表准备
 
 ~~~ java
-create table visitor_stats_2021 (
+create table visitor_stats (
   stt DateTime,
   edt DateTime,
   vc String,
@@ -500,12 +516,22 @@ common模块里面的数据
 
 ### DWS 层商品主题宽表的计算
 
+#### 需求分析与思路
+
+1. 从 Kafka 主题中获得数据流
+2. 把 Json 字符串数据流转换为统一数据对象的数据流
+3. 把统一的数据结构流合并为一个流
+4. 设定事件时间与水位线
+5. 分组、开窗、聚合
+6. 关联维度补充数据
+7. 写入 ClickHouse
+
 ![1638575393472](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1638575393472.png)
 
 如何分析：
 
 1. 首先分析关于商品我们要计算哪一些指标。
-2. 然后找到每一个指标对应的主题。
+2. 然后找到每一个指标对应的主题。也就是数据源。
 3. 然后同时消费多个主题中的数据。
 4. 将多个主题中的数据变为统一的流，也就是我们需要对每一个主题中的数据做统一的处理，变成相同格式的java bean对象。
 5. 之后将所有的数据流进行union。
@@ -533,7 +559,519 @@ common模块里面的数据
 
 每一条日志都有common，page，ts属性。
 
+#### 功能实现
 
+##### 封装商品统计实体类 ProductStats
+
+~~~ java
+/**
+ * Desc: 商品统计实体类
+ *
+ * @Builder注解 可以使用构造者方式创建对象，给属性赋值
+ * @Builder.Default 在使用构造者方式给属性赋值的时候，属性的初始值会丢失
+ * 该注解的作用就是修复这个问题
+ * 例如：我们在属性上赋值了初始值为0L，如果不加这个注解，通过构造者创建的对象属性值会变为null
+ */
+@Data
+@Builder //添加了builder的话，引用值默认是null
+public class ProductStats {
+
+    String stt;//窗口起始时间
+    String edt;  //窗口结束时间
+    Long sku_id; //sku编号
+    String sku_name;//sku名称
+    BigDecimal sku_price; //sku单价
+    Long spu_id; //spu编号
+    String spu_name;//spu名称
+    Long tm_id; //品牌编号
+    String tm_name;//品牌名称
+    Long category3_id;//品类编号
+    String category3_name;//品类名称
+
+//    上面是8个维度信息，多加一个单价
+
+    @Builder.Default//添加default后，会保留自定义的默认值，否则初始化为null
+    Long display_ct = 0L; //曝光数
+
+    @Builder.Default
+    Long click_ct = 0L;  //点击数
+
+    @Builder.Default
+    Long favor_ct = 0L; //收藏数
+
+    @Builder.Default
+    Long cart_ct = 0L;  //添加购物车数
+
+    @Builder.Default
+    Long order_sku_num = 0L; //下单商品个数
+
+    @Builder.Default   //下单商品金额
+    BigDecimal order_amount = BigDecimal.ZERO;
+//************************************
+//    订单数，支付订单数，退款订单数，我们都要做去重操作
+    @Builder.Default
+    Long order_ct = 0L; //订单数
+
+    @Builder.Default   //支付金额
+    BigDecimal payment_amount = BigDecimal.ZERO;
+
+    @Builder.Default
+    Long paid_order_ct = 0L;  //支付订单数
+
+    @Builder.Default
+    Long refund_order_ct = 0L; //退款订单数
+
+    @Builder.Default
+    BigDecimal refund_amount = BigDecimal.ZERO;
+
+    @Builder.Default
+    Long comment_ct = 0L;//评论订单数
+
+    @Builder.Default
+    Long good_comment_ct = 0L; //好评订单数
+
+//    三个set用户辅助去重操作
+
+    @Builder.Default
+    @TransientSink
+    Set orderIdSet = new HashSet();  //用于统计订单数
+
+    @Builder.Default
+    @TransientSink
+    Set paidOrderIdSet = new HashSet(); //用于统计支付订单数
+
+    @Builder.Default
+    @TransientSink//加了注解，那么在赋值的时候将会被跳过，并不会写入ck数据库
+    Set refundOrderIdSet = new HashSet();//用于退款支付订单数
+
+    Long ts; //统计时间戳，使用事件时间开窗
+}
+~~~
+
+##### 创建 ProductStatsApp，从 Kafka 主题中获得数据流
+
+~~~ java
+ //TODO 2.读取Kafka 7个主题的 数据创建流
+        String groupId = "product_stats_app";
+
+        String pageViewSourceTopic = "dwd_page_log";//获得点击和曝光数据流
+        String orderWideSourceTopic = "dwm_order_wide";//下单数据流
+        String paymentWideSourceTopic = "dwm_payment_wide";//订单支付数据流
+        String cartInfoSourceTopic = "dwd_cart_info";//购物车数据流
+        String favorInfoSourceTopic = "dwd_favor_info";//收藏数据流
+        String refundInfoSourceTopic = "dwd_order_refund_info";//退款数据流
+        String commentInfoSourceTopic = "dwd_comment_info";//评论数据流
+        DataStreamSource<String> pvDS = env.addSource(MyKafkaUtils.getKafkaConsumer(pageViewSourceTopic, groupId));
+        DataStreamSource<String> favorDS = env.addSource(MyKafkaUtils.getKafkaConsumer(favorInfoSourceTopic, groupId));
+        DataStreamSource<String> cartDS = env.addSource(MyKafkaUtils.getKafkaConsumer(cartInfoSourceTopic, groupId));
+        DataStreamSource<String> orderDS = env.addSource(MyKafkaUtils.getKafkaConsumer(orderWideSourceTopic, groupId));
+        DataStreamSource<String> payDS = env.addSource(MyKafkaUtils.getKafkaConsumer(paymentWideSourceTopic, groupId));
+        DataStreamSource<String> refundDS = env.addSource(MyKafkaUtils.getKafkaConsumer(refundInfoSourceTopic, groupId));
+        DataStreamSource<String> commentDS = env.addSource(MyKafkaUtils.getKafkaConsumer(commentInfoSourceTopic, groupId));
+~~~
+
+##### 把 JSON 字符串数据流转换为统一数据对象的数据流
+
+~~~ java
+ //TODO 3.将7个流统一数据格式
+//        出点击和曝光两个指标
+        SingleOutputStreamOperator<ProductStats> productStatsWithClickAndDisplayDS = pvDS.flatMap(new FlatMapFunction<String, ProductStats>() {
+            @Override
+            public void flatMap(String value, Collector<ProductStats> out) throws Exception {
+                /**
+                 * 如何判断是点击数据
+                 * 如果是搜索，那么他进入的页面是good_list，page_id是good_list也就是商品列表
+                 * 如果是点击，那么他的吓一跳page_id是good_detail
+                 * 曝光数据的话，直接访问display即可
+                 */
+
+                //将数据转换为JSON对象
+                JSONObject jsonObject = JSON.parseObject(value);
+
+                //取出page信息，也就是获取当前页面信息
+                JSONObject page = jsonObject.getJSONObject("page");
+//                获取page_id，看上一次页面的id
+                String pageId = page.getString("page_id");
+
+//                获取时间戳
+                Long ts = jsonObject.getLong("ts");
+//              如果上一个页面的id是good_detail，那么就说明是一个点击数据
+//                也就是说当前页面必须是详情页，并且点击的是某一个sku_id
+                if ("good_detail".equals(pageId) && "sku_id".equals(page.getString("item_type"))) {
+                    out.collect(ProductStats.builder()
+                            .sku_id(page.getLong("item"))
+                            .click_ct(1L)
+                            .ts(ts)
+                            .build());
+                }
+
+                //尝试取出曝光数据,曝光是一个数组
+                JSONArray displays = jsonObject.getJSONArray("displays");
+                if (displays != null && displays.size() > 0) {
+                    for (int i = 0; i < displays.size(); i++) {
+
+                        //取出单条曝光数据
+                        JSONObject display = displays.getJSONObject(i);
+//                         判断曝光的是否是商品类型，不能曝光活动
+                        if ("sku_id".equals(display.getString("item_type"))) {
+                            out.collect(ProductStats.builder()
+                                    .sku_id(display.getLong("item"))
+                                    .display_ct(1L)//曝光了一次
+                                    .ts(ts)
+                                    .build());
+                        }
+                    }
+                }
+            }
+        });
+
+//        收藏的指标
+        SingleOutputStreamOperator<ProductStats> productStatsWithFavorDS = favorDS.map(line -> {
+            JSONObject jsonObject = JSON.parseObject(line);
+            return ProductStats.builder()
+                    .sku_id(jsonObject.getLong("sku_id"))//获取商品号
+                    .favor_ct(1L)//收藏的次数+1
+                    .ts(DateTimeUtil.toTs(jsonObject.getString("create_time")))
+                    .build();
+        });
+
+//        加入购物车，我们只需要算一个指标：添加购物车的次数
+        SingleOutputStreamOperator<ProductStats> productStatsWithCartDS = cartDS.map(line -> {
+            JSONObject jsonObject = JSON.parseObject(line);
+            return ProductStats.builder()
+                    .sku_id(jsonObject.getLong("sku_id"))
+                    .cart_ct(1L)//添加+1
+                    .ts(DateTimeUtil.toTs(jsonObject.getString("create_time")))
+                    .build();
+        });
+
+//        下单指标
+        /**
+         * 指标：
+         * 1 下单商品的个数，累加即可
+         * 2 下单商品总金额，累加即可
+         * 3 订单数，我们通过辅助字段
+         */
+        SingleOutputStreamOperator<ProductStats> productStatsWithOrderDS = orderDS.map(line -> {
+
+//            因为有订单宽表，所以我们直接获取订单宽表对象
+            OrderWide orderWide = JSON.parseObject(line, OrderWide.class);
+
+            HashSet<Long> orderIds = new HashSet<>();
+            orderIds.add(orderWide.getOrder_id());
+
+            return ProductStats.builder()
+                    .sku_id(orderWide.getSku_id())//商品sku_id
+                    .order_sku_num(orderWide.getSku_num())//商品的件数
+                    .order_amount(orderWide.getSplit_total_amount())//商品总件数
+                    .orderIdSet(orderIds)//订单的总次数需要去重，因为可能有多件商品在一个订单，所以需要根据订单id进行去重操作
+                    .ts(DateTimeUtil.toTs(orderWide.getCreate_time()))
+                    .build();
+        });
+
+//        支付指标，也有javabean对象
+        /**
+         * 1. 支付金额
+         * 2.支付订单数，去重
+         */
+        SingleOutputStreamOperator<ProductStats> productStatsWithPaymentDS = payDS.map(line -> {
+
+//            获取javabean
+            PaymentWide paymentWide = JSON.parseObject(line, PaymentWide.class);
+
+            HashSet<Long> orderIds = new HashSet<>();
+            orderIds.add(paymentWide.getOrder_id());
+
+            return ProductStats.builder()
+                    .sku_id(paymentWide.getSku_id())
+                    .payment_amount(paymentWide.getSplit_total_amount())//支付金额，使用明细表中的金额
+                    .paidOrderIdSet(orderIds)
+                    .ts(DateTimeUtil.toTs(paymentWide.getPayment_create_time()))
+                    .build();
+        });
+
+//        退款
+
+        /**
+         * 退款订单数
+         * 2.退款金额
+         */
+        SingleOutputStreamOperator<ProductStats> productStatsWithRefundDS = refundDS.map(line -> {
+            JSONObject jsonObject = JSON.parseObject(line);
+
+            HashSet<Long> orderIds = new HashSet<>();
+            orderIds.add(jsonObject.getLong("order_id"));
+
+            return ProductStats.builder()
+                    .sku_id(jsonObject.getLong("sku_id"))
+                    .refund_amount(jsonObject.getBigDecimal("refund_amount"))
+                    .refundOrderIdSet(orderIds)//需要去重
+                    .ts(DateTimeUtil.toTs(jsonObject.getString("create_time")))
+                    .build();
+        });
+
+        /**
+         * 评价
+         *
+         * 1.评论订单数
+         * 2.好评订单数
+         *
+         *
+         * sku_id，create_time这两个字段是所有指标都必须有的
+         */
+        SingleOutputStreamOperator<ProductStats> productStatsWithCommentDS = commentDS.map(line -> {
+
+            JSONObject jsonObject = JSON.parseObject(line);
+
+            String appraise = jsonObject.getString("appraise");
+            long goodCt = 0L;
+//            根据常量表查询
+            if (GmallConstant.APPRAISE_GOOD.equals(appraise)) {
+                goodCt = 1L;
+            }
+
+            return ProductStats.builder()
+                    .sku_id(jsonObject.getLong("sku_id"))
+                    .comment_ct(1L)
+                    .good_comment_ct(goodCt)
+                    .ts(DateTimeUtil.toTs(jsonObject.getString("create_time")))
+                    .build();
+        });
+~~~
+
+##### 创建电商业务常量类 GmallConstant
+
+~~~ java
+public class GmallConfig {
+
+    //Phoenix 库名
+    public static final String HBASE_SCHEMA = "GMALL2021_REALTIME";
+    //Phoenix 驱动
+    public static final String PHOENIX_DRIVER = "org.apache.phoenix.jdbc.PhoenixDriver";
+    //Phoenix 连接参数
+    public static final String PHOENIX_SERVER =
+            "jdbc:phoenix:hadoop102,hadoop103,hadoop104:2181";
+
+//    CK的url
+    public static final String
+            CLICKHOUSE_URL="jdbc:clickhouse://hadoop102:8123/default";
+//    ck的driver
+    public static final String CLICKHOUSE_DRIVER =
+            "ru.yandex.clickhouse.ClickHouseDriver";
+
+}
+
+~~~
+
+##### 把统一的数据结构流合并为一个流
+
+~~~ java
+ //TODO 4.Union  7个流
+        /**
+         * 输入的7个数据流类型都是一样的，所以union会将七个流合并为一个流输出
+         */
+        DataStream<ProductStats> unionDS = productStatsWithClickAndDisplayDS.union(
+                productStatsWithFavorDS,
+                productStatsWithCartDS,
+                productStatsWithOrderDS,
+                productStatsWithPaymentDS,
+                productStatsWithRefundDS,
+                productStatsWithCommentDS);
+~~~
+
+##### 设定事件时间与水位线
+
+~~~ java
+
+        //TODO 5.提取时间戳生成WaterMark
+        /**
+         * 因为需要开创，所以需要考虑乱序问题，给2s的延迟时间
+         */
+        SingleOutputStreamOperator<ProductStats> productStatsWithWMDS = unionDS.assignTimestampsAndWatermarks(WatermarkStrategy.<ProductStats>forBoundedOutOfOrderness(Duration.ofSeconds(2)).withTimestampAssigner(new SerializableTimestampAssigner<ProductStats>() {
+            @Override
+            public long extractTimestamp(ProductStats element, long recordTimestamp) {
+                return element.getTs();
+            }
+        }));
+~~~
+
+##### 分组、开窗、聚合
+
+~~~ java
+   //TODO 6.分组、开窗、聚合   按照sku_id分组,10秒的滚动窗口,结合增量聚合(累加值)和全量聚合(提取窗口信息)
+        SingleOutputStreamOperator<ProductStats> reduceDS = productStatsWithWMDS.keyBy(ProductStats::getSku_id)
+//                10秒的滚动窗口
+                .window(TumblingEventTimeWindows.of(Time.seconds(10)))
+//                增量聚合
+                .reduce(new ReduceFunction<ProductStats>() {
+                    @Override
+                    public ProductStats reduce(ProductStats stats1, ProductStats stats2) throws Exception {
+                        stats1.setDisplay_ct(stats1.getDisplay_ct() + stats2.getDisplay_ct());
+                        stats1.setClick_ct(stats1.getClick_ct() + stats2.getClick_ct());
+                        stats1.setCart_ct(stats1.getCart_ct() + stats2.getCart_ct());
+                        stats1.setFavor_ct(stats1.getFavor_ct() + stats2.getFavor_ct());
+                        stats1.setOrder_amount(stats1.getOrder_amount().add(stats2.getOrder_amount()));
+                        stats1.getOrderIdSet().addAll(stats2.getOrderIdSet());
+                        //stats1.setOrder_ct(stats1.getOrderIdSet().size() + 0L);
+                        stats1.setOrder_sku_num(stats1.getOrder_sku_num() + stats2.getOrder_sku_num());
+                        stats1.setPayment_amount(stats1.getPayment_amount().add(stats2.getPayment_amount()));
+
+                        stats1.getRefundOrderIdSet().addAll(stats2.getRefundOrderIdSet());
+                        //stats1.setRefund_order_ct(stats1.getRefundOrderIdSet().size() + 0L);
+                        stats1.setRefund_amount(stats1.getRefund_amount().add(stats2.getRefund_amount()));
+
+                        stats1.getPaidOrderIdSet().addAll(stats2.getPaidOrderIdSet());
+                        //stats1.setPaid_order_ct(stats1.getPaidOrderIdSet().size() + 0L);
+
+                        stats1.setComment_ct(stats1.getComment_ct() + stats2.getComment_ct());
+                        stats1.setGood_comment_ct(stats1.getGood_comment_ct() + stats2.getGood_comment_ct());
+                        return stats1;
+
+                    }
+                }, new WindowFunction<ProductStats, ProductStats, Long, TimeWindow>() {
+//                    win fun获取窗口的时间，做全量聚合，这里面只有一条数据
+                    @Override
+                    public void apply(Long aLong, TimeWindow window, Iterable<ProductStats> input, Collector<ProductStats> out) throws Exception {
+
+                        //取出数据
+                        ProductStats productStats = input.iterator().next();
+
+                        //设置窗口时间
+                        productStats.setStt(DateTimeUtil.toYMDhms(new Date(window.getStart())));
+                        productStats.setEdt(DateTimeUtil.toYMDhms(new Date(window.getEnd())));
+
+                        //设置订单数量
+                        productStats.setOrder_ct((long) productStats.getOrderIdSet().size());
+                        productStats.setPaid_order_ct((long) productStats.getPaidOrderIdSet().size());
+                        productStats.setRefund_order_ct((long) productStats.getRefundOrderIdSet().size());
+
+                        //将数据写出
+                        out.collect(productStats);
+                    }
+                });
+
+~~~
+
+##### 补充商品维度信息
+
+~~~ java
+ //TODO 7.关联维度信息
+        /**
+         * 关联维度，我们使用异步io
+         *
+         * 关联维度信息，其实就是去hbase中查询维度数据，然后把bean中的属性补充完整
+         */
+
+        //7.1 关联SKU维度
+        SingleOutputStreamOperator<ProductStats> productStatsWithSkuDS = AsyncDataStream.unorderedWait(reduceDS,
+//                在这里去Hbase中查询维度表信息
+                new DimAsyncFunction<ProductStats>("DIM_SKU_INFO") {
+                    @Override
+                    public String getKey(ProductStats productStats) {
+//                        key是产品的sku_id
+                        return productStats.getSku_id().toString();
+                    }
+
+                    @Override
+                    public void join(ProductStats productStats, JSONObject dimInfo) throws ParseException {
+
+                        productStats.setSku_name(dimInfo.getString("SKU_NAME"));
+                        productStats.setSku_price(dimInfo.getBigDecimal("PRICE"));
+                        productStats.setSpu_id(dimInfo.getLong("SPU_ID"));
+                        productStats.setTm_id(dimInfo.getLong("TM_ID"));
+                        productStats.setCategory3_id(dimInfo.getLong("CATEGORY3_ID"));
+
+                    }
+                }, 60, TimeUnit.SECONDS);
+
+        //7.2 关联SPU维度
+        SingleOutputStreamOperator<ProductStats> productStatsWithSpuDS =
+                AsyncDataStream.unorderedWait(productStatsWithSkuDS,
+                        new DimAsyncFunction<ProductStats>("DIM_SPU_INFO") {
+                            @Override
+                            public void join(ProductStats productStats, JSONObject jsonObject) throws ParseException {
+                                productStats.setSpu_name(jsonObject.getString("SPU_NAME"));
+                            }
+
+                            @Override
+                            public String getKey(ProductStats productStats) {
+                                return String.valueOf(productStats.getSpu_id());
+                            }
+                        }, 60, TimeUnit.SECONDS);
+
+        //7.3 关联Category维度
+        SingleOutputStreamOperator<ProductStats> productStatsWithCategory3DS =
+                AsyncDataStream.unorderedWait(productStatsWithSpuDS,
+                        new DimAsyncFunction<ProductStats>("DIM_BASE_CATEGORY3") {
+                            @Override
+                            public void join(ProductStats productStats, JSONObject jsonObject) throws ParseException {
+                                productStats.setCategory3_name(jsonObject.getString("NAME"));
+                            }
+
+                            @Override
+                            public String getKey(ProductStats productStats) {
+                                return String.valueOf(productStats.getCategory3_id());
+                            }
+                        }, 60, TimeUnit.SECONDS);
+
+        //7.4 关联TM维度
+        SingleOutputStreamOperator<ProductStats> productStatsWithTmDS =
+                AsyncDataStream.unorderedWait(productStatsWithCategory3DS,
+                        new DimAsyncFunction<ProductStats>("DIM_BASE_TRADEMARK") {
+                            @Override
+                            public void join(ProductStats productStats, JSONObject jsonObject) throws ParseException {
+                                productStats.setTm_name(jsonObject.getString("TM_NAME"));
+                            }
+
+                            @Override
+                            public String getKey(ProductStats productStats) {
+                                return String.valueOf(productStats.getTm_id());
+                            }
+                        }, 60, TimeUnit.SECONDS);
+~~~
+
+##### 在 ClickHouse 中创建商品主题宽表
+
+~~~ java
+create table product_stats_2021 (
+stt DateTime,
+edt DateTime,
+sku_id UInt64,
+sku_name String,
+sku_price Decimal64(2),
+spu_id UInt64,
+spu_name String ,
+tm_id UInt64,
+tm_name String,
+category3_id UInt64,
+category3_name String ,
+display_ct UInt64,
+click_ct UInt64,
+favor_ct UInt64,
+cart_ct UInt64,
+order_sku_num UInt64,
+order_amount Decimal64(2),
+order_ct UInt64 ,
+payment_amount Decimal64(2),
+paid_order_ct UInt64,
+refund_order_ct UInt64,
+refund_amount Decimal64(2),
+comment_ct UInt64,
+good_comment_ct UInt64 ,
+ts UInt64
+)engine =ReplacingMergeTree(ts)
+partition by toYYYYMMDD(stt)
+order by (stt,edt,sku_id );
+~~~
+
+##### 写入 ClickHouse
+
+~~~ java
+    //TODO 8.将数据写入ClickHouse
+        productStatsWithTmDS.print();
+        productStatsWithTmDS.addSink(ClickHouseUtil.getSink("insert into table product_stats_210325 values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"));
+
+~~~
 
 
 
@@ -559,12 +1097,157 @@ common模块里面的数据
 
 这个宽表难点有两个：
 
-- 提取事件事件生成watermark
-- 第二个是开窗
+- 提取事件时间生成watermark。
+- 第二个是开窗。
 
 #### 功能实现
 
 ##### 创建 ProvinceStatsSqlApp,定义 Table 流环境
+
+~~~ java
+//        获取表的执行环境
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+~~~
+
+##### 把数据源定义为动态表
+
+其中 WATERMARK FOR rowtime AS rowtime 是把某个虚拟字段设定为 EVENT_TIME
+
+~~~ java
+ //TODO 2.使用DDL创建表 提取时间戳生成WaterMark,这一步是难点
+        String groupId = "province_stats";
+        String orderWideTopic = "dwm_order_wide";//数据源
+
+        tableEnv.executeSql("CREATE TABLE order_wide ( " +
+                "  `province_id` BIGINT, " +
+                "  `province_name` STRING, " +
+                "  `province_area_code` STRING, " +
+                "  `province_iso_code` STRING, " +
+                "  `province_3166_2_code` STRING, " +
+                "  `order_id` BIGINT, " +
+                "  `split_total_amount` DECIMAL, " +
+                "  `create_time` STRING, " +//将这个字段转换为TIMESTAMP(3)这种类型
+                "  `rt` as TO_TIMESTAMP(create_time), " +//rt是事件事件
+//rt - INTERVAL '1' SECONDwatermart延迟的事件如果不写，那么使用的就是ascending这种方式生成watermark
+                "  WATERMARK FOR rt AS rt - INTERVAL '1' SECOND ) with(" +
+                MyKafkaUtils.getKafkaDDL(orderWideTopic, groupId) + ")");
+~~~
+
+##### MyKafkaUtil 增加一个 DDL 的方法
+
+~~~ java
+  //拼接Kafka相关属性到DDL
+    public static String getKafkaDDL(String topic, String groupId) {
+        return  " 'connector' = 'kafka', " +
+                " 'topic' = '" + topic + "'," +
+                " 'properties.bootstrap.servers' = '" + brokers + "', " +
+                " 'properties.group.id' = '" + groupId + "', " +
+                " 'format' = 'json', " +
+                " 'scan.startup.mode' = 'latest-offset'  ";
+    }
+~~~
+
+##### 聚合计算
+
+~~~ java
+ //TODO 3.查询数据  分组、开窗、聚合 这一步也是难点
+        Table table = tableEnv.sqlQuery("select " +
+//                获取窗口的开始和结束时间
+                "    DATE_FORMAT(TUMBLE_START(rt, INTERVAL '10' SECOND), 'yyyy-MM-dd HH:mm:ss') stt, " +
+                "    DATE_FORMAT(TUMBLE_END(rt, INTERVAL '10' SECOND), 'yyyy-MM-dd HH:mm:ss') edt, " +
+                "    province_id, " +
+                "    province_name, " +
+                "    province_area_code, " +
+                "    province_iso_code, " +
+                "    province_3166_2_code, " +
+                "    count(distinct order_id) order_count, " +
+                "    sum(split_total_amount) order_amount, " +
+                "    UNIX_TIMESTAMP()*1000 ts " +
+                "from " +
+                "    order_wide " +
+                "group by " +
+                "    province_id, " +
+                "    province_name, " +
+                "    province_area_code, " +
+                "    province_iso_code, " +
+                "    province_3166_2_code, " +
+                "    TUMBLE(rt, INTERVAL '10' SECOND)");
+
+~~~
+
+##### 转为数据流
+
+~~~ java
+   //TODO 4.将动态表转换为流
+        DataStream<ProvinceStats> provinceStatsDataStream = tableEnv.toAppendStream(table, ProvinceStats.class);
+~~~
+
+##### 定义地区统计宽表实体类 ProvinceStats
+
+~~~ java
+/**
+ * Desc:地区统计宽表实体类
+ */
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+public class ProvinceStats {
+
+    private String stt;
+    private String edt;
+    private Long province_id;
+    private String province_name;
+    private String province_area_code;
+    private String province_iso_code;
+    private String province_3166_2_code;
+    private BigDecimal order_amount;
+    private Long order_count;
+    private Long ts;
+
+    public ProvinceStats(OrderWide orderWide) {
+        province_id = orderWide.getProvince_id();
+        order_amount = orderWide.getSplit_total_amount();
+        province_name = orderWide.getProvince_name();
+        province_area_code = orderWide.getProvince_area_code();
+        province_iso_code = orderWide.getProvince_iso_code();
+        province_3166_2_code = orderWide.getProvince_3166_2_code();
+
+        order_count = 1L;
+        ts = new Date().getTime();
+    }
+}
+
+~~~
+
+##### 在 ClickHouse 中创建地区主题宽表
+
+~~~ java
+create table province_stats (
+stt DateTime,
+edt DateTime,
+province_id UInt64,
+province_name String,
+area_code String,
+iso_code String,
+iso_3166_2 String,
+order_amount Decimal64(2),
+order_count UInt64,
+ts UInt64
+)engine =ReplacingMergeTree(ts)
+partition by toYYYYMMDD(stt)
+order by (stt,edt,province_id);
+~~~
+
+##### 写入 ClickHouse
+
+~~~ java
+   //TODO 5.打印数据并写入ClickHouse
+        provinceStatsDataStream.print();
+        provinceStatsDataStream.addSink(ClickHouseUtil.getSink("insert into province_stats values(?,?,?,?,?,?,?,?,?,?)"));
+
+~~~
+
+
 
 
 
@@ -644,3 +1327,23 @@ env.sqlQuery("SELECT SubstringFunction(myField, 5, 12) FROM MyTable");
 访客统计实体类
 
 ### ClickHouseUtil
+
+### DateTimeUtil
+
+实现DateTimeUtil格式化时间线程安全工具类
+
+### TransientSink
+
+创建注解TransientSink
+
+### ProductStats
+
+### ProductStatsApp
+
+### GmallConfig
+
+### ProvinceStatsSqlApp
+
+### ProvinceStats
+
+地区宽表实体对象。
