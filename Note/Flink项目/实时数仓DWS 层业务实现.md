@@ -1273,17 +1273,59 @@ order by (stt,edt,province_id);
 
 ##### IK 分词器的使用
 
+封装分词工具类并进行测试
 
+~~~java
+public class KeywordUtil {
 
+    /**
+     * 输入一个字符串，返回切好的词
+     * @param keyWord
+     * @return
+     * @throws IOException
+     */
+    public static List<String> splitKeyWord(String keyWord) throws IOException {
 
+        //创建集合用于存放结果数据
+        ArrayList<String> resultList = new ArrayList<>();
 
+        StringReader reader = new StringReader(keyWord);
 
+        IKSegmenter ikSegmenter = new IKSegmenter(reader, false);
+
+        while (true) {
+            Lexeme next = ikSegmenter.next();
+
+            if (next != null) {
+                String word = next.getLexemeText();
+                resultList.add(word);
+            } else {
+                break;
+            }
+        }
+
+        //返回结果数据
+        return resultList;
+    }
+
+    public static void main(String[] args) throws IOException {
+
+        System.out.println(splitKeyWord("尚硅谷大数据项目之实时数仓"));
+
+    }
+}
+
+~~~
+
+##### 自定义函数
+
+有了分词器，那么另外一个要考虑的问题就是如何把分词器的使用揉进 FlinkSQL 中。因为 SQL 的语法和相关的函数都是 Flink 内定的，想要使用外部工具，就必须结合自定义函数。
 
 在Flink中，有四种自定义函数：
 
-- Scalar Fun:标量函数,一进一出。
-- Table Fun:表函数，udtf
-- Aggregate Fun:聚合函数，udaf，多进一出。
+- Scalar Fun:标量函数,一进一出。(相当于 Spark 的 UDF),
+- Table Fun:表函数，udtf,(相当于 Spark 的 UDTF),
+- Aggregate Fun:聚合函数，udaf，多进一出。 (相当于 Spark 的 UDAF)
 - table Aggregate Fun:表聚合函数，这种自定义函数只能够用在table的api里面，无法在sql中使用。
 
 > 前三种自定义函数可以在sql中使用，也可以在table api中使用。
@@ -1313,6 +1355,171 @@ env.from("MyTable").select(call("SubstringFunction", $("myField"), 5, 12));
 env.sqlQuery("SELECT SubstringFunction(myField, 5, 12) FROM MyTable");
 
 ~~~
+
+考虑到一个词条包括多个词语所以分词是指一种一对多的拆分，一拆多的情况，我们应该选择 Table Function。
+
+![1638620482991](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/04/202124-327421.png)
+
+##### 封装 KeywordUDTF 函数
+
+@FunctionHint 主要是为了标识输出数据的类型
+
+row.setField(0,keyword)中的 0 表示返回值下标为 0 的值
+
+~~~ java
+**
+ * 自定义函数，实现炸裂功能，将一个字符串炸裂为多个行输出
+ */
+
+//注解表示输出的列名字和列的类型
+@FunctionHint(output = @DataTypeHint("ROW<word STRING>"))
+public class SplitFunction extends TableFunction<Row> {
+
+    public void eval(String str) {
+
+        try {
+            //分词
+            List<String> words = KeywordUtil.splitKeyWord(str);
+
+            //遍历并写出
+            for (String word : words) {
+                collect(Row.of(word));
+            }
+
+        } catch (IOException e) {
+            collect(Row.of(str));
+        }
+    }
+}
+
+~~~
+
+##### 创建 KeywordStatsApp，定义流环境
+
+~~~ java
+  //TODO 1.获取执行环境
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setParallelism(1);
+        StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+~~~
+
+##### 声明动态表和自定义函数
+
+注意 json 格式的要定义为 Map 对象
+
+~~~ java
+//TODO 2.使用DDL方式读取Kafka数据创建表
+        String groupId = "keyword_stats_app";
+
+        String pageViewSourceTopic = "dwd_page_log";
+
+        tableEnv.executeSql("create table page_view( " +
+                "    `common` Map<STRING,STRING>, " +
+                "    `page` Map<STRING,STRING>, " +
+                "    `ts` BIGINT, " +
+//                FROM_UNIXTIME:将数字转换为时间的标准格式
+                "    `rt` as TO_TIMESTAMP(FROM_UNIXTIME(ts/1000)), " +
+                "    WATERMARK FOR rt AS rt - INTERVAL '1' SECOND " +
+                ") with (" + MyKafkaUtils.getKafkaDDL(pageViewSourceTopic, groupId) + ")");
+
+~~~
+
+##### 过滤数据
+
+~~~ java
+
+        //TODO 3.过滤数据  上一跳页面为"search" and 搜索词 is not null,这里过滤null可能我们没有在搜索框里面输入任何东西，所以需要过滤掉
+        Table fullWordTable = tableEnv.sqlQuery("" +
+                "select " +
+                "    page['item'] full_word, " +
+                "    rt " +
+                "from  " +
+                "    page_view " +
+                "where " +
+                "    page['last_page_id']='search' and page['item'] is not null");
+~~~
+
+##### 利用 UDTF 进行拆分
+
+~~~ java
+  //TODO 4.注册UDTF,进行分词处理
+        tableEnv.createTemporarySystemFunction("split_words", SplitFunction.class);
+        Table wordTable = tableEnv.sqlQuery("" +
+                "SELECT  " +
+                "    word,  " +
+                "    rt " +
+                "FROM  " +
+                "    " + fullWordTable + ", LATERAL TABLE(split_words(full_word))");
+
+~~~
+
+##### 聚合
+
+~~~ java
+//TODO 5.分组、开窗、聚合
+        Table resultTable = tableEnv.sqlQuery("" +
+                "select " +
+                "    'search' source, " +
+                "    DATE_FORMAT(TUMBLE_START(rt, INTERVAL '10' SECOND), 'yyyy-MM-dd HH:mm:ss') stt, " +
+                "    DATE_FORMAT(TUMBLE_END(rt, INTERVAL '10' SECOND), 'yyyy-MM-dd HH:mm:ss') edt, " +
+                "    word keyword, " +
+                "    count(*) ct, " +
+                "    UNIX_TIMESTAMP()*1000 ts " +
+                "from " + wordTable + " " +
+                "group by " +
+                "    word, " +
+                "    TUMBLE(rt, INTERVAL '10' SECOND)");
+
+~~~
+
+##### 在 ClickHouse 中创建关键词统计表
+
+~~~ java
+create table keyword_stats (
+stt DateTime,
+edt DateTime,
+keyword String ,
+source String ,
+ct UInt64 ,
+ts UInt64
+)engine =ReplacingMergeTree( ts)
+partition by toYYYYMMDD(stt)
+order by ( stt,edt,keyword,source );
+~~~
+
+##### 封装 KeywordStats 实体类
+
+~~~ java
+
+/**
+ * Desc: 关键词统计实体类
+ */
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class KeywordStats {
+    private String keyword;
+    private Long ct;
+    private String source;//表示当前的关键词的来源，因为关键词的来源不止一个地方，有的从搜索框中来，有的是中其他地方统计出来的
+    private String stt;
+    private String edt;
+    private Long ts;
+}
+~~~
+
+##### 转换为流并写入 ClickHouse
+
+~~~ java
+      //TODO 6.将动态表转换为流
+        DataStream<KeywordStats> keywordStatsDataStream = tableEnv.toAppendStream(resultTable, KeywordStats.class);
+
+        //TODO 7.将数据打印并写入ClickHouse
+        keywordStatsDataStream.print();
+        keywordStatsDataStream.addSink(ClickHouseUtil.getSink("insert into keyword_stats(keyword,ct,source,stt,edt,ts) values(?,?,?,?,?,?)"));
+
+~~~
+
+
 
 
 
@@ -1347,3 +1554,27 @@ env.sqlQuery("SELECT SubstringFunction(myField, 5, 12) FROM MyTable");
 ### ProvinceStats
 
 地区宽表实体对象。
+
+### KeywordStatsApp
+
+### KeywordUtil
+
+切分字符串工具类
+
+### SplitFunction
+
+自定义udtf函数
+
+### KeywordStats 
+
+关键词宽表实体类
+
+## 小结
+
+- DWS 层主要是基于 DWD 和 DWM 层的数据进行轻度聚合统计
+- 掌握利用 union 操作实现多流的合并
+- 掌握窗口聚合操作
+-  掌握对 clickhouse 数据库的写入操作
+- 掌握用 FlinkSQL 实现业务
+- 掌握分词器的使用
+- 掌握在 FlinkSQL 中自定义函数的使用
