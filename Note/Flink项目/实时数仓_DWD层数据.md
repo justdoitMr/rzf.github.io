@@ -802,10 +802,6 @@ ODS层做了什么：
 
 封装写入Hbase数据库的操作
 
-#### MyKafkaUtils
-
-封装写入kafka的操作。
-
 #### TableProcessFunction
 
 实现分流操作。

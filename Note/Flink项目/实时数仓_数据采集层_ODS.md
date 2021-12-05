@@ -1,4 +1,53 @@
 
+<!-- TOC -->
+
+- [实时数仓分层介绍](#实时数仓分层介绍)
+  - [普通实时计算与实时数仓比较](#普通实时计算与实时数仓比较)
+  - [实时数仓分层介绍](#实时数仓分层介绍-1)
+    - [ODS](#ods)
+    - [DWD](#dwd)
+    - [DIM](#dim)
+    - [DWM](#dwm)
+    - [DWS](#dws)
+    - [ADS](#ads)
+  - [离线计算与实时计算的比较](#离线计算与实时计算的比较)
+    - [离线计算](#离线计算)
+    - [实时计算](#实时计算)
+    - [即席查询](#即席查询)
+- [架构分析](#架构分析)
+  - [离线架构](#离线架构)
+  - [实时架构](#实时架构)
+  - [架构对比](#架构对比)
+- [Flink CDC](#flink-cdc)
+  - [CDC种类](#cdc种类)
+  - [Flink cdc读取数据代码DataStream](#flink-cdc读取数据代码datastream)
+  - [Flink Sql读取数据](#flink-sql读取数据)
+- [Maxwell](#maxwell)
+  - [Mysql主从复制过程](#mysql主从复制过程)
+  - [Maxwell 的工作原理](#maxwell-的工作原理)
+  - [MySQL的binlog](#mysql的binlog)
+- [Canal](#canal)
+  - [什么式Canal](#什么式canal)
+  - [Canal 的工作原理](#canal-的工作原理)
+  - [Maxwell与Canal工具对比](#maxwell与canal工具对比)
+  - [三个工具对比](#三个工具对比)
+- [数据采集小结](#数据采集小结)
+  - [业务数据采集](#业务数据采集)
+  - [行为数据采集方法（日志数据）](#行为数据采集方法日志数据)
+  - [项目目录说明](#项目目录说明)
+  - [实现类说明](#实现类说明)
+    - [CustomerDeserialization](#customerdeserialization)
+    - [Flink CDC](#flink-cdc-1)
+    - [MyKafkaUtils](#mykafkautils)
+- [数据格式说明](#数据格式说明)
+  - [日志数据格式](#日志数据格式)
+    - [曝光日志](#曝光日志)
+    - [page日志](#page日志)
+    - [启动日志](#启动日志)
+  - [业务数据封装格式](#业务数据封装格式)
+
+<!-- /TOC -->
+
 ## 实时数仓分层介绍
 
 ### 普通实时计算与实时数仓比较
@@ -666,6 +715,10 @@ gmall-realtime模块下包说明：
 #### Flink CDC
 
 实现监控业务数据库的操作。
+
+#### MyKafkaUtils
+
+封装写入kafka的操作。
 
 ## 数据格式说明
 
