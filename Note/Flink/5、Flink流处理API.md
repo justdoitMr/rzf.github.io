@@ -1278,6 +1278,10 @@ public class Test02 {
 }
 ```
 
+sum()只是简单的根据key对数据进行累加操作，所以在使用sum的时候，需要指定一个key，针对key进行求和操作。
+
+Reduce是对数据做增量聚合操作。
+
 ##### reduce()
 
 reduce:对集合中的元素进行聚合
@@ -1442,7 +1446,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> { }
 
 - keyBy 转换通过指定键值的方式将一个 DataStream 转化为 KeyedStream。**流中的事件会根据各自键值被分到不同的分区**，这样一来，有着相同键值的事件一定会在后续算子的同一个任务上处理。虽然键值不同的事件也可能会在同一个任务上处理，但任务函数所能访问的键值分区状态始终会被约束在当前事件键值的范围内。 
 - keyBy () 方法接收一个用来指定分区键值(可以是多个)的参数，返回 一个KeyedStream。 
-- 流处理中没有groupBy,而是keyBy
+- **流处理中没有groupBy,而是keyBy**
 
 **KeySelector接口**
 
@@ -1500,7 +1504,7 @@ public class TransformBase_keyby {
 
 ##### 滚动聚合算子（Rolling Aggregation） 
 
-滚动聚合转换作用于 KeyedStream 上，它将生成一个包含聚合结果(例如求和、最小值、最大值等)的 DataStream。滚动聚合算子会对每一个遇到过的键值保存一个聚合结果。每当有新事件到来，该算子都会更新相应的聚合结果， 并将其 以事件的形式发送出 去。 滚动聚合虽然不需要用户自定义函数，但需要接收一个用于指定聚合目标字段的参数。 
+滚动聚合转换作用于 KeyedStream 上，它将生成一个包含聚合结果(例如求和、最小值、最大值等)的 DataStream。滚动聚合算子会对每一个遇到过的键值保存一个聚合结果。每当有新事件到来，该算子都会更新相应的聚合结果， 并将其 以事件的形式发送出 去。 **滚动聚合虽然不需要用户自定义函数，但需要接收一个用于指定聚合目标字段的参数。**
 
 这下面这些算子可以针对 KeyedStream 的每一个支流做滚动聚合。
 
@@ -1586,6 +1590,8 @@ SensorReading{id='sensor_1', tempStamp=1547718209, temperature=39.8}
 reduce 转换是滚动聚合转换的泛化。它将一个 ReduceFunction 应用在一个 KeyedStream 上，每个到 来事件都会和 reduce 结果进行一次组合，从而产生 一个新的 DataStream  ，reduce 转换不会改变数据类型， 因此输出流的类型会 永远和输入流保持一致。 
 
 KeyedStream → DataStream：一个分组数据流的聚合操作，合并当前的元素和上次聚合的结果，产生一个新的值，返回的流中包含每一次聚合的结果，而不是只返回最后一次聚合的最终结果。 
+
+> 也就是说reduce是一个增量聚合的过程。
 
 **ReduceFunction接口**
 
@@ -1677,9 +1683,9 @@ map,flatMap,filter,reducer都是操作一条数据流
 
 ##### Split 和 Select 
 
-split 转换是 union 转换的逆操作。它将输入流分割成**两条或多条类型和输入流相同**的输出流。每一个到来的事件都可以被发往零个、 一个或多个输出流。因此， split 也可以用来过滤或复制事件。 
+**split 转换是 union 转换的逆操作**。它将输入流分割成**两条或多条类型和输入流相同**的输出流。每一个到来的事件都可以被发往零个、 一个或多个输出流。因此， split 也可以用来过滤或复制事件。 
 
-DataStream.split() 方法接收一个 OutputSelector ，它用来定义如何将数据流的元素分配到不同的命名输出 ( named outpu t) 中。 OutputSelector 中定 义的 select() 方也会在每个输入事件到来时被调用，并随即返回 一个 java.lang.lterable[String] 对象 。 针对某记录所返回的一 系列 String 值指定了该记录需要被发往哪些输出流。 
+DataStream.split() 方法接收一个 OutputSelector ，它用来定义如何将数据流的元素分配到不同的命名输出 ( named outpu t) 中。 OutputSelector 中定 义的 select() 方也会在每个输入事件到来时被调用，并随即返回 一个 java.lang.lterable[String] 对象 。 **针对某记录所返回的一 系列 String 值指定了该记录需要被发往哪些输出流。**
 
 DataStream.split() 方法会返回 一个 SplitStream 对象，它提供的 select()方法可以让我们通过指定输出名称的方式从 SplitStream 中选择一条或多条流 。 
 
@@ -1757,7 +1763,6 @@ public class TransformBase_multTrans {
         DataStream<SensorReading> high = split.select("low","high");
 
         high.print();
-
 //        执行程序
         env.execute();
     }
@@ -1821,7 +1826,7 @@ DataStream.connect() 方法接收一个 DataStream 并返回 一个 ConnectedStr
 
 ![1614473695309](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/28/214907-132600.png)
 
-DataStream,DataStream → ConnectedStreams：连接两个保持他们类型的数据流，两个数据流被 Connect 之后，只是被放在了一个同一个流中，内部依然保持各自的数据和形式不发生任何变化，两个流相互独立。 
+DataStream,DataStream → ConnectedStreams：**连接两个保持他们类型的数据流**，两个数据流被 Connect 之后，只是被放在了一个同一个流中，内部依然保持各自的数据和形式不发生任何变化，两个流相互独立。 
 
 **CoMap,CoFlatMap**
 
@@ -2074,7 +2079,7 @@ Flink也有数据倾斜的时候，比如当前有数据量大概10亿条数据�
 
 ![1621850834398](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/144750-273094.png)
 
-所以在实际的工作中，出现这种情况比较好的解决方案就是rebalance(内部使用round robin方法将数据均匀打散)
+所以在实际的工作中，出现这种情况比较好的解决方案就是rebalance(内部使用**round robin**方法将数据均匀打散)
 
 ![1621850867161](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/25/144749-230543.png)
 

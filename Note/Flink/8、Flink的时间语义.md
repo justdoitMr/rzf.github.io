@@ -6,10 +6,13 @@
   - [EventTime 的引入](#eventtime-的引入)
   - [Watermark](#watermark)
     - [水位线（Watermark）](#水位线watermark)
+    - [Timestamp 分配和 Watermark 生成](#timestamp-分配和-watermark-生成)
     - [基本概念](#基本概念)
     - [watermark详解](#watermark详解)
     - [watermark的特点](#watermark的特点)
     - [watermark的传递](#watermark的传递)
+    - [ProcessFunction](#processfunction)
+    - [Watermark 处理](#watermark-处理)
     - [Watermark 的引入](#watermark-的引入)
       - [Assigner with periodic watermarks](#assigner-with-periodic-watermarks)
       - [Assigner with punctuated watermarks](#assigner-with-punctuated-watermarks)
@@ -265,6 +268,9 @@ ProcessFunction 和时间相关的功能主要有三点：
 #### Watermark 的引入 
 
 ![1614683588914](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202103/02/191311-558140.png)
+
+
+![20211204213146](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211204213146.png)
 
 Event Time的使用一定要指定数据源中的时间戳调用assignTimestampAndWatermarks方法，传入一个BoundedOutOfOrdernessTimestampExtractor，就可以指定watermark，在底层提取时间要求的是毫秒数。
 
