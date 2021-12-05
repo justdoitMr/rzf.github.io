@@ -551,7 +551,7 @@ mixed式statement 的升级版，一定程度上解决了，因为一些情况�
 
 ### 什么式Canal
 
-Canal 是用 java 开发的基于数据库增量日志解析，提供增量数据订阅&消费的中间件。目前，Canal 主要支持了 MySQL 的Binlog 解析，解析完成后才利用 Canal Client 来处理获得的相关数据。（数据库同步需要阿里的 Otter 中间件，基于 Canal）。
+Canal 是用 java 开发的基于数据库**增量日志解析**，提供增量数据订阅&消费的中间件。目前，Canal 主要支持了 MySQL 的Binlog 解析，解析完成后才利用 Canal Client 来处理获得的相关数据。（数据库同步需要阿里的 Otter 中间件，基于 Canal）。
 
 ### Canal 的工作原理
 
@@ -564,7 +564,7 @@ Canal 是用 java 开发的基于数据库增量日志解析，提供增量数�
 
 1. Maxwell 没有 Canal 那种 server+client 模式，只有一个 server 把数据发送到消息队列或 redis。
 2. Maxwell 有一个亮点功能，就是 Canal 只能抓取最新数据，对已存在的历史数据没有办法处理。而 Maxwell 有一个 bootstrap 功能，可以直接引导出完整的历史数据用于初始化，非常好用。
-3. Maxwell 不能直接支持 HA，但是它支持断点还原，即错误解决后重启继续上次点儿读取数据。
+3. Maxwell 不能直接支持 HA，但是它**支持断点还原**，即错误解决后重启继续上次点儿读取数据。
 4. Maxwell 只支持 json 格式，而 Canal 如果用 Server+client 模式的话，可以自定义格式。
 5. Maxwell 比 Canal 更加轻量级。
 
