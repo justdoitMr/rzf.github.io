@@ -154,6 +154,16 @@
 18. [Flink CEP](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%20CEP.md)
 19. [Flink专题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
 
+#### 基于Flink的实时数仓项目
+
+1. [项目说明](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/README.md)
+2. [数据格式说明](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E6%95%B0%E6%8D%AE%E6%A0%BC%E5%BC%8F%E8%AF%B4%E6%98%8E.md)
+3. [实时数仓_数据采集层_ODS](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E6%95%B0%E4%BB%93_%E6%95%B0%E6%8D%AE%E9%87%87%E9%9B%86%E5%B1%82_ODS.md)
+4. [实时数仓_DWD层数据](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E6%95%B0%E4%BB%93_DWD%E5%B1%82%E6%95%B0%E6%8D%AE.md)
+5. [数仓 DWM 层业务实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E6%95%B0%E4%BB%93%20DWM%20%E5%B1%82%E4%B8%9A%E5%8A%A1%E5%AE%9E%E7%8E%B0.md)
+6. [实时数仓DWS 层业务实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E6%95%B0%E4%BB%93DWS%20%E5%B1%82%E4%B8%9A%E5%8A%A1%E5%AE%9E%E7%8E%B0.md)
+7. [实时项目优化](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96.md)
+
 
 ### 分布式
 

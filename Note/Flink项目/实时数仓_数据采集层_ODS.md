@@ -99,8 +99,11 @@ presto:当场计算，基于内存速度快。
 
 kylin:预计算，提前计算好。做多维度分析(hive with cube),数据有多种维度，那么kylin会把所有的维度组合全部计算好。需要的时候直接拿去即可。
 
-
 ## 架构分析
+
+~~~ java
+bin/kafka-console-consumer.sh --bootstrap-server hadoop102:9092 --topic ods_base_log
+~~~
 
 ### 离线架构
 
