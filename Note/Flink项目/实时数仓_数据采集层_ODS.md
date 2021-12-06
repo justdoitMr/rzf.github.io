@@ -727,76 +727,70 @@ gmall-realtime模块下包说明：
 #### 曝光日志
 
 ~~~ java
-{"common":{
-        "ar":"110000",
-        "ba":"iPhone",
-        "ch":"Appstore",
-        "is_new":"θ",
-        "md":"iPhone8",
-        "mid":"mid26",
-        "os":"ios13.2.3",
-        "uid":"2",
-        "vc":"v2.1.134"
+{
+  "common": {                  -- 公共信息
+    "ar": "230000",              -- 地区编码
+    "ba": "iPhone",              -- 手机品牌
+    "ch": "Appstore",            -- 渠道
+    "md": "iPhone 8",            -- 手机型号
+    "mid": "YXfhjAYH6As2z9Iq", -- 设备id
+    "os": "iOS 13.2.9",          -- 操作系统
+    "uid": "485",                 -- 会员id
+    "vc": "v2.1.134"             -- app版本号
+  },
+"actions": [                     --动作(事件)  
+    {
+      "action_id": "favor_add",   --动作id
+      "item": "3",                   --目标id
+      "item_type": "sku_id",       --目标类型
+      "ts": 1585744376605           --动作时间戳
+    }
+  ]，
+  "displays": [
+    {
+      "displayType": "query",        -- 曝光类型
+      "item": "3",                     -- 曝光对象id
+      "item_type": "sku_id",         -- 曝光对象类型
+      "order": 1                        --出现顺序
     },
-    "displays":[
-        {
-            "displaytype":"query",
-            "item":"6",
-            "item_type":"sku_id",
-            "order":1,
-            "pos_id":4
-        },
-        {
-            "display_type":"query",
-            "item":"7",
-            "item_type":"sku_id",
-            "order":2,
-            "pos_id":4
-        },
-        {
-            "display_type":"recommend",
-            "item":"8",
-            "item_type":"sku_id",
-            "order":3,
-            "pos_id":2
-        },
-        {
-            "display_type":"query",
-            "item":"10",
-            "item_type":"sku_id",
-            "order":4,
-            "pos_id":2
-        },
-        {
-            "display_type":"promotion",
-            "item":"6",
-            "item_type":"sku_id",
-            "order":4,
-            "pos_id":2
-        },
-        {
-            "display_type":"recommend",
-            "item":"1",
-            "item_type":"sku_id",
-            "order":6,
-            "pos_id":3
-        },
-        {
-            "display_type":"promotion",
-            "item":"6",
-            "item_type":"sku_id",
-            "order":4,
-            "pos_id":2
-        }
-    ],
-    "page":{
-        "during_time":11578,
-        "item":"iphone11",
-        "item_type":"keyword",
-        "1ast_page_id":"search",
-        "page_id":"good_1ist"
+    {
+      "displayType": "promotion",
+      "item": "6",
+      "item_type": "sku_id",
+      "order": 2
     },
-    "ts":160827995
+    {
+      "displayType": "promotion",
+      "item": "9",
+      "item_type": "sku_id",
+      "order": 3
+    },
+    {
+      "displayType": "recommend",
+      "item": "6",
+      "item_type": "sku_id",
+      "order": 4
+    },
+    {
+      "displayType": "query ",
+      "item": "6",
+      "item_type": "sku_id",
+      "order": 5
+    }
+  ],
+  "page": {                       --页面信息
+    "during_time": 7648,        -- 持续时间毫秒
+    "item": "3",                  -- 目标id
+    "item_type": "sku_id",      -- 目标类型
+    "last_page_id": "login",    -- 上页类型
+    "page_id": "good_detail",   -- 页面ID
+    "sourceType": "promotion"   -- 来源类型
+  },
+"err":{                     --错误
+"error_code": "1234",      --错误码
+    "msg": "***********"       --错误信息
+},
+  "ts": 1585744374423  --跳入时间戳
 }
 ~~~
 
@@ -827,25 +821,28 @@ gmall-realtime模块下包说明：
 
 ~~~ java
 {
-    "common":{
-        "ar":"11989",
-        "ba":"xiaomi",
-        "ch":"oppo",
-        "is_new":"1",
-        "md":"xiaomi10P",
-        "mid":"mid15",
-        "os":"Android11.e",
-        "uid":"33",
-        "vc":"v2.1.132"
-    },
-    "start":{
-        "entry":"notice",
-        "loading_time":4886,
-        "openad_id":9,
-        "open_ad_ms":7434,
-        "open_ad_skip_ms":4279
-    },
-    "ts":168827994289
+  "common": {
+    "ar": "370000",
+    "ba": "Honor",
+    "ch": "wandoujia",
+    "md": "Honor 20s",
+    "mid": "eQF5boERMJFOujcp",
+    "os": "Android 11.0",
+    "uid": "76",
+    "vc": "v2.1.134"
+  },
+  "start": {   
+    "entry": "icon",         --icon手机图标  notice 通知   install 安装后启动
+    "loading_time": 18803,  --启动加载时间
+    "open_ad_id": 7,        --广告页ID
+    "open_ad_ms": 3449,    -- 广告总共播放时间
+    "open_ad_skip_ms": 1989   --  用户跳过广告时点
+  },
+"err":{                     --错误
+"error_code": "1234",      --错误码
+    "msg": "***********"       --错误信息
+},
+  "ts": 1585744304000
 }
 ~~~
 
@@ -868,3 +865,6 @@ gmall-realtime模块下包说明：
 }
 ~~~
 
+**业务数据封装**
+
+![20211128144735](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211128144735.png)
