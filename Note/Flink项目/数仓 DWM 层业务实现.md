@@ -311,7 +311,7 @@ UV，全称是 Unique Visitor，即独立访客，对于实时计算中，也可
 1. 确认添加了 CEP 的依赖包
 2. 设定时间语义为**事件时间**并指定数据中的 ts 字段为事件时间
 
-由于这里涉及到时间的判断，所以必须设定数据流的 EventTime 和水位线。这里没有设置延迟时间，实际生产情况可以视乱序情况增加一些延迟。
+**由于这里涉及到时间的判断，所以必须设定数据流的 EventTime 和水位线。这里没有设置延迟时间，实际生产情况可以视乱序情况增加一些延迟。**
 
 增加延迟把 forMonotonousTimestamps 换为 forBoundedOutOfOrderness 即可。
 
@@ -322,7 +322,7 @@ env.setStreamTimeCharacteristic(TimeCharacteristic. EventTime)
 
 根据日志数据的 mid 进行分组
 
-因为用户的行为都是要基于相同的 Mid 的行为进行判断，所以要根据 Mid 进行分组。
+##### 因为用户的行为都是要基于相同的 Mid 的行为进行判断，所以要根据 Mid 进行分组。
 
 ```java
   //TODO 5.将模式序列作用到流上
@@ -331,7 +331,8 @@ env.setStreamTimeCharacteristic(TimeCharacteristic. EventTime)
                         , pattern);
 ```
 
-配置 CEP 表达式
+##### 配置 CEP 表达式
+
 ```java
  //TODO 4.定义模式序列
         Pattern<JSONObject, JSONObject> pattern = Pattern.<JSONObject>begin("start").where(new SimpleCondition<JSONObject>() {
@@ -362,7 +363,7 @@ env.setStreamTimeCharacteristic(TimeCharacteristic. EventTime)
                 .within(Time.seconds(10));
 ```
 
-根据表达式筛选流
+##### 根据表达式筛选流
 
 ```java
  //TODO 5.将模式序列作用到流上
@@ -419,17 +420,17 @@ Flink一共又4中join。
 
 ![20211202091446](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211202091446.png)
 
-Interval不需要开床就可以join。
+Interval不需要开窗就可以join。
 
 带开创函数的join操作
 
 ![20211202091843](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211202091843.png)
 
-join:连接的其他数据流
-whrere:第一个数据流的键
-equalTo:第二个数据流的key.
-window:开窗
-apply:join函数，也就是连接函数。
+- join:连接的其他数据流
+- whrere:第一个数据流的键
+- equalTo:第二个数据流的key.
+- window:开窗
+- apply:join函数，也就是连接函数。
 
 ### 带窗口的join操作
 
@@ -437,7 +438,7 @@ apply:join函数，也就是连接函数。
 
 ![20211202092208](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211202092208.png)
 
-如果Flink使用的是滚动窗口，那么就和spark streaming是一样的。先收集完窗口中的数据，然后左统一计算。也就是说赞一个批次，处理完后向下传输。
+如果Flink使用的是滚动窗口，那么就和spark streaming是一样的。先收集完窗口中的数据，然后做统一计算。也就是说赞一个批次，处理完后向下传输。可以说也是一种微批次处理。
 
 这种方式下没有重复的数据，因为窗口不会发生重叠。
 
@@ -559,9 +560,9 @@ orangeStream
 
 ![20211202090203](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211202090203.png)
 
-订单表是一个全部的订单信息，里面存储的是用户订单信息，在下单的时候，一个用户可以一次下好多订单，所以订单表 中的一个用户可能对应订单明细表中的多条记录，这两张表之间是一对多的关系。只有订单表我们无法去关联sku(商品表的)，因为订单表里面并没有sku_id。所以首先需要把订单表和订单明细表关联。
+订单表是一个全部的订单信息，里面存储的是用户订单信息，在下单的时候，一个用户可以一次下好多订单，**所以订单表 中的一个用户可能对应订单明细表中的多条记录，这两张表之间是一对多的关系**。只有订单表我们无法去关联sku(商品表的)，因为订单表里面并没有sku_id。所以首先需要把订单表和订单明细表关联。
 
-这里我们使用双流join，使用connect非常的麻烦，需要我们自己去维护状态。
+这里我们使用双流join，使用connect非常的麻烦，并且connect每一次只能关联两个数据流，需要我们自己去维护状态。
 
 关联两张实时表之后，我们需要去hbase中查找所有维度表，然后和事实表进行关联，有多少个维度表，就要关联多少个维度表。
 
@@ -855,7 +856,7 @@ public class OrderWide {
 
 维度关联实际上就是在**流中查询存储在 HBase 中的数据表**。但是即使通过**主键**的方式查询，HBase 速度的查询也是不及流之间的 join。**外部数据源的查询常常是流式计算的性能瓶颈**，所以咱们再这个基础上还有进行一定的优化。
 
-因为如果是单并行度，hbase每一秒如果从缓存中查询的话，耗费时间大概13毫秒，也就是说疫苗中大概查询80次，显然很慢，如果仅仅提高并行度，而不提高单并行度每秒处理的数据，也是不行的，所以我们首先提高单并行度每一秒处理的数据量。
+因为如果是单并行度，hbase每一秒如果从缓存中查询的话，耗费时间大概13毫秒，也就是说一秒中大概查询80次，显然很慢，如果仅仅提高并行度，而不提高单并行度每秒处理的数据，也是不行的，所以我们首先提高单并行度每一秒处理的数据量。
 
 #### 先实现基本的维度查询功能
 
@@ -969,7 +970,7 @@ public class JdbcUtil {
 
 我们在上面实现的功能中，直接查询的 HBase,hbase中的数据是存储在hdfs上。外部数据源的查询常常是流式计算的性能瓶颈，所以我们需要在上面实现的基础上进行一定的优化。我们这里使用旁路缓存。
 
-旁路缓存模式是一种非常常见的按需分配缓存的模式。如下图，任何请求优先访问缓存，缓存命中，直接获得数据返回请求。如果未命中则，查询数据库，同时把结果写入缓存以备后续请求使用。
+旁路缓存模式是一种非常常见的**按需分配**缓存的模式。如下图，任何请求优先访问缓存，缓存命中，直接获得数据返回请求。如果未命中则，查询数据库，同时把结果写入缓存以备后续请求使用。
 
 缓存我们使用的是Rides，是基于内存的，速度肯定比基于hdfs的Hbase快很多。
 
