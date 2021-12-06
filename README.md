@@ -165,6 +165,10 @@
 7. [实时项目优化](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96.md)
 
 
+#### 离线数仓
+
+1. [离线数仓数据采集模块](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E6%95%B0%E6%8D%AE%E9%87%87%E9%9B%86%E6%A8%A1%E5%9D%97.md)
+
 ### 分布式
 
 1. [分布式基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3.md)
