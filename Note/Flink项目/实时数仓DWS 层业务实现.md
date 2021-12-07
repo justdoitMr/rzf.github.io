@@ -78,8 +78,9 @@
 
 上面五个需求，涉及到三个主题，而且每一个主题数据都是不一样的：
 
-- page_log
-- 
+- dwd_page_log
+- dwm_unique_visit
+- dwm_user_jump_detail
 
 #### 需求分析与思路
 
@@ -529,7 +530,7 @@ common模块里面的数据
 6. 关联维度补充数据
 7. 写入 ClickHouse
 
-![1638575393472](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1638575393472.png)
+![1638575393472](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/07/084402-390077.png)
 
 如何分析：
 
@@ -565,6 +566,8 @@ common模块里面的数据
 #### 功能实现
 
 ##### 封装商品统计实体类 ProductStats
+
+在这里需要注意一下，商品宽表实体类的创建使用的是建造者模式，，因为实体里面的字段很多，如果普通的赋值，很麻烦，所以使用建造者模式，可以设置默认值。
 
 ~~~ java
 /**
@@ -1076,15 +1079,11 @@ order by (stt,edt,sku_id );
 
 ~~~
 
-
-
-
-
 ### DWS 层地区主题表(FlinkSQL)
 
 ![1638584878434](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/04/102759-91728.png)
 
-地区主题主要是反映各个地区的销售情况。从业务逻辑上地区主题比起商品更加简单，业务逻辑也没有什么特别的就是做一次轻度聚合然后保存，所以在这里我们体验一下使用FlinkSQL，来完成该业务。
+地区主题宽表主要是反映各个地区的销售情况。从业务逻辑上地区主题比起商品更加简单，业务逻辑也没有什么特别的就是做一次轻度聚合然后保存，所以在这里我们体验一下使用FlinkSQL，来完成该业务。
 
 #### 需求分析与思路
 
