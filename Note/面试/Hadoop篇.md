@@ -1,6 +1,93 @@
+
+<!-- TOC -->
+
+- [Hadoop篇](#hadoop篇)
+  - [什么是Hadoop,介绍以下Hadoop](#什么是hadoop介绍以下hadoop)
+  - [介绍下Hadoop和Spark的差异](#介绍下hadoop和spark的差异)
+  - [Hadoop常见的版本有哪些，分别有哪些特点，你一般是如何进行选择的?](#hadoop常见的版本有哪些分别有哪些特点你一般是如何进行选择的)
+  - [单介绍Hadoop1.0，2.0，3.0的区别吗？](#单介绍hadoop102030的区别吗)
+  - [mapreduce和hdfs是一体的吗，有什么关系](#mapreduce和hdfs是一体的吗有什么关系)
+  - [简单介绍一下搭建Hadoop集群的流程](#简单介绍一下搭建hadoop集群的流程)
+  - [HDFS组成架构](#hdfs组成架构)
+  - [HDFS 中的 block 默认保存几份？](#hdfs-中的-block-默认保存几份)
+  - [HDFS 默认 BlockSize 是多大？](#hdfs-默认-blocksize-是多大)
+  - [数据切片与mapTask并行度决定机制](#数据切片与maptask并行度决定机制)
+  - [如何判定一个job的map和reduce的数量?](#如何判定一个job的map和reduce的数量)
+  - [文件大小设置，增大有什么影响？](#文件大小设置增大有什么影响)
+  - [说下Hadoop常用的端口号](#说下hadoop常用的端口号)
+  - [HDFS在上传⽂件的时候，如果其中⼀个块突然损坏了怎么办？](#hdfs在上传件的时候如果其中个块突然损坏了怎么办)
+  - [NameNode的作⽤，NameNode在启动的时候会做哪些操作？](#namenode的作namenode在启动的时候会做哪些操作)
+  - [介绍一下HDFS读写流程](#介绍一下hdfs读写流程)
+  - [HDFS的数据压缩算法](#hdfs的数据压缩算法)
+  - [NameNode与SecondaryNameNode 的区别与联系？](#namenode与secondarynamenode-的区别与联系)
+  - [为什么要引入secondary namenode](#为什么要引入secondary-namenode)
+  - [secondary namenode工作机制](#secondary-namenode工作机制)
+  - [DataNode工作机制](#datanode工作机制)
+  - [掉线时限参数设置](#掉线时限参数设置)
+  - [HAnamenode 是如何工作的?](#hanamenode-是如何工作的)
+  - [MapReduce](#mapreduce)
+  - [MapReduce的优缺点](#mapreduce的优缺点)
+  - [简单说⼀下hadoop的map-reduce编程模型](#简单说下hadoop的map-reduce编程模型)
+  - [MapReduce编程规范](#mapreduce编程规范)
+  - [mapreduce有几种join以及实现方法](#mapreduce有几种join以及实现方法)
+    - [reduce side join](#reduce-side-join)
+    - [map side join](#map-side-join)
+    - [SemiJoin](#semijoin)
+  - [MapReduce工作原理](#mapreduce工作原理)
+  - [ReduceTask 并行度决定机制](#reducetask-并行度决定机制)
+  - [描述mapReduce有几种排序及排序发生的阶段](#描述mapreduce有几种排序及排序发生的阶段)
+  - [描述mapReduce中shuffle阶段的工作流程，如何优化shuffle阶段](#描述mapreduce中shuffle阶段的工作流程如何优化shuffle阶段)
+  - [分区](#分区)
+  - [哪些场景才能使⽤Combiner呢？](#哪些场景才能使combiner呢)
+  - [MapReduce 2.0 容错性](#mapreduce-20-容错性)
+  - [如果没有定义partitioner，那数据在被送达reducer前是如何被分区的？](#如果没有定义partitioner那数据在被送达reducer前是如何被分区的)
+  - [MapReduce 出现单点负载多大，怎么负载平衡？](#mapreduce-出现单点负载多大怎么负载平衡)
+  - [MapReduce 怎么实现 TopN？](#mapreduce-怎么实现-topn)
+  - [如何使用mapReduce实现两个表的join?](#如何使用mapreduce实现两个表的join)
+  - [序列化](#序列化)
+  - [hadoop的TextInputFormat作⽤是什么，如何⾃定义实现？](#hadoop的textinputformat作是什么如何定义实现)
+  - [Hadoop可以自定义哪些输入类型](#hadoop可以自定义哪些输入类型)
+  - [OutputFormat 数据输出](#outputformat-数据输出)
+  - [介绍一下MapReduce的Shuffle过程，并给出Hadoop优化的方案(包括：压缩、小文件、集群的优化)](#介绍一下mapreduce的shuffle过程并给出hadoop优化的方案包括压缩小文件集群的优化)
+  - [hadoop小文件问题](#hadoop小文件问题)
+    - [HDFS小文件影响](#hdfs小文件影响)
+    - [如何解决小文件](#如何解决小文件)
+      - [Hadoop Archive](#hadoop-archive)
+      - [Sequence file](#sequence-file)
+      - [ConbinFileInputFormat](#conbinfileinputformat)
+      - [开启jvm重用](#开启jvm重用)
+  - [为什么会产生 yarn,它解决了什么问题，有什么优势？](#为什么会产生-yarn它解决了什么问题有什么优势)
+  - [Yarn架构](#yarn架构)
+  - [Yarn工作机制](#yarn工作机制)
+  - [介绍一下 Yarn 的 Job 提交流程](#介绍一下-yarn-的-job-提交流程)
+  - [介绍下Yarn默认的调度器，调度器分类，以及它们之间的区别](#介绍下yarn默认的调度器调度器分类以及它们之间的区别)
+  - [了解过哪些Hadoop的参数优化](#了解过哪些hadoop的参数优化)
+  - [了解过Hadoop的基准测试吗?](#了解过hadoop的基准测试吗)
+  - [你是怎么处理Hadoop宕机的问题的?](#你是怎么处理hadoop宕机的问题的)
+  - [你是如何解决Hadoop数据倾斜的问题的，能举个例子吗?](#你是如何解决hadoop数据倾斜的问题的能举个例子吗)
+  - [map-reduce程序运⾏的时候会有什么⽐较常见的问题？](#map-reduce程序运的时候会有什么较常见的问题)
+  - [Hadoop性能调优？](#hadoop性能调优)
+  - [MapReduce 2.0 容错性](#mapreduce-20-容错性-1)
+  - [MapReduce推测执行算法及原理](#mapreduce推测执行算法及原理)
+  - [优化](#优化)
+    - [MapReduce跑得慢的原因？](#mapreduce跑得慢的原因)
+    - [MapReduce优化方法](#mapreduce优化方法)
+    - [数据倾斜](#数据倾斜)
+    - [常用调优参数](#常用调优参数)
+  - [MapTask & ReduceTask 源码解析](#maptask--reducetask-源码解析)
+    - [MapTask 源码](#maptask-源码)
+    - [ReduceTask 源码](#reducetask-源码)
+  - [MapReduce 开发总结](#mapreduce-开发总结)
+  - [数据压缩](#数据压缩)
+    - [MR 支持的压缩编码](#mr-支持的压缩编码)
+    - [压缩方式的选择](#压缩方式的选择)
+    - [压缩位置的选择](#压缩位置的选择)
+
+<!-- /TOC -->
+
 ## Hadoop篇
 
-### 什么是Hadoop
+### 什么是Hadoop,介绍以下Hadoop
 
 Hadoop是一个能够对大量数据进行分布式处理的计算软件框架。以一种可靠、高效、可伸缩的方式进行数据处理。主要包括三部分内容：Hdfs，MapReduce，Yarn。
 
@@ -54,6 +141,12 @@ Hadoop2.0即为克服Hadoop1.0中的不足，提出了以下关键特性：
 4. Yarn基于cgroup 的内存和磁盘 I/O 隔离
 5. Yarn container resizing
 
+### mapreduce和hdfs是一体的吗，有什么关系
+
+简单来说,MapReduce是一种变编程模型，是一种实现分布式计算的方法，我们可以通过这个模型，去实现分布式计算的功能，有了这个编程模型，对于我们程序员来讲，就不需要过于的关注分布式问题，比如网络，故障，一致性，资源的分配以及调度问题，反而可以让我们更加的关注我们的业务问题，所以有了这个模型，大大方便我们实现分布式程序。
+
+hdfs简单来说是一个分布式的存储系统，是用来存储我们的数据的，存储再hdfs上面的数据都存在副本机制，这样可以保证我们的数据的安全性。这两者不是一体的，但是是不可分割的关系，通常我们会将数据存储再hdfs上面供我们的mapreduce程序分析使用。
+
 ### 简单介绍一下搭建Hadoop集群的流程
 
 在正式搭建之前，我们需要准备以下6步：
@@ -79,6 +172,7 @@ Hadoop2.0即为克服Hadoop1.0中的不足，提出了以下关键特性：
 ![1633162793938](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/161955-691731.png)
 
 架构主要由四个部分组成，分别为**HDFS Client、NameNode、DataNode和Secondary NameNode**。下面我们分别介绍这四个组成部分。
+
 **Client：就是客户端。**
 
 - 文件切分，文件上传HDFS的时候，Client将文件切分成一个一个的Block，然后进行存储；
@@ -94,7 +188,7 @@ Hadoop2.0即为克服Hadoop1.0中的不足，提出了以下关键特性：
 - 配置副本策略；
 - 处理客户端读写请求。
 - 主要用来记录文件的元数据信息（文件名，副本数，权限，文件块信息，位置）。
-- 一个NameNode会存在单点故障
+- **一个NameNode会存在单点故障**
 
 **DataNode：就是Slave。NameNode下达命令，DataNode执行实际的操作。**
 
@@ -119,12 +213,12 @@ Hadoop2.0即为克服Hadoop1.0中的不足，提出了以下关键特性：
 ### HDFS 默认 BlockSize 是多大？
 
 **分块：**
-HDFS存储系统中，引⼊了⽂件系统的分块概念（block），块是存储的最⼩单位，HDFS1.0定义其⼤⼩为64MB。与单磁盘⽂件系统相似，存储在 HDFS上的⽂件均存储为多个块，不同的是，如果某⽂件⼤⼩没有到达64MB，该⽂件也不会占据整个块空间。在分布式的HDFS集群上，Hadoop系统 保证⼀个块存储在⼀个datanode上。
+HDFS存储系统中，引⼊了⽂件系统的分块概念（block），**块**是存储的最⼩单位，HDFS1.0定义其⼤⼩为64MB。与单磁盘⽂件系统相似，存储在 HDFS上的⽂件均存储为多个块，不同的是，如果某⽂件⼤⼩没有到达64MB，该⽂件也不会占据整个块空间。在分布式的HDFS集群上，Hadoop系统 保证⼀个块存储在⼀个datanode上。
 
-HDFS的namenode只存储整个⽂件系统的元数据镜像，这个镜像由配置dfs.name.dir指定，datanode则存有⽂件的metainfo和具体的分块，存储路径由dfs.data.dir指定。
+**HDFS的namenode只存储整个⽂件系统的元数据镜像**，这个镜像由配置dfs.name.dir指定，datanode则存有⽂件的metainfo和具体的分块，存储路径由dfs.data.dir指定。
 
 **分片：**
-hadoop的作业在提交过程中，需要把具体的输⼊进⾏分⽚。具体的分⽚细节由InputSplitFormat指定。分⽚的规则为
+hadoop的作业在提交过程中，需要把具体的输⼊进⾏分⽚。具体的分⽚细节由**InputSplitFormat**指定。分⽚的规则为
 
 FileInputFormat.class中的getSplits()⽅法指定：
 
@@ -150,17 +244,21 @@ Math.max(minSize, Math.min(goalSize, blockSize));
    4. 开始切，形成第1个切片：ss.txt—0:128M 第2个切片ss.txt—128:256M 第3个切片ss.txt—256M:300M（每次切片时，都要判断切完剩下的部分是否大于块的1.1倍，不大于1.1倍就划分一块切片）
    5. 将切片信息写到一个切片规划文件中
    6. 整个切片的核心过程在getSplit()方法中完成。
-   7. 数据切片只是在逻辑上对输入数据进行分片，并不会再磁盘上将其切分成分片进行存储。InputSplit只记录了分片的元数据信息，比如起始位置、长度以及所在的节点列表等。
+   7. 数据切片只是在**逻辑**上对输入数据进行分片，并不会再磁盘上将其切分成分片进行存储。InputSplit只记录了分片的元数据信息，比如起始位置、长度以及所在的节点列表等。
    8. **注意：block是HDFS上物理上存储的存储的数据，切片是对数据逻辑上的划分。**
    9. 提交切片规划文件到yarn上，yarn上的MrAppMaster就可以根据切片规划文件计算开启maptask个数。
 
+![20211208185455](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211208185455.png)
+
 > 在hadoop1.x中默认是64M，在hadoop2.x中默认是128M。
+> 
+> 切片规划的配置文件上传到yarn上即可，因为切片是逻辑上的切片，并不会对物理数据执行真正的切片。
 
 ### 数据切片与mapTask并行度决定机制
 
-1. 一个Job的Map阶段并行度由客户端在提交Job时的切片数决定
+1. 一个Job的**Map阶段并行度**由客户端在提交Job时的**切片数决定**。
 2. 每一个Split切片分配一个MapTask并行实例处理
-3. 默认情况下，切片大小=BlockSize
+3. 默认情况下，切片大小=BlockSize(128m)
 4. 切片时不考虑数据集整体，而是逐个针对每一个文件单独切片
 
 **FileInputFormat 切片机制**
@@ -188,14 +286,15 @@ mapreduce.input.fileinputformat.split.maxsize= Long.MAXValue 默认值Long.MAXVa
 - map数量：splitSize=max{minSize,min{maxSize,blockSize}}，map的数量由切片数量决定。
   - map数量由处理的数据分成的block数量决定default_num = total_size / split_size;
 - reduce数量
-  - reduce的数量job.setNumReduceTasks(x);x 为reduce的数量。不设置的话默认为 1。
+  - reduce的数量job.setNumReduceTasks(x);
+  - x 为reduce的数量。不设置的话默认为 1。
 
 ### 文件大小设置，增大有什么影响？
 
 HDFS中的文件在物理上是分块存储（block），块的大小可以通过配置参数( dfs.blocksize)来规定，默认大小在hadoop2.x版本中是128M，老版本中是64M。
 **思考：为什么块的大小不能设置的太小，也不能设置的太大？**
 
-- HDFS的块比磁盘的块大，其目的是为了最小化寻址开销。如果块设置得足够大，从磁盘传输数据的时间会明显大于定位这个块开始位置所需的时间。 因而，**传输一个由多个块组成的文件的时间取决于磁盘传输速率**。
+- HDFS的块比磁盘的块大，**其目的是为了最小化寻址开销**。如果块设置得足够大，从磁盘传输数据的时间会明显大于定位这个块开始位置所需的时间。 因而，**传输一个由多个块组成的文件的时间取决于磁盘传输速率**。
 - 如果寻址时间约为10ms，而传输速率为100MB/s，为了使寻址时间仅占传输时间的1%，我们要将块大小设置约为100MB。默认的块大小128MB。
 - 块的大小：10ms×100×100M/s = 100M，如图
 
@@ -321,6 +420,19 @@ Hadoop中常用的压缩算法有bzip2、gzip、lzo、snappy，其中lzo、snapp
 
 ### NameNode与SecondaryNameNode 的区别与联系？
 
+
+**Fsimage**
+
+Fsimage文件是HDFS文件系统元数据的一个永久性检查点，其中包含HDFS文件系统的所有目录和文件inode的序列化信息。
+
+**Edits文件**：编辑日志文件
+
+存放HDFS文件系统的所有更新操作的逻辑，文件系统客户端执行的所有写操作首先会记录大Edits文件中。
+
+**Seen_txid**
+
+文件保存是一个数字，就是最后一个edits_的数字。
+
 **区别**
 
 1. NameNode负责管理整个文件系统的元数据，以及每一个路径（文件）所对应的数据块信息。
@@ -410,12 +522,26 @@ Hadoop中常用的压缩算法有bzip2、gzip、lzo、snappy，其中lzo、snapp
 
 ![1633163094225](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/162454-597162.png)
 
-ZKFailoverController主要职责
 
-1. 健康监测：周期性的向它监控的NN发送健康探测命令，从而来确定某个NameNode是否处于健康状态，如果机器宕机，心跳失败，那么zkfc就会标记它处于一个不健康的状态。
-2. 会话管理：如果NN是健康的，zkfc就会在zookeeper中保持一个打开的会话，如果NameNode同时还是Active状态的，那么zkfc还会在Zookeeper中占有一个类型为短暂类型的znode，当这个NN挂掉时，这个znode将会被删除，然后备用的NN，将会得到这把锁，升级为主NN，同时标记状态为Active。
-3. 当宕机的NN新启动时，它会再次注册zookeper，发现已经有znode锁了，便会自动变为Standby状态，如此往复循环，保证高可靠，需要注意，目前仅仅支持最多配置2个NN。
-4. master选举：如上所述，通过在zookeeper中维持一个短暂类型的znode，来实现抢占式的锁机制，从而判断那个NameNode为Active状态
+在一个典型的HA集群中，每个NameNode是一***立的服务器。在任一时刻，只有一个NameNode处于active状态，另一个处于standby状态。其中，active状态的NameNode负责所有的客户端操作，standby状态的NameNode处于从属地位，维护着数据状态，随时准备切换。
+
+两个NameNode为了数据同步，会通过一组称作JournalNodes的独立进程进行相互通信。当active状态的NameNode的命名空间有任何修改时，会告知大部分的JournalNodes进程。standby状态的NameNode有能力读取JNs中的变更信息，并且一直监控edit log的变化，把变化应用于自己的命名空间。standby可以确保在集群出错时，命名空间状态已经完全同步。
+
+为了确保快速切换，standby状态的NameNode有必要知道集群中所有数据块的位置。为了做到这点，所有的datanodes必须配置两个NameNode的地址，发送数据块位置信息和心跳给他们两个。
+
+对于HA集群而言，确保同一时刻只有一个NameNode处于active状态是至关重要的。否则，两个NameNode的数据状态就会产生分歧，可能丢失数据，或者产生错误的结果。为了保证这点，JNs必须确保同一时刻只有一个NameNode可以向自己写数据。
+ZKFC
+
+ZKFC即ZKFailoverController，作为独立进程存在，负责控制NameNode的主备切换，ZKFC会监测NameNode的健康状况，当发现Active NameNode出现异常时会通过Zookeeper集群进行一次主备选举，完成Active和Standby状态的切换。
+HealthMonitor
+
+定时调用NameNode的HAServiceProtocol RPC接口(monitorHealth和getServiceStatus)，监控NameNode的健康状态并向ZKFC反馈。
+ActiveStandbyElector
+
+接收ZKFC的选举请求，通过Zookeeper自动完成主备选举，选举完成后回调ZKFC的主备切换方法对NameNode进行Active和Standby状态的切换。
+JouranlNode集群
+
+共享存储系统，负责存储HDFS的元数据，Active NameNode(写入)和Standby NameNode(读取)通过共享存储系统实现元数据同步，在主备切换过程中，新的Active NameNode必须确保元数据同步完成才能对外提供服务。
 
 > NameNode的HA⼀个备⽤，⼀个⼯作，且⼀个失败后，另⼀个被激活。他们通过journal node来实现共享数据。
 
@@ -500,6 +626,51 @@ ZKFailoverController主要职责
 
 整个程序需要一个Drvier来进行提交，提交的是一个描述了各种必要信息的job对象
 
+### mapreduce有几种join以及实现方法
+
+#### reduce side join
+
+reduce side join是所有join中用时最长的一种join，这种方法能够适用内连接、left外连接、right外连接、full外连接和反连接等所有的join方式。reduce side join不仅可以对小数据进行join，也可以对大数据进行join，**但是大数据会占用大量的集群内部网络IO，因为所有数据最终要写入到reduce端进行join**。如果要做join的数据量非常大的话，就不得不用reduce join了。
+
+reduce side join是一种最简单的join方式，其主要思想如下： 
+
+- 在map阶段，map函数同时读取两个文件File1和File2，为了区分两种来源的key/value数据对，对每条数据打一个标签（tag）,比如：tag=0表示来自文件File1，tag=2表示来自文件File2。即：map阶段的主要任务是对不同文件中的数据打标签,然后对数据进行按照数据的key进行分组处理。
+
+- 在reduce阶段，reduce函数获取key相同的来自File1和File2文件的value list， 然后对于同一个key，对File1和File2中的数据进行join（笛卡尔乘积）。即：reduce阶段进行实际的连接操作。
+
+> 内连接：如果带有标签‘A’和‘B’的数据都存在，遍历并连接这些数据，然后输出 。
+> 
+> 右边的数据如果存在就与左边连接，否则将右边的字段都赋null，只输出左边 。
+> 
+> 右外连接：与左外连接类似，左边为空就将左边赋值null，只输出右边 。
+> 
+> 全外连接：这个要相对复杂点，首先输出A和B都不为空的，然后输出某一边为空的 。
+> 
+> 输出A和B没有共同foreign key的值 。
+
+
+#### map side join
+
+之所以存在reduce side join，是因为在map阶段不能获取所有需要的join字段，即：同一个key对应的字段可能位于不同map中。
+
+Reduce side join是非常低效的，因为shuffle阶段要进行大量的数据传输。 
+
+Map side join是针对以下场景进行的优化：两个待连接表中，有一个表非常大，而另一个表非常小，以至于小表可以直接存放到内存中。这样，我们可以将小表复制多份，让每个map task内存中存在一份（比如存放到hash table中），然后只扫描大表：对于大表中的每一条记录key/value，在hash table中查找是否有相同的key的记录，如果有，则连接后输出即可。
+
+- left outer join的左表必须是大表    
+- right outer join的右表必须是大表
+- inner join左表或右表均可以作为大表
+- ull outer join不能使用mapjoin；
+
+mapjoin支持小表为子查询，使用mapjoin时需要引用小表或是子查询时，需要引用别名；在mapjoin中，可以使用不等值连接或者使用or连接多个条件；    
+
+
+#### SemiJoin
+
+SemiJoin，也叫半连接，是从分布式数据库中借鉴过来的方法。它的产生动机是：对于reduce side join，跨机器的数据传输量非常大，这成了join操作的一个瓶颈，如果能够在map端过滤掉不会参加join操作的数据，则可以大大节省网络IO。 
+
+实现方法很简单：选取一个小表，假设是File1，将其参与join的key抽取出来，保存到文件File3中，File3文件一般很小，可以放到 内存中。在map阶段，使用DistributedCache将File3复制到各个TaskTracker上，然后将File2中不在File3中的 key对应的记录过滤掉，剩下的reduce阶段的工作与reduce side join相同。
+
 ### MapReduce工作原理
 
 **Map阶段**
@@ -512,7 +683,7 @@ ZKFailoverController主要职责
 
 **Collect收集阶段**：在用户编写map()函数中，当数据处理完成后，一般会调用OutputCollector.collect()输出结果。在该函数内部，它会将生成的key/value分区（调用Partitioner），并写入一个环形内存缓冲区中。分区是根据key的hash()进行分区操作，可以自定义分区操作。
 
-**Spill阶段**：即“溢写”，当环形缓冲区满后，MapReduce会将数据写到本地磁盘上，生成一个临时文件。需要注意的是，将数据写入本地磁盘之前，先要对数据进行一次本地排序，并在必要时对数据进行合并、压缩等操作。在文件写出阶段会生成多个文件，文件是按照分区进行划分，每一个文件相当于一个分区。
+**Spill阶段**：即“溢写”，当环形缓冲区满后(默认是达到80%后开始发生溢写)，MapReduce会将数据写到本地磁盘上，生成一个临时文件。需要注意的是，将数据写入本地磁盘之前，先要对数据进行一次本地排序（也就是每次溢写出一个文件之前，都会对文件进行排序），并在必要时对数据进行合并、压缩等操作。在文件写出阶段会生成多个文件（每一个文件都有序），文件是按照分区进行划分，每一个文件相当于一个分区。
 
 1. 利用快速排序算法对缓存区内的数据进行排序，排序方式是，先按照分区编号Partition 进行排序，然后按照 key 进行排序。这样，经过排序后，数据以分区为单位聚集在一起，且同一分区内所有数据按照 key 有序。
 2. 按照分区编号由小到大依次将每个分区中的数据写入任务工作目录下的临时文件 output/spillN.out（N 表示当前溢写次数）中。如果用户设置了 Combiner，则写入文件之前，对每个分区中的数据进行一次聚集操作。
@@ -799,17 +970,25 @@ MapReduce数据读取并写入HDFS流程实际上是有10步：
 
 #### 如何解决小文件
 
-针对小文件，我们应该如何处理呢？
+##### Hadoop Archive
 
-**数据输入小文件处理**
+Hadoop Archive或者HAR，是一个高效地将小文件放入HDFS块中的文件存档工具，它能够将多个小文件打包成一个HAR文件，这样在减少namenode内存使用的同时，仍然允许对文件进行透明的访问。  
 
-- 合并小文件：对小文件进行归档（Har）、自定义Inputformat将小文件存储成SequenceFile文件。
-  - Hadoop Archive: 是一个高效地将小文件放入HDFS块中的文件存档工具，它能够将多个小文件打包成一个HAR文件，这样在减少namenode内存使用的同时。
-  - Sequence file： sequence file由一系列的二进制key/value组成，如果为key小文件名，value为文件内容，则可以将大批小文件合并成一个大文件。
-- 采用ConbinFileInputFormat来作为输入，解决输入端大量小文件场景，把多个小文件逻辑上划分到一个大文件中。
+##### Sequence file
+
+Sequence file： sequence file由一系列的二进制key/value组成，如果为key小文件名，value为文件内容，则可以将大批小文件合并成一个大文件。
+
+##### ConbinFileInputFormat
+
+采用ConbinFileInputFormat来作为输入，解决输入端大量小文件场景，把多个小文件逻辑上划分到一个大文件中。
+
+##### 开启jvm重用
+
 - 对于大量小文件Job，可以开启JVM重用。
   - JVM重用原理：一个Map运行在一个JVM上，开启重用的话，该Map在JVM上运行完毕后，JVM继续运行其他Map。
   - 具体设置：mapreduce.job.jvm.numtasks值在10-20之间。
+
+  再spark中就没有jvm重用，因为spark是线程级别调度，而mapreduce是进程级别调度。
 
 **Map阶段**
 
@@ -888,7 +1067,7 @@ MapReduce数据读取并写入HDFS流程实际上是有10步：
 
 这里一共也有两个版本，分别是详细版和简略版，具体使用哪个还是分不同的场合。正常情况下，将简略版的回答清楚了就很OK，详细版的最多做个内容的补充：
 
-![1633160796432](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633160796432.png)
+![1633160796432](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/08/195240-108962.png)
 
 **简略版步骤**
 
@@ -973,7 +1152,7 @@ Hadoop作业调度器主要有三种：FIFO、Capacity Scheduler和Fair Schedule
 
 **容量调度器（Capacity Scheduler）**
 
-![1633678392473](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633678392473.png)
+![1633678392473](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/08/200659-397524.png)
 
 - 支持多个队列，每个队列可配置一定的资源量，每个队列采用FIFO调度策略，既一个队列内部还是先进先出。
 - 为了防止同一个用户的作业独占队列中的资源，该调度器会对同一用户提交的作业所占资源量进行限定。
@@ -991,7 +1170,7 @@ Hadoop作业调度器主要有三种：FIFO、Capacity Scheduler和Fair Schedule
 
 ### 了解过哪些Hadoop的参数优化
 
-我们常见的**「Hadoop参数调优」**有以下几种：
+我们常见的**Hadoop参数调优**有以下几种：
 
 - 在hdfs-site.xml文件中配置多目录，最好提前配置好，否则更改目录需要重新启动集群,不配置多目录会导致所有数据文件全部存储在一个目录中。
 - NameNode有一个工作线程池，用来处理不同DataNode的并发心跳以及客户端并发的元数据操作
@@ -1027,7 +1206,7 @@ hadoop jar /opt/module/hadoop3.1.3/share/hadoop/mapreduce/hadoop-mapreduce-clie
 
 注意：nrFiles n 为生成 mapTask 的数量，生产环境一般可通过 hadoop103:8088 查看 CPU核数，设置为（CPU 核数 - 1）
 
-![1633932487511](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633932487511.png)
+![1633932487511](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/08/200824-157575.png)
 
 ![1633932503741](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/140836-459305.png)
 
@@ -1043,8 +1222,6 @@ hadoop jar /opt/module/hadoop3.1.3/share/hadoop/mapreduce/hadoop-mapreduce-clie
 
 ```java
 hadoop jar /opt/module/hadoop-3.1.3/share/hadoop/mapreduce/hadoop-mapreduce-clientjobclient-3.1.3-tests.jar TestDFSIO -read -nrFiles 10 -fileSize  128MB
-
-
 ```
 
 ![1633932649707](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/141114-869276.png)
@@ -1102,7 +1279,7 @@ mapred.compress.map.output,mapred.output.compress
 
 **调优角度**
 
-![1633245161347](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633245161347.png)
+![1633245161347](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/08/200847-360774.png)
 
 **分表：**对于一些大表，并且每一天是增量方式的增加存储数据，这样的话查询一次数据速度会很慢，所以可以采用分表，把一些常用的字段从大表中剥离出来，每天对小表进行操作，然后在更新大表。
 
@@ -1210,6 +1387,10 @@ CPU、内存、磁盘健康、网络
 
 #### 数据倾斜
 
+**数据倾斜是如何产生的及解决方案**
+
+数据倾斜，就是说某一类数据占据了总的数据量的80%或者更多，而某一类数据占比很少，那么这样就导致了数据倾斜的发生，如果从执行任务的角度来看，有的任务很快的就执行完成了，但是剩下一两个任务可能卡在了99%一直完成不了，那么这种情况有很大的可能发生数据倾斜。处理的方案如下：
+
 数据倾斜现象
 
 - 数据频率倾斜——某一个区域的数据量要远远大于其他区域。
@@ -1236,17 +1417,33 @@ public void reduce(Text key, Iterator<Text> values,
 
 **减少数据倾斜的方法**
 
-方法1：抽样和范围分区
+**提前在map进行combine，减少传输的数据量**
 
-- 可以通过对原始数据进行抽样得到的结果集来预设分区边界值。
+在Mapper加上combiner相当于提前进行reduce，即把一个Mapper中的相同key进行了聚合，减少shuffle过程中传输的数据量，以及Reducer端的计算量。
 
-方法2：自定义分区
+如果导致数据倾斜的key大量分布在不同的mapper的时候，这种方法就不是很有效了。
 
-- 另一个抽样和范围分区的替代方案是基于输出键的背景知识进行自定义分区。例如，如果map输出键的单词来源于一本书。其中大部分必然是省略词（stopword）。那么就可以将自定义分区将这部分省略词发送给固定的一部分reduce实例。而将其他的都发送给剩余的reduce实例。
+**导致数据倾斜的key 大量分布在不同的mapper**
 
-方法3：Combine
+（1）局部聚合加全局聚合。
 
-- 使用Combine可以大量地减小数据频率倾斜和数据大小倾斜。在可能的情况下，combine的目的就是聚合并精简数据。
+第一次在map阶段对那些导致了数据倾斜的key 加上1到n的随机前缀，这样本来相同的key 也会被分到多个Reducer中进行局部聚合，数量就会大大降低。
+
+第二次mapreduce，去掉key的随机前缀，进行全局聚合。
+
+思想：二次mr，第一次将key随机散列到不同reducer进行处理达到负载均衡目的。第二次再根据去掉key的随机前缀，按原key进行reduce处理。
+
+这个方法进行两次mapreduce，性能稍差。
+
+（2）增加Reducer，提升并行度
+
+JobConf.setNumReduceTasks(int)
+
+（3）实现自定义分区
+
+根据数据分布情况，自定义散列函数，将key均匀分配到不同Reducer
+
+
 
 #### 常用调优参数
 
@@ -1350,9 +1547,9 @@ public void reduce(Text key, Iterator<Text> values,
 
 #### MR 支持的压缩编码
 
-![1633744540321](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/095542-986849.png)
+![1638965975481](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/08/201937-689257.png)
 
-![1633744562544](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/095605-556121.png)
+再实际项目中我们一般用Snappy，特点速度快，缺点无法切分（可以回答在链式MR中，Reduce端输出使用bzip2压缩，以便后续的map任务对数据进行split）
 
 #### 压缩方式的选择
 
