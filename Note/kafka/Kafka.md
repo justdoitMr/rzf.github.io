@@ -93,11 +93,134 @@ Kafka 是支持消费者群组的，也就是说 Kafka 中会有一个或者多�
 | Producer      | 消息生产者，向kafka broker发消息的客户端                     |
 | Consumer      | 消息消费者，向kafka broker取消息的客户端                     |
 | Group消费者组 | 这是kafka用来实现一个topic消息的广播（发给所有的consumer）和单播（发给任意一个consumer）的手段。一个topic可以有多个CG。topic的消息会复制（不是真的复制，是概念上的）到所有的CG，但每个partion只会把消息发给该CG中的一个consumer。如果需要实现广播，只要每个consumer有一个独立的CG就可以了。要实现单播只要所有的consumer在同一个CG。用CG还可以将consumer进行自由的分组而不需要多次发送消息到不同的topic |
+### Kafka的设计时什么样的呢？
+
+- Kafka将消息以topic为单位进行归纳
+
+- 将向Kafka topic发布消息的程序成为producers.
+
+- 将预订topics并消费消息的程序成为consumer.
+
+- Kafka以集群的方式运行，可以由一个或多个服务组成，每个服务叫做一个broker.
+
+- producers通过网络将消息发送到Kafka集群，集群向消费者提供消息
+
+###  数据传输的事物定义有哪三种？
+
+数据传输的事务定义通常有以下三种级别：
+
+1. 最多一次: 消息不会被重复发送，最多被传输一次，但也有可能一次不传输，这种情况会发生数据的丢失。
+2. 最少一次: 消息不会被漏发送，最少被传输一次，但也有可能被重复传输.
+3. 精确的一次（Exactly once）: 不会漏传输也不会重复传输,每个消息都传输被一次而且仅仅被传输一次，这是大家所期望的，端到端的精确一次性最难保证。
+
+### Kafka判断一个节点是否还活着有那两个条件？
+
+1. 节点必须可以维护和ZooKeeper的连接，Zookeeper通过心跳机制检查每个节点的连接
+
+2. 如果节点是个follower,他必须能及时的同步leader的写操作，延时不能太久
+
+### Kafa consumer是否可以消费指定分区消息？
+
+Kafa consumer消费消息时，向broker发出"fetch"请求去消费**特定分区的消息**，consumer指定消息在日志中的偏移量（offset），就可以消费从这个位置开始的消息，customer拥有了offset的控制权，可以向后回滚去重新消费之前的消息，这是很有意义的。
+
+### producer是否直接将数据发送到broker的leader(主节点)？
+
+producer直接将数据发送到broker的leader(主节点)，不需要在多个节点进行分发，为了帮助producer做到这点，所有的Kafka节点都可以及时的告知:哪些节点是活动的，目标topic目标分区的leader在哪。这样producer就可以直接将消息发送到目的地了。
+
+### Kafka消息是采用Pull模式，还是Push模式？
+
+Kafka最初考虑的问题是，customer应该从brokes拉取消息还是brokers将消息推送到consumer，也就是pull还push。在这方面，Kafka遵循了一种大部分消息系统共同的传统的设计：**producer将消息推送到broker，consumer从broker拉取消息**。
+
+一些消息系统比如Scribe和Apache Flume采用了push模式，将消息推送到下游的consumer。这样做有好处也有坏处：由broker决定消息推送的速率，对于不同消费速率的consumer就不太好处理了。消息系统都致力于让consumer以最大的速率最快速的消费消息，但不幸的是，push模式下，当broker推送的速率远大于consumer消费的速率时，consumer恐怕就要崩溃了。最终Kafka还是选取了传统的pull模式
+
+Pull模式的另外一个好处是consumer可以自主决定是否批量的从broker拉取数据。Push模式必须在不知道下游consumer消费能力和消费策略的情况下决定是立即推送每条消息还是缓存之后批量推送。如果为了避免consumer崩溃而采用较低的推送速率，将可能导致一次只推送较少的消息而造成浪费。Pull模式下，consumer就可以根据自己的消费能力去决定这些策略
+
+ Pull有个缺点是，如果broker没有可供消费的消息，将导致consumer不断在循环中轮询，直到新消息到t达。为了避免这点，Kafka有个参数可以让consumer阻塞知道新消息到达(当然也可以阻塞知道消息的数量达到某个特定的量这样就可以批量发。
+
+###  Kafka存储在硬盘上的消息格式是什么？
+
+消息由一个固定长度的头部和可变长度的字节数组组成。头部包含了一个版本号和CRC32校验码。
+
+- 消息长度: 4 bytes (value: 1+4+n)
+- 版本号: 1 byte
+- CRC校验码: 4 bytes
+- 具体的消息: n bytes
+
+### Kafka高效文件存储设计特点：
+
+1. Kafka把topic中一个parition大文件分成多个小文件段，通过多个小文件段，就容易定期清除或删除已经消费完文件，减少磁盘占用。
+2. 通过索引信息可以快速定位message和确定response的最大大小。
+3. 通过index元数据全部映射到memory，可以避免segment file的IO磁盘操作。
+4. 通过索引文件稀疏存储，可以大幅降低index文件元数据占用空间大小。
+
+### Kafka 与传统消息系统之间有三个关键区别
+
+1. Kafka 持久化日志，这些日志可以被重复读取和无限期保留
+2. Kafka 是一个分布式系统：它以集群的方式运行，可以灵活伸缩，在内部通过复制数据提升容错能力和高可用性。
+3. Kafka 支持实时的流式处理
+
+### Kafka创建Topic时如何将分区放置到不同的Broker中
+
+1. 副本因子不能大于 Broker 的个数；
+2. 第一个分区（编号为0）的第一个副本放置位置是随机从 brokerList 选择的；
+3. 其他分区的第一个副本放置位置相对于第0个分区依次往后移。也就是如果我们有5个 Broker，5个分区，假设第一个分区放在第四个 Broker 上，那么第二个分区将会放在第五个 Broker 上；第三个分区将会放在第一个 Broker 上；第四个分区将会放在第二个 Broker 上，依次类推；
+4. 剩余的副本相对于第一个副本放置位置其实是由 nextReplicaShift 决定的，而这个数也是随机产生的。
+
+### Kafka新建的分区会在哪个目录下创建
+
+在启动 Kafka 集群之前，我们需要配置好 log.dirs 参数，其值是 Kafka 数据的存放目录，这个参数可以配置多个目录，目录之间使用逗号分隔，通常这些目录是分布在不同的磁盘上用于提高读写性能。
+
+当然我们也可以配置 log.dir 参数，含义一样。只需要设置其中一个即可。
+
+如果 log.dirs 参数只配置了一个目录，那么分配到各个 Broker 上的分区肯定只能在这个目录下创建文件夹用于存放数据。
+
+但是如果 log.dirs 参数配置了多个目录，那么 Kafka 会在哪个文件夹中创建分区目录呢？答案是：Kafka 会在含有分区目录最少的文件夹中创建新的分区目录，分区目录名为 Topic名+分区ID。注意，是分区文件夹总数最少的目录，而不是磁盘使用量最少的目录！也就是说，如果你给 log.dirs 参数新增了一个新的磁盘，新的分区目录肯定是先在这个新的磁盘上创建直到这个新的磁盘目录拥有的分区目录不是最少为止。
+
+### partition的数据如何保存到硬盘
+
+topic中的多个partition以文件夹的形式保存到broker，每个分区序号从0递增，且消息有序，Partition文件下有多个segment（xxx.index，xxx.log），segment 文件里的 大小和配置文件大小一致可以根据要求修改 默认为1g，如果大小大于1g时，会滚动一个新的segment并且以上一个segment最后一条消息的偏移量命名。
+
+###  kafka的ack机制
+
+request.required.acks有三个值 0 1 -1
+
+- 0:生产者不会等待broker的ack，这个延迟最低但是存储的保证最弱当server挂掉的时候就会丢数据
+
+- 1：服务端会等待ack值 leader副本确认接收到消息后发送ack但是如果leader挂掉后他不确保是否复制完成新leader也会导致数据丢失
+
+- -1：同样在1的基础上 服务端会等所有的follower的副本受到数据后才会受到leader发出的ack，这样数据不会丢失
+
+### Kafka的消费者如何消费数据
+
+消费者每次消费数据的时候，消费者都会记录消费的物理偏移量（offset）的位置，等到下次消费时，他会接着上次位置继续消费。
+
+###  数据有序
+
+一个消费者组里它的内部是有序的，消费者组与消费者组之间是无序的
+
+### kafaka生产数据时数据的分组策略
+
+生产者决定数据产生到集群的哪个partition中
+
+每一条消息都是以（key，value）格式
+
+Key是由生产者发送数据传入
+
+所以生产者（key）决定了数据产生到集群的哪个partition
+
+### kafka集群架构
+
+![1639045527540](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/09/182528-493077.png)
+
 ### Kafka的工作机制
 
 ![](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/08/182809-557369.png)
 
-上图表示`kafka`集群有一个`topic A`,并且有三个分区，分布在三个节点上面，注意点：每个分区有两个副本，两个副本分别是`leader,follower`,并且每一个副本一定不和自己的`leader`分布在一个节点上面。`Kafka`中消息是以  **`topic`**进行分类的，生产者生产消息，消费者消费消息，都是面向  `topic`的。`topic`是逻辑上的概念，而`partition`是物理上的概念，每个` partition`对应于一个` log`文件，该` log`文件中存储的就是  `producer`生产的数据。`Producer`生产的数据会被不断追加到该`log`文件末端，且每条数据都有自己的  `offset`。消费者组中的每个消费者，都会实时记录自己消费到了哪个 `offset`，以便出错恢复时，从上次的位置继续消费。每一个分区内部的数据是有序的，但是全局不是有序的。
+上图表示`kafka`集群有一个`topic A`,并且有三个分区，分布在三个节点上面。
+
+注意点：每个分区有两个副本，两个副本分别是`leader,follower`,并且每一个副本一定不和自己的`leader`分布在一个节点上面。`Kafka`中消息是以  **`topic`**进行分类的，生产者生产消息，消费者消费消息，都是面向  `topic`的。
+
+`topic`是逻辑上的概念，而`partition`是物理上的概念，每个` partition`对应于一个` log`文件，该` log`文件中存储的就是  `producer`生产的数据。`Producer`生产的数据会被不断追加到该`log`文件末端，且每条数据都有自己的  `offset`。消费者组中的每个消费者，都会实时记录自己消费到了哪个 `offset`，以便出错恢复时，从上次的位置继续消费。每一个分区内部的数据是有序的，但是全局不是有序的。
 
 **kafka文件存储结构**
 
@@ -144,15 +267,6 @@ index和 ` log`文件以当前   `segment`的**第一条消息的  `offset`命�
 kafka只能使用作为"常规"的消息系统,在一定程度上,尚未确保消息的发送与接收绝对可靠(⽐如,消息重发,消息发送丢失等)
 
 kafka的特性决定它非常适合作为"日志收集中心";application可以将操作日志"批量""异步"的发送到kafka集群中,而不是保存在本地或者DB中;kafka可以批量提交消息/压缩消息等,这对producer端而言,几乎感觉不到性能的开支.
-
-### kafka数据分区和消费者的关系，kafka的数据offset读取流程，kafka内部如何保证顺序，结合外部组件如何保证消费者的顺序？
-
-1. kafka数据分区和消费者的关系：1个partition只能被同组的⼀个consumer消费，同组的consumer则起到均衡效果
-2. kafka的数据offset读取流程
-   1. 连接ZK集群，从ZK中拿到对应topic的partition信息和partition
-      的Leader的相关信息
-
-
 
 ### kafka生产者写入数据
 
@@ -231,6 +345,19 @@ kafka的特性决定它非常适合作为"日志收集中心";application可以�
 
 - `Leader`维护了一个动态的 ` in-sync replica set (ISR)`，意为和 `leader`保持同步的 `follower`集合，是一个队列。当 `ISR`中的 ` follower`完成数据的同步之后，`leader`就会给 `follower`发送  `ack`。如果  `follower`长时间未向`leader`同步数据，则该`follower`将被踢出`ISR`，该时间阈值由**`replica.lag.time.max.ms`**参数设定。`Leader`发生故障之后，就会从`ISR`中选举新的`leader`。在这个时间内，就添加到isr中，否则就提出isr集合中，不在isr中的follower也不可能被选举为leader。
 
+~~~ java
+rerplica.lag.time.max.ms=10000
+# 如果leader发现flower超过10秒没有向它发起fech请求, 那么leader考虑这个flower是不是程
+序出了点问题
+# 或者资源紧张调度不过来, 它太慢了, 不希望它拖慢后面的进度, 就把它从ISR中移除.
+rerplica.lag.max.messages=4000
+# 相差4000条就移除
+# flower慢的时候, 保证高可用性, 同时满足这两个条件后又加入ISR中,
+# 在可用性与一致性做了动态平衡  亮点
+min.insync.replicas=1
+# 需要保证ISR中至少有多少个replica
+~~~
+
 **`ack`**应答机制
 
 对于某些不太重要的数据，对数据的可靠性要求不是很高，能够容忍数据的少量丢失，所以没必要等` ISR`中的`follower`全部接收成功。所以` Kafka`为用户提供了三种可靠性级别，用户根据对可靠性和延迟的要求进行权衡，选择以下的配置。
@@ -248,11 +375,22 @@ kafka的特性决定它非常适合作为"日志收集中心";application可以�
 
   =-1也可能会发生数据的丢失，发生重复数据的情况是leader接收到数据并且在follower之间已经同步完成后，但是此时leader挂掉，没有返回ack确认，此时又重新选举产生了leader,那么producer会重新发送一次数据，所以会导致数据重复。
 
+**小结**
+
+~~~ java
+request.required.asks=0
+# 0:相当于异步的, 不需要leader给予回复, producer立即返回, 发送就是成功,
+那么发送消息网络超时或broker crash(1.Partition的Leader还没有commit消息 2.Leader与
+Follower数据不同步), 既有可能丢失也可能会重发
+# 1：当leader接收到消息之后发送ack, 丢会重发, 丢的概率很小
+# -1：当所有的follower都同步消息成功后发送ack. 不会丢失消息
+~~~
+
 **ack=-1数据重复案例**
 
 ![1618625608045](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/17/101329-814647.png)
 
-> ack是保证生产者生产的数据不丢失，hw是保证消费者消费数据的一致性问题。hw实际就是最短木桶原则，根据这个原则消费者进行消费数据。不能解决数据重复和丢失问题。ack解决丢失和重复问题。
+> **ack是保证生产者生产的数据不丢失，hw是保证消费者消费数据的一致性问题**。hw实际就是最短木桶原则，根据这个原则消费者进行消费数据。不能解决数据重复和丢失问题。ack解决丢失和重复问题。
 
 **故障处理细节**
 
@@ -272,6 +410,14 @@ kafka的特性决定它非常适合作为"日志收集中心";application可以�
 
    **注意：这只能保证副本之间的数据一致性，并不能保证数据不丢失或者不重复,`ack`确认机制可以保证数据的不丢失和不重复，`LEO`和`hw`可以保证数据的一致性问题**
 
+   **图示**
+
+   ![1639045936250](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/09/183219-639145.png)
+
+   
+
+   ![1639046087062](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/09/183448-152461.png)
+
    #### **Exactly Once**语义
 
    将服务器的 `ACK`级别设置为`-1`，可以保证`Producer`到`Server`之间不会丢失数据，即`At Least Once`语义。相对的，将服务器`ACK`级别设置为`0`,可以保证生产者每条消息只会被发送一次，即 `At Most Once`语义。`At Least Once`可以保证数据不丢失，但是不能保证数据不重复；相对的，`At Most Once`可以保证数据不重复，但是不能保证数据不丢失。
@@ -290,13 +436,25 @@ kafka的特性决定它非常适合作为"日志收集中心";application可以�
 - `push`（推）模式很难适应消费速率不同的消费者，因为消息发送速率是由 broker决定的。它的目标是尽可能以最快速度传递消息，但是这样很容易造成 `consumer`来不及处理消息，典型的表现就是拒绝服务以及网络拥塞。而` pull`模式则可以根据  `consumer`的消费能力以适当的速率消费消息。对于`Kafka`而言，`pull`模式更合适，它可简化`broker`的设计，`consumer`可自主控制消费消息的速率，同时`consumer`可以自己控制消费方式——即可批量消费也可逐条消费，同时还能选择不同的提交方式从而实现不同的传输语义
 - `pull`模式不足之处是，如果 ` kafka`没有数据，消费者可能会陷入循环中，一直返回空数据。针对这一点，`Kafka`的消费者在消费数据时会传入一个时长参数 ` timeout`，如果当前没有数据可供消费，`consumer`会等待一段时间之后再返回，这段时长即为  `timeout`。
 
+**Consumer Group**
+
+在 Kafka 中, 一个 Topic 是可以被一个消费组消费, 一个Topic 分发给 Consumer Group 中的Consumer 进行消费, 保证同一条 Message 不会被不同的 Consumer 消费。
+注意: 当Consumer Group的 Consumer 数量大于 Partition 的数量时, 超过 Partition 的数量将会拿不到消息
+
 **分区分配策略**
 
 一个` consumer group`中有多个`consumer`，一个  `topic`有多个  `partition`，所以必然会涉及
 
 到 `partition`的分配问题，即确定那个`partition`由哪个`consumer`来消费。`Kafka`有两种分配策略，一是  `RoundRobin`（按照组分配），一是 `Range`（按照主题分配）。同一个消费者组中的不同消费者，不能同时消费同一个分区，但是可以同时消费一个主题，因为一个主题中有多个分区。
 
-按照消费者组中的消费者进行轮询：
+Kafka分配Replica的算法有两种: RangeAssignor 和 RoundRobinAssignor
+默认为RangeAssignor:
+
+1. 将所有Broker(假设共n个Broker)和待分配的Partition排序
+2. 将第i个Partition分配到第(i mod n)个Broker上
+3. 将第i个Partition的第j个Replica分配到第((i + j) mod n)个Broker上
+
+**按照消费者组中的消费者进行轮询：**
 
 ![1618629372089](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/17/115925-934544.png)
 
@@ -327,6 +485,114 @@ kafka的特性决定它非常适合作为"日志收集中心";application可以�
 ![1618730431904](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/18/152147-342731.png)
 
 可以看到，消费者组1中a订阅主题T1，消费者b订阅主题T1,T2，消费者组2中消费者c订阅主题T1，如果此时采用轮训的方法进行分配数据，那么是以组为单位进行分发数据，t2主题给消费者组1发送数据，可能吧数据分发给消费者A，所以此时不能采用轮询的方式发送数据，如果采用range方式发送数据，是以主题为单位发送数据，那么主题t1会把数据01发送给消费者A，把数据2发送给消费者b，而主题T2则会把数据发送给消费者b。按照主题划分一定是看谁订阅主题，那个消费者订阅主题，就发送给哪一个消费者。按照主题划分，会先找到哪一个消费者订阅了此主题，然后在考虑组。消费者优先，然后在考虑组。
+
+### Rebalance (重平衡)
+
+Rebalance 本质上是一种协议, 规定了一个 Consumer Group 下的所有 consumer 如何达成一致,来分配订阅 Topic 的每个分区。
+
+Rebalance 发生时, 所有的 Consumer Group 都停止工作, 知道 Rebalance 完成
+
+#### Coordinator
+
+Group Coordinator 是一个服务, 每个 Broker 在启动的时候都会启动一个该服务， Group Coordinator 的作用是用来存储 Group 的相关 Meta 信息, 并将对应 Partition 的 Offset 信息记录到 Kafka 内置 Topic(__consumer_offsets)中 Kafka 在0.9之前是基于 Zookeeper 来存储Partition的 offset 信息(consumers/{group}/offsets/{topic}/{partition}), 因为 Zookeeper 并不适用于频繁的写操作, 所以在0.9之后通过内置 Topic 的方式来记录对应 Partition 的 offset。
+
+#### 触发条件
+
+1. 组成员个数发生变化
+   1. 新的消费者加入到消费组
+   2. 消费者主动退出消费组
+   3. 消费者被动下线. 比如消费者长时间的GC, 网络延迟导致消费者长时间未向Group
+     Coordinator发送心跳请求, 均会认为该消费者已经下线并踢出
+2. 订阅的 Topic 的 Consumer Group 个数发生变化
+3. Topic 的分区数发生变化
+
+#### Rebalace 流程
+
+Rebalance 过程分为两步：Join 和 Sync
+
+1. Join: 顾名思义就是加入组. 这一步中, 所有成员都向 Coordinator 发送 JoinGroup 请求, 请求
+  加入消费组. 一旦所有成员都发送了 JoinGroup 请求, Coordinator 会从中选择一个
+  Consumer 担任 Leader 的角色, 并把组成员信息以及订阅信息发给 Consumer Leader 注意
+  Consumer Leader 和 Coordinator不是一个概念. Consumer Leader负责消费分配方案的制
+  定
+2. Sync: Consumer Leader 开始分配消费方案, 即哪个 Consumer 负责消费哪些 Topic 的哪些
+  Partition. 一旦完成分配, Leader 会将这个方案封装进 SyncGroup 请求中发给 Coordinator,
+  非 Leader 也会发 SyncGroup 请求, 只是内容为空. Coordinator 接收到分配方案之后会把方
+  案塞进SyncGroup的Response中发给各个Consumer. 这样组内的所有成员就都知道自己应
+  该消费哪些分区了
+
+![1639046633091](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639046633091.png)
+
+#### 如何避免 Rebalance
+
+对于触发条件的 2 和 3, 我们可以人为避免. 1 中的 1 和 3 人为也可以尽量避免, 主要核心为 3
+
+~~~java
+心跳相关
+
+session.timeout.ms = 6s
+heartbeat.interval.ms = 2s
+
+消费时间
+
+max.poll.interval.ms
+~~~
+
+### 日志索引
+
+Kafka 能支撑 TB 级别数据, 在日志级别有两个原因: 顺序写和日志索引. 顺序写后续会讲
+Kafka 在一个日志文件达到一定数据量 (1G) 之后, 会生成新的日志文件, 大数据情况下会有多个日
+志文件, 通过偏移量来确定到某行纪录时, 如果遍历所有的日志文件, 那效率自然是很差的. Kafka
+在日志级别上抽出来一层日志索引, 来方便根据 offset 快速定位到是某个日志文件
+每一个 partition 对应多个个 log 文件(最大 1G), 每一个 log 文件又对应一个 index 文件
+通过 offset 查找 Message 流程:
+1. 先根据 offset (例: 368773), 二分定位到最大 小于等于该 offset 的 index 文件
+  (368769.index)
+2. . 通过二分(368773 - 368769 = 4)定位到 index 文件 (368769.index) 中最大 小于等于该
+  offset 的 对于的 log 文件偏移量(3, 497)
+3. 通过定位到该文件的消息行(3, 497), 然后在往后一行一行匹配揭露(368773 830)
+
+![1639046789714](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/09/184632-876670.png)
+
+### 高性能高吞吐
+
+#### 分区的原因
+
+如果我们假设像标准 MQ 的 Queue, 为了保证一个消息只会被一个消费者消费, 那么我们第一想到
+的就是加锁. 对于发送者, 在多线程并且非顺序写环境下, 保证数据一致性, 我们同样也要加锁. 一旦
+考虑到加锁, 就会极大的影响性能. 我们再来看Kafka 的 Partition, Kafka 的消费模式和发送模式都
+是以 Partition 为分界. 也就是说对于一个 Topic 的并发量限制在于有多少个 Partition, 就能支撑
+多少的并发. 可以参考 Java 1.7 的 ConcurrentHashMap 的桶设计, 原理一样, 有多少桶, 支持多少
+的并发
+
+#### 顺序写
+
+磁盘的顺序写的性能要比内存随机写的还要强. 磁盘顺序写和随机写的差距也是天壤之别
+
+#### 批发送
+
+批处理是一种常用的用于提高I/O性能的方式. 对Kafka而言, 批处理既减少了网络传输的
+Overhead, 又提高了写磁盘的效率. Kafka 0.82 之后是将多个消息合并之后再发送, 而并不是send
+一条就立马发送(之前支持)
+
+~~~ java
+# 批量发送的基本单位, 默认是16384Bytes, 即16kB
+batch.size
+# 延迟时间
+linger.ms
+# 两者满足其一便发送
+~~~
+
+#### 数据压缩
+
+数据压缩的一个基本原理是, 重复数据越多压缩效果越好. 因此将整个Batch的数据一起压缩能更大
+幅度减小数据量, 从而更大程度提高网络传输效率。
+
+Broker接收消息后，并不直接解压缩，而是直接将消息以压缩后的形式持久化到磁盘， Consumer
+接受到压缩后的数据再解压缩，
+
+整体来讲: Producer 到 Broker, 副本复制, Broker 到 Consumer 的数据都是压缩后的数据, 保证高
+效率的传输
 
 ### zookeeper在kafka中的作用
 

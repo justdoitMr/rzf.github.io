@@ -89,7 +89,7 @@
 
 ### 什么是Hadoop,介绍以下Hadoop
 
-Hadoop是一个能够对大量数据进行分布式处理的计算软件框架。以一种可靠、高效、可伸缩的方式进行数据处理。主要包括三部分内容：Hdfs，MapReduce，Yarn。
+Hadoop是一个能够对大量数据进行分布式处理的计算软件框架。以一种**可靠、高效、可伸缩**的方式进行数据处理。主要包括三部分内容：Hdfs，MapReduce，Yarn。
 
 Hadoop在广义上指一个生态圈，泛指大数据技术相关的开源组件或产品，如HBase，Hive，Spark，Zookeeper，Kafka，flume。
 
@@ -345,8 +345,7 @@ namenode总体来说是**管理和记录恢复**功能。⽐如管理datanode，
 
 ![1633169830635](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/181711-861855.png)
 
-如上图所⽰，namenode在加载fsimage过程其实⾮常简单，就是从fsimage中不停的顺序读取⽂件和⽬录的元数据信息，并在内存中构建整个namespace，同时将每个⽂件对应的blockid保存⼊BlocksMap中，此时BlocksMap中每个block对应的datanodes列表暂时为空。当fsimage加载完毕后，整个HDFS的⽬录结构在内存中就已经初始化完毕，所缺的就是每个⽂件对
-应的block对应的datanode列表信息。这些信息需要从datanode的blockReport中获取，所以加载fsimage完毕后，namenode进程进⼊rpc等待状态，等待所有的datanodes发送blockReports。
+如上图所⽰，namenode在加载fsimage过程其实⾮常简单，就是从fsimage中不停的顺序读取⽂件和⽬录的元数据信息，并在内存中构建整个namespace，同时将每个⽂件对应的blockid保存⼊BlocksMap中，此时BlocksMap中每个block对应的datanodes列表暂时为空。当fsimage加载完毕后，整个HDFS的⽬录结构在内存中就已经初始化完毕，所缺的就是每个⽂件对应的block对应的datanode列表信息。这些信息需要从datanode的blockReport中获取，所以加载fsimage完毕后，namenode进程进⼊rpc等待状态，等待所有的datanodes发送blockReports。
 
 ### 介绍一下HDFS读写流程
 
