@@ -189,6 +189,7 @@
 1. [Hadoop篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Hadoop%E7%AF%87.md)
 2. [Kafka篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/kafka/Kafka.md)
 3. [zookeeper]()
+4. [Hive篇]()
 
 
 ### [Java面试大全](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95%E9%A2%98%E5%A4%A7%E5%85%A8.pdf)
