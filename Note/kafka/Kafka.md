@@ -1,42 +1,4 @@
 
-<!-- TOC -->
-
-- [批量发送的基本单位, 默认是16384Bytes, 即16kB](#批量发送的基本单位-默认是16384bytes-即16kb)
-- [延迟时间](#延迟时间)
-- [两者满足其一便发送](#两者满足其一便发送)
-      - [数据压缩](#数据压缩)
-    - [解释如何减少ISR中的扰动？broker什么时候离开ISR？](#解释如何减少isr中的扰动broker什么时候离开isr)
-    - [ISR、OSR、AR 是什么？](#isrosrar-是什么)
-    - [LEO、HW、LSO、LW等分别代表什么？](#leohwlsolw等分别代表什么)
-    - [Kafka为什么需要复制？](#kafka为什么需要复制)
-    - [如何保证Kafka的消息有序](#如何保证kafka的消息有序)
-    - [Kafka 的高可靠性是怎么实现的？](#kafka-的高可靠性是怎么实现的)
-      - [Topic分区副本](#topic分区副本)
-      - [Producer往Broker 发送消息](#producer往broker-发送消息)
-      - [Leader 选举](#leader-选举)
-      - [数据一致性（可回答“Kafka数据一致性原理？”）](#数据一致性可回答kafka数据一致性原理)
-    - [Kafka 缺点？](#kafka-缺点)
-    - [Kafka 分区数可以增加或减少吗？为什么？](#kafka-分区数可以增加或减少吗为什么)
-    - [Kafka消息可靠性的保证](#kafka消息可靠性的保证)
-      - [Broker](#broker)
-      - [Producer](#producer)
-      - [Consumer消费消息有下面几个步骤：](#consumer消费消息有下面几个步骤)
-    - [为什么kafka中1个partition只能被同组的一个consumer消费?](#为什么kafka中1个partition只能被同组的一个consumer消费)
-    - [zookeeper在kafka中的作用](#zookeeper在kafka中的作用)
-      - [作用](#作用)
-        - [Broker注册](#broker注册)
-        - [Topic注册](#topic注册)
-        - [生产者负载均衡](#生产者负载均衡)
-        - [消费者负载均衡](#消费者负载均衡)
-        - [分区与消费者的关系](#分区与消费者的关系)
-        - [消费进度Offset记录](#消费进度offset记录)
-        - [消费者注册](#消费者注册)
-    - [Kafka服务器能接收到的最大信息是多少？](#kafka服务器能接收到的最大信息是多少)
-    - [Kafka中的ZooKeeper是什么？Kafka是否可以脱离ZooKeeper独立运行？](#kafka中的zookeeper是什么kafka是否可以脱离zookeeper独立运行)
-
-<!-- /TOC -->
-
-
 ## Kafka篇
 
 ### 请说明什么是Apache Kafka？
