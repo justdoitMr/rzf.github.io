@@ -35,7 +35,11 @@
 
 #### 1.3.2，source
 
-Source是负责接收数据到Flume Agent的组件。Source组件可以处理各种类型、各种格式的日志数据，包括avro、thrift、exec、jms、spooling directory、netcat、sequence generator、syslog、http、legacy。
+Source是数据的收集端，负责将数据捕获后进行特殊的格式化，将数据封装到事件（event） 里，然后将事件推入Channel中。
+
+Flume提供了各种source的实现，包括Avro Source、**Exce Source**、**Spooling Directory  Source**、NetCat Source、Syslog Source、Syslog TCP Source、Syslog UDP  Source、HTTP Source、HDFS Source，etc。如果内置的Source无法满足需要， Flume还支持自定义Source。
+
+source采用推的方式将数据传输到channel。
 
 #### 1.3.3，channel
 
