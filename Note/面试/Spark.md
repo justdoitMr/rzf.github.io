@@ -1,32 +1,12 @@
 # Spark
 
-本文目录：
-
-一、Spark 基础
-二、Spark Core
-三、Spark SQL
-四、Spark Streaming
-五、Structured Streaming
-六、Spark 两种核心 Shuffle
-七、Spark 底层执行原理
-八、Spark 数据倾斜
-九、Spark 性能调优
-十、Spark 故障排除
-十一、Spark大厂面试真题
-
-**Spark****涉及的知识点如下图所示，本文将逐一讲解：**
-
-
-
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl9wk9pRNl69bTKpm34PfNJibicsHQTm8qm7Jib3Ow1ibZibobiclPMYGQicibYg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
-
-
+![1639224368992](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/11/200610-323256.png)
 
 **本文参考了关于 Spark 的众多资料整理而成，为了整洁的排版及舒适的阅读，对于模糊不清晰的图片及黑白图片进行重新绘制成了高清彩图**。
 
 ## 一、Spark 基础
 
-### 1. 激动人心的 Spark 发展史
+### 1. Spark 发展史
 
 大数据、人工智能( Artificial Intelligence )像当年的石油、电力一样， 正以前所未有的广度和深度影响所有的行业， 现在及未来公司的核心壁垒是数据， 核心竞争力来自基于大数据的人工智能的竞争。
 
@@ -59,7 +39,11 @@ Spark 产生之前，已经有 MapReduce 这类非常成熟的计算系统存在
 
 简而言之，Spark 借鉴了 MapReduce 思想发展而来，保留了其分布式并行计算的优点并改进了其明显的缺陷。让中间数据存储在内存中提高了运行速度、并提供丰富的操作数据的 API 提高了开发速度。
 
-- 原因 2：**完善的生态圈-fullstack**![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClZ35ruRTUPdyXuM47thBiaXDBuj5p8apCDibOVWRJRcB2mO2ua9iaE3yZw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)目前，Spark 已经发展成为一个包含多个子项目的集合，其中包含 SparkSQL、Spark Streaming、GraphX、MLlib 等子项目。
+- 原因 2：**完善的生态圈-fullstack**
+
+![1639224487155](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/11/200808-707044.png)
+
+目前，Spark 已经发展成为一个包含多个子项目的集合，其中包含 SparkSQL、Spark Streaming、GraphX、MLlib 等子项目。
 
 **Spark Core**：实现了 Spark 的基本功能，包含 RDD、任务调度、内存管理、错误恢复、与存储系统交互等模块。
 
@@ -86,9 +70,11 @@ Spark 产生之前，已经有 MapReduce 这类非常成熟的计算系统存在
 | 数据存储结构 | MapReduce 中间计算结果存在 HDFS 磁盘上, 延迟大 |       RDD 中间运算结果存在内存中 , 延迟小       |
 |   运行方式   |        Task 以进程方式维护, 任务启动慢         |         Task 以线程方式维护, 任务启动快         |
 
-> 💖 注意：
+> 注意：
 > 尽管 Spark 相对于 Hadoop 而言具有较大优势，但 Spark 并不能完全替代 Hadoop，Spark 主要用于替代 Hadoop 中的 MapReduce 计算模型。存储依然可以使用 HDFS，但是中间结果可以存放在内存中；调度可以使用 Spark 内置的，也可以使用更成熟的调度系统 YARN 等。
+>
 > 实际上，Spark 已经很好地融入了 Hadoop 生态圈，并成为其中的重要一员，它可以借助于 YARN 实现资源调度管理，借助于 HDFS 实现分布式存储。
+>
 > 此外，Hadoop 可以使用廉价的、异构的机器来做分布式存储与计算，但是，Spark 对硬件的要求稍高一些，对内存与 CPU 有一定的要求。
 
 ### 3. Spark 特点
@@ -143,15 +129,15 @@ Spark 提供了统一的解决方案。**Spark 可以用于批处理、交互式
 
 #### 1) 为什么要有 RDD?
 
-在许多迭代式算法(比如机器学习、图算法等)和交互式数据挖掘中，不同计算阶段之间会重用中间结果，即一个阶段的输出结果会作为下一个阶段的输入。但是，之前的 MapReduce 框架采用非循环式的数据流模型，把中间结果写入到 HDFS 中，带来了大量的数据复制、磁盘 IO 和序列化开销。且这些框架只能支持一些特定的计算模式(map/reduce)，并没有提供一种通用的数据抽象。
+在许多迭代式算法(比如机器学习、图算法等)和交互式数据挖掘中，不同计算阶段之间会**重用中间结果**，即一个阶段的输出结果会作为下一个阶段的输入。但是，之前的 MapReduce 框架采用非循环式的数据流模型，把中间结果写入到 HDFS 中，带来了大量的数据复制、磁盘 IO 和序列化开销。且这些框架只能支持一些特定的计算模式(map/reduce)，并没有提供一种通用的数据抽象。
 
 AMP 实验室发表的一篇关于 RDD 的论文:《Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing》就是为了解决这些问题的。
 
-RDD 提供了一个抽象的数据模型，让我们不必担心底层数据的分布式特性，只需将具体的应用逻辑表达为一系列转换操作(函数)，不同 RDD 之间的转换操作之间还可以形成依赖关系，进而实现管道化，从而避免了中间结果的存储，大大降低了数据复制、磁盘 IO 和序列化开销，并且还提供了更多的 API(map/reduec/filter/groupBy...)。
+RDD 提供了一个抽象的数据模型，让我们不必担心底层数据的分布式特性，只需将具体的应用逻辑表达为一系列转换操作(函数)，不同 RDD 之间的转换操作之间还可以形成依赖关系，进而实现**管道化**，从而避免了中间结果的存储，大大降低了数据复制、磁盘 IO 和序列化开销，并且还提供了更多的 API(map/reduec/filter/groupBy...)。
 
 #### 2) RDD 是什么?
 
-RDD(Resilient Distributed Dataset)叫做弹性分布式数据集，是 Spark 中最基本的数据抽象，代表一个不可变、可分区、里面的元素可并行计算的集合。单词拆解：
+RDD(Resilient Distributed Dataset)叫做**弹性分布式数据集**，是 Spark 中最基本的数据抽象，代表一个**不可变、可分区、里面的元素可并行计算的集合**。单词拆解：
 
 - Resilient ：它是弹性的，RDD 里面的中的数据可以保存在内存中或者磁盘里面；
 - Distributed ：它里面的元素是分布式存储的，可以用于分布式计算；
@@ -161,7 +147,7 @@ RDD(Resilient Distributed Dataset)叫做弹性分布式数据集，是 Spark 中
 
 进入 RDD 的源码中看下：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl6NMlgeGVowML26CggWDeVVpnzhGVybr4Lm2wM45nYbQAVzwep36Mew/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)RDD源码
+![1639224647235](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/11/201048-278416.png)
 
 在源码中可以看到有对 RDD 介绍的注释，我们来翻译下：
 
@@ -181,8 +167,8 @@ RDD 是一个数据集的表示，不仅表示了数据集，还表示了这个�
 4. 分区函数(默认是 hash)
 5. 最佳位置
 
-分区列表、分区函数、最佳位置，这三个属性其实说的就是数据集在哪，在哪计算更合适，如何分区；
-计算函数、依赖关系，这两个属性其实说的是数据集怎么来的。
+> 分区列表、分区函数、最佳位置，这三个属性其实说的就是数据集在哪，在哪计算更合适，如何分区；
+> 计算函数、依赖关系，这两个属性其实说的是数据集怎么来的。
 
 ### 2. RDD-API
 
