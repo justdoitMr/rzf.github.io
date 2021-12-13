@@ -80,11 +80,11 @@
 
 ### Hadoop
 
-1. [Hadoop基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
-2. [分布式文件基础Hdfs](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hadoop%E5%9F%BA%E7%A1%80.md)
-3. [MapReduce计算模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/MapReduce.md)
-4. [Yarn资源调度器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/YARN%E8%B5%84%E6%BA%90%E8%B0%83%E5%BA%A6%E5%99%A8.md)
-5. [MapReduce原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/MapReduce%E5%8E%9F%E7%90%86.md)
+1. [Hadoop基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hadoop/Hadoop%E5%9F%BA%E7%A1%80.md)
+2. [分布式文件基础Hdfs](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hadoop/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E5%AD%98%E5%82%A8%E7%B3%BB%E7%BB%9FHdfs.md)
+3. [MapReduce计算模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hadoop/MapReduce.md)
+4. [Yarn资源调度器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hadoop/YARN%E8%B5%84%E6%BA%90%E8%B0%83%E5%BA%A6%E5%99%A8.md)
+5. [MapReduce原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hadoop/MapReduce%E5%8E%9F%E7%90%86.md)
 
 ### Hive
 
