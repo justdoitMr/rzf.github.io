@@ -173,8 +173,9 @@
 
 #### 离线数仓
 
-1. [离线数仓数据采集模块](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E6%95%B0%E6%8D%AE%E9%87%87%E9%9B%86%E6%A8%A1%E5%9D%97.md)
-2. [离线数仓项目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93.md)
+1. [离线数仓需求分许](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%AC%AC%E4%B8%80%E7%AB%A0%EF%BC%8C%E6%95%B0%E4%BB%93%E6%A6%82%E5%BF%B5%E5%8F%8A%E9%A1%B9%E7%9B%AE%E9%9C%80%E6%B1%82%E5%88%86%E6%9E%90.md)
+2. [离线数仓日志数据采集模块](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%AC%AC%E4%BA%8C%E7%AB%A0%EF%BC%8C%E6%95%B0%E6%8D%AE%E7%94%9F%E6%88%90%E6%A8%A1%E5%9D%97.md)
+3. [离线数仓项目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 
 ### 分布式
 
