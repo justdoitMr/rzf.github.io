@@ -188,16 +188,9 @@
 
 1. [Hadoop篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Hadoop%E7%AF%87.md)
 2. [Kafka篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/kafka/Kafka.md)
-3. [zookeeper]()
-4. [Hive篇]()
-5. [Spark篇]()
-
-
-### [Java面试大全](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95%E9%A2%98%E5%A4%A7%E5%85%A8.pdf)
-
-### [Java手册-上](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8A.pdf)
-
-### [Java手册-下](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Java%E5%9F%BA%E7%A1%80%E6%80%BB%E7%BB%93%E4%B8%8B.pdf)
+3. [zookeeper](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Zookeeper.md)
+4. [Hive篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Hive%E7%AF%87.md)
+5. [Spark篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Spark.md)
 
 ---
 
