@@ -1,8 +1,6 @@
-# Spark
+## Spark
 
 ![1639224368992](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/11/200610-323256.png)
-
-**本文参考了关于 Spark 的众多资料整理而成，为了整洁的排版及舒适的阅读，对于模糊不清晰的图片及黑白图片进行重新绘制成了高清彩图**。
 
 ## 一、Spark 基础
 
@@ -123,6 +121,13 @@ Spark 提供了统一的解决方案。**Spark 可以用于批处理、交互式
 
    比如 AWS 的 EC2，使用这个模式能很方便的访问 Amazon 的 S3。
 
+### Spark 为什么比 MapReduce 快？
+
+1. Spark 是基于内存计算，MapReduce 是基于磁盘运算，所以速度快
+2. Spark 拥有高效的调度算法，是基于 DAG,形成一系列的有向无环图
+3. Spark 是通过 RDD 算子来运算的，它拥有两种操作，一种转换操作，一种动作操作，可以将先运算的结果存储在内存中，随后在计算出来
+4. Spark 还拥有容错机制 Linage。
+
 ## 二、Spark Core
 
 ### 1. RDD 详解
@@ -184,7 +189,9 @@ RDD 是一个数据集的表示，不仅表示了数据集，还表示了这个�
 
 makeRDD 方法底层调用了 parallelize 方法：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClojiakN5JicPAcWRE7NPMTibS6x6EjE8jK43lpXNSaeEoHEibJJjU2NibMSQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)RDD源码
+![1639395046262](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193047-916008.png)
+
+RDD源码
 
 #### 2) RDD 的算子分类
 
@@ -296,6 +303,68 @@ rdd3.collect
 //Array[(String, Int)] = Array((spark,4), (hadoop,5))
 ```
 
+#### 你知道 reduceByKey 和 groupByKey 有啥区别吗？
+
+reduceByKey()会在 shuffle 之前对数据进行合并。有点类似于在 MapReduce 中的 combiner。这样做的好处在于，在转换操作时就已经对数据进行了一次聚合操作，从而减小数据传输。如下图所示：
+
+![1639396592551](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195638-331860.png)
+
+groupByKey 算子操作发生在动作操作端，即 Shuffle 之后，所以势必会将所有的数据通过网络进行传输，造成不必要的浪费。同时如果数据量十分大，可能还会造成 OutOfMemoryError。如下图所示：
+
+![1639396615691](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195702-205195.png)
+
+#### 你知道  reduceByKey、foldByKey、aggregateByKey、combineByKey 区别吗？
+
+reduceByKey 没有初始值 分区内和分区间逻辑相同
+
+foldByKey 有初始值 分区内和分区间逻辑相同
+
+aggregateByKey 有初始值 分区内和分区间逻辑可以不同
+
+combineByKey 初始值可以变化结构 分区内和分区间逻辑不同
+
+#### 你刚才提到了 DAG,能说一下什么是 DAG？
+
+DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程，有方向，无闭环(其实就是 RDD 执行的流程)；
+
+![1639396679128](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639396679128.png)
+
+原始的 RDD 通过一系列的转换操作就形成了 DAG 有向无环图，任务执行时，可以按照 DAG 的描述，执行真正的计算(数据被操作的一个过程)。
+
+**DAG 的边界**
+
+- 开始:通过 SparkContext 创建的 RDD；
+- 结束:触发 Action，一旦触发 Action 就形成了一个完整的 DAG。
+
+#### Spark 广播变量和累加器介绍一下？
+
+在默认情况下，当 Spark 在集群的多个不同节点的多个任务上并行运行一个函数时，它会把函数中涉及到的每个变量，在每个任务上都生成一个副本。但是，有时候需要在多个任务之间共享变量，或者在任务(Task)和任务控制节点(Driver Program)之间共享变量。
+
+为了满足这种需求，Spark 提供了两种类型的变量：
+
+**累加器 accumulators**：累加器支持在所有不同节点之间进行累加计算(比如计数或者求和)。
+
+**广播变量 broadcast variables**：广播变量用来把变量在所有节点的内存之间进行共享，**在每个机器上缓存一个只读的变量**，而不是为机器上的每个任务都生成一个副本。
+
+#### 广播变量和累加器的区别是啥？
+
+![1639396751616](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195913-716556.png)
+
+#### 如何使用 Spark 实现 TopN 的获取（描述思路）
+
+**方法1**：
+
+1. 按照 key 对数据进行聚合（groupByKey）；
+2. 将 value 转换为数组，利用 scala 的 sortBy 或者 sortWith 进行排序（mapValues）数据量太大，会OOM。
+
+**方法2：**
+
+（1）取出所有的 key；（2）对 key 进行迭代，每次取出一个 key 利用 spark 的排序算子进行排序。
+
+**方法3：**
+
+（1）自定义分区器，按照 key 进行分区，使不同的 key 进到不同的分区；（2）对每个分区运用 spark 的排序算子进行排序。
+
 ### 3. RDD 的持久化/缓存
 
 在实际开发中某些 RDD 的计算或转换可能会比较耗费时间，如果这些 RDD 后续还会频繁的被使用到，那么可以将这些 RDD 进行持久化/缓存，这样下次再使用到的时候就不用再重新计算了，提高了程序运行的效率。
@@ -315,7 +384,7 @@ rdd2.sortBy(_._2,false).collect//触发action,会去读缓存中的数据,执行
 RDD 通过 persist 或 cache 方法可以将前面的计算结果缓存，但是并不是这两个方法被调用时立即缓存，而是触发后面的 action 时，该 RDD 将会被缓存在计算节点的内存中，并供后面重用。
 通过查看 RDD 的源码发现 cache 最终也是调用了 persist 无参方法(默认存储只存在内存中)：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClY05wsJFvT5qL6N4fs3cVWkCp7RBwPjKOuBPSQEnI2QVjzGw6DGzChw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)RDD源码
+![1639395151595](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193233-105196.png)
 
 - 存储级别
 
@@ -369,11 +438,13 @@ RDD.checkpoint
 
 - 两种依赖关系类型：RDD 和它依赖的父 RDD 的关系有两种不同的类型，即**宽依赖**(wide dependency/shuffle dependency)**窄依赖**(narrow dependency)
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl5j7ByHibBxOyX6ZbNpe2u6ziad51JUt6cZW0FbbRrJjSrYDW2qDh7D3Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395175241](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193255-444468.png)
 
 - 图解：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl1Phib8uA6rk5oVoRr50j8fHLaYbsDMfzeice66uHxpiaQADP5PcmSCGGQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)宽窄依赖
+![1639395202823](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193323-818751.png)
+
+宽窄依赖
 
 - 如何区分宽窄依赖：
 
@@ -407,7 +478,9 @@ DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程�
 
 #### 2) DAG 划分 Stage
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClUh9icmu8GUhXHpptjuVvudsRJOWKUCmQaO892YS24tUZ4QbiaibyY3psw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)DAG划分Stage
+![1639395229668](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193351-101743.png)
+
+DAG划分Stage
 
 **一个 Spark 程序可以有多个 DAG(有几个 Action，就有几个 DAG，上图最后只有一个 Action（图中未表现）,那么就是一个 DAG)**。
 
@@ -629,7 +702,7 @@ SQL 是数据分析领域一个非常重要的范式，所以 Spark 一直想要
 
 #### 1) 发展历史
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClAHtANNQia2KnMZgLdct1xefvT3fwm7pamHib01gXcR1Gibg1xKBgy8XnQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395266238](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193427-320687.png)
 
 - **Hive**
 
@@ -683,7 +756,7 @@ Hive 是将 SQL 转为 MapReduce。
 
 SparkSQL 可以理解成是将 SQL 解析成：“RDD + 优化” 再执行。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClGLiczIlHwy6lxKTGQAWrE0KQdDibN1OF5Cqo1N4X1OF606bFicuQnpqZQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395287867](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193448-735836.png)
 
 ### 4. 数据分类和 SparkSQL 适用场景
 
@@ -774,13 +847,13 @@ DataSet 包含了 DataFrame 的功能。
 
 **DataFrame 其实就是 Dateset[Row]**：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCld2HvoMSHGy8DOeKWDOlnCk6xiaPTOGNJ4YibcAhcGibib5Kk43fc7ibICgQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395309145](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193510-164009.png)
 
 #### 3) RDD、DataFrame、DataSet 的区别
 
 1. **结构图解**：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClBDI1pkiafGE50MQrCia2AI1BbnmX6kC1RQkhyZayp64PdgkDsv6pLhxw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395324557](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193525-302816.png)
 
 - RDD[Person]：
 
@@ -802,25 +875,25 @@ DataSet 包含了 DataFrame 的功能。
    RDD[Person]：
   ```
 
-  ![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCld42ALv6JzaPzbpCZA7KHu01Npp6hXEPfa1RZ89Va5hicQs3Hg9ib8tYQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+  ![1639395356414](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193557-945543.png)
 
 - 那么 DataFrame 中的数据长这样：
 
   DataFrame = RDD[Person] - 泛型 + Schema + SQL 操作 + 优化：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClzz9qRPlc36YWQ8ZuNaJkAIrBYQf2O0iaKGDWyRvJrRSCWyOUn1QF4cQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395342410](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193543-356595.png)
 
 - 那么 Dataset 中的数据长这样：
 
   Dataset[Person] = DataFrame + 泛型：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClPIzrhK4NTuTZEJ90wbPjlmIjgZRtUTflpnZskKdgogmGvHITibmdGpA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395369497](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193610-334304.png)
 
 - Dataset 也可能长这样:Dataset[Row]：
 
   即 DataFrame = DataSet[Row]：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClxN9TTQPC14TlzdUqpm7b65kKAn4B28XXBbkcO1odCU7icYN5e10Vt3Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395384325](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193625-282855.png)
 
 #### 4) 总结
 
@@ -1226,7 +1299,7 @@ personDF.write.mode(SaveMode.Overwrite).jdbc(
 
 Spark Streaming 是一个基于 Spark Core 之上的**实时计算框架**，可以从很多数据源消费数据并对数据进行实时的处理，具有高吞吐量和容错能力强等特点。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl7hAHgu94BEfXE2ibGYfRDHzBxvhKibO5yV273bOvsLwicGicGzxLyuwrjQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395424974](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193706-331858.png)
 
 **Spark Streaming 的特点**：
 
@@ -1252,6 +1325,100 @@ DStream 会被按照时间间隔划分成一批一批的 RDD，当批处理间�
 
 Spark Streaming 的工作流程像下面的图所示一样，接受到实时数据后，给数据分批次，然后传给 Spark Engine 处理最后生成该批次的结果。
 
+### Spark Streaming 如何执行流式计算的?
+
+Spark Streaming 中的流式计算其实并不是真正的流计算，而是微批计算。Spark Streaming 的 RDD 实际是一组小批次的 RDD 集合，是微批（Micro-Batch）的模型，以批为核心。
+
+Spark Streaming 在流计算实际上是分解成一段一段较小的批处理数据（Discretized Stream），其中批处理引擎使用 Spark Core，每一段数据都会被转换成弹性分布式数据集 RDD，然后 Spark Streaming 将对 DStream 的转换操作变为 Spark 对 RDD 的转换操作，并将转换的中间结果存入内存中，整个流式计算依据业务的需要可以对中间数据进行叠加。
+
+### 使用 Spark Streaming 写一个 WordCount?
+
+![1639396909006](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/200204-679298.png)
+
+### 使用 Spark Streaming 常用算子有哪些?
+
+Spark Streaming 算子和 Spark Core算子类似，也是分为 Transformations(转换操作)和 Action（动作操作）。
+
+**Transformations 操作常用算子如下：**
+
+map、flatMap、filter、union、reduceByKey、join、transform，这是算子都是无状态转换，当前批次的处理不需要使用之前批次的数据或中间结果。
+
+**action 操作常用算子如下：**
+
+print、saveAsTextFile、saveAsObjectFiles、saveAsHadoopFiles等。
+
+### 使用 Spark Streaming 有状态装换的算子有哪些?
+
+有状态装换的算子包含：
+
+1. 基于追踪状态变化的转换（updateStateByKey）
+
+updateStateByKey：将历史结果应用到当前批次。
+
+1. 滑动窗口的转换 Window Operations
+
+### Spark Streaming 如何实现精确一次消费?
+
+**概念：**
+
+- 精确一次消费（Exactly-once） 是指消息一定会被处理且只会被处理一次。不多不少就一次处理。
+- 至少一次消费（at least once），主要是保证数据不会丢失，但有可能存在数据重复问题。
+- 最多一次消费 （at most once），主要是保证数据不会重复，但有可能存在数据丢失问题。
+
+如果同时解决了数据丢失和数据重复的问题，那么就实现了**精确一次消费**的语义了。
+
+**解决方案：**
+
+方案一：利用`关系型数据库的事务`进行处理
+
+出现丢失或者重复的问题，核心就是偏移量的提交与数据的保存，不是原子性的。如果能做成要么数据保存和偏移量都成功，要么两个失败。那么就不会出现丢失或者重复了。
+
+这样的话可以把存数据和偏移量放到一个事务里。这样就做到前面的成功，如果后面做失败了，就回滚前面那么就达成了原子性。
+
+方案二：`手动提交偏移量+幂等性处理`
+
+首先解决**数据丢失问题**，办法就是要等数据保存成功后再提交偏移量，所以就必须**手工来控制偏移量**的提交时机。
+
+但是如果数据保存了，没等偏移量提交进程挂了，数据会被重复消费。怎么办？那就要把数据的保存做成幂等性保存。即同一批数据反复保存多次，数据不会翻倍，保存一次和保存一百次的效果是一样的。如果能做到这个，就达到了幂等性保存，就不用担心数据会重复了。
+
+**难点**
+
+话虽如此，在实际的开发中手动提交偏移量其实不难，难的是幂等性的保存，有的时候并不一定能保证。所以有的时候只能优先保证的数据不丢失。数据重复难以避免。即只保证了至少一次消费的语义。
+
+### Spark Streaming 背压机制了解吗？
+
+**问题：**
+
+在默认情况下，Spark Streaming 通过 receivers (或者是 Direct 方式) 以生产者生产数据的速率接收数据。当 batch processing time > batch interval 的时候，也就是每个批次数据处理的时间要比 Spark Streaming 批处理间隔时间长；越来越多的数据被接收，但是数据的处理速度没有跟上，导致系统开始出现数据堆积，可能进一步导致 Executor 端出现 OOM 问题而出现失败的情况。
+
+**解决办法：**
+
+设置 spark.streaming.backpressure.enabled：ture；开启背压机制后 Spark Streaming 会根据延迟动态去 kafka 消费数据；
+
+上限由 spark.streaming.kafka.maxRatePerPartition 参数控制，所以两个参数一般会一起使用。
+
+### SparkStreaming 有哪几种方式消费 Kafka 中的数据，它们之间的区别是什么？
+
+**一、基于 Receiver 的方式**
+
+使用 Receiver 来获取数据。Receiver 是使用 Kafka 的高层次 Consumer API 来实现的。receiver 从 Kafka 中获取的数据都是存储在 Spark Executor 的内存中的（如果突然数据暴增，大量 batch 堆积，很容易出现内存溢出的问题），然后 Spark Streaming 启动的 job 会去处理那些数据。然而，在默认的配置下，这种方式可能会因为底层的失败而丢失数据。**如果要启用高可靠机制，让数据零丢失，就必须启用 Spark Streaming 的预写日志机制**（Write Ahead Log，WAL）。该机制会同步地将接收到的 Kafka 数据写入分布式文件系统（比如HDFS）上的预写日志中。所以，即使底层节点出现了失败，也可以使用预写日志中的数据进行恢复。
+
+**二、基于 Direct 的方式**
+
+这种新的不基于 Receiver 的直接方式，是在 Spark 1.3 中引入的，从而能够确保更加健壮的机制。替代掉使用 Receiver 来接收数据后，这种方式会周期性地查询 Kafka，来获得每个 topic+partition 的最新的 offset，从而定义每个 batch 的 offset 的范围。当处理数据的 job 启动时，就会使用 Kafka的简单 consumer api 来获取 Kafka 指定 offset 范围的数据。
+
+**优点如下**：
+
+- 简化并行读取：如果要读取多个 partition，不需要创建多个输入 DStream 然后对它们进行 union 操作。Spark 会创建跟 Kafka partition 一样多的 RDD partition，并且会并行从 Kafka 中读取数据。所以在 Kafka partition 和 RDD partition 之间，有一个一对一的映射关系。
+- 高性能：如果要保证零数据丢失，在基于 receiver 的方式中，需要开启 WAL机制。这种方式其实效率低下，因为数据实际上被复制了两份，Kafka 自己本身就有高可靠的机制，会对数据复制一份，而这里又会复制一份到 WAL 中。而基于 direct 的方式，不依赖 Receiver，不需要开启 WAL 机制，只要 Kafka 中作了数据的复制，那么就可以通过 Kafka 的副本进行恢复。次且仅一次的事务机制。
+
+**三、对比：**
+
+- 基于 receiver 的方式，是使用 Kafka 的高阶 API 来在 ZooKeeper 中保存消费过的 offset 的。这是消费 Kafka 数据的传统方式。这种方式配合着 WAL 机制可以保证数据零丢失的高可靠性，但是却无法保证数据被处理一次且仅一次，可能会处理两次。因为 Spark 和 ZooKeeper 之间可能是不同步的。
+- 基于 direct 的方式，使用 kafka 的简单 api，Spark Streaming 自己就负责追踪消费的 offset，并保存在 checkpoint 中。Spark 自己一定是同步的，因此可以保证数据是消费一次且仅消费一次。
+
+**在实际生产环境中大都用 Direct 方式**
+
 ### 2. 数据抽象
 
 Spark Streaming 的基础抽象是 DStream(Discretized Stream，离散化数据流，连续不断的数据流)，代表持续性的数据流和经过各种 Spark 算子操作后的结果数据流。
@@ -1260,11 +1427,11 @@ Spark Streaming 的基础抽象是 DStream(Discretized Stream，离散化数据�
 
 1. DStream 本质上就是一系列时间上连续的 RDD
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClOnkVIibJAVE02VmVHC8Ln4dm9vwFCicEpYjFSYOhpwUnJS3SONFHXlTA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395440127](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193721-303961.png)
 
 1. 对 DStream 的数据的进行操作也是按照 RDD 为单位来进行的
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClrGtkDb4dapfUlGBbhu4NpBJybiaU8kXr8SiaCzXu60LBeF4oA7efLfBw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395454798](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193735-520754.png)
 
 1. 容错性，底层 RDD 之间存在依赖关系，DStream 直接也有依赖关系，RDD 具有容错性，那么 DStream 也具有容错性
 2. 准实时性/近实时性
@@ -1431,9 +1598,13 @@ object WordCount2 {
 
 我们先提出一个问题：统计经过某红绿灯的汽车数量之和？
 
-假设在一个红绿灯处，我们每隔 15 秒统计一次通过此红绿灯的汽车数量，如下图：![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClKYHRmESmOj4z14NN7pmJPIuiaftlXXkT25nlhP0tP96sLzcCuR34cJQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)可以把汽车的经过看成一个流，无穷的流，不断有汽车经过此红绿灯，因此无法统计总共的汽车数量。但是，我们可以换一种思路，每隔 15 秒，我们都将与上一次的结果进行 sum 操作（滑动聚合, 但是这个结果似乎还是无法回答我们的问题，根本原因在于流是无界的，我们不能限制流，但可以在有一个有界的范围内处理无界的流数据。
+假设在一个红绿灯处，我们每隔 15 秒统计一次通过此红绿灯的汽车数量，如下图：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl8zCJRL14dusVDicowatFOYOBiatcTrmhz9sbFuDvZKDz35icYuflXRcMQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395481929](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193803-60858.png)
+
+可以把汽车的经过看成一个流，无穷的流，不断有汽车经过此红绿灯，因此无法统计总共的汽车数量。但是，我们可以换一种思路，每隔 15 秒，我们都将与上一次的结果进行 sum 操作（滑动聚合, 但是这个结果似乎还是无法回答我们的问题，根本原因在于流是无界的，我们不能限制流，但可以在有一个有界的范围内处理无界的流数据。
+
+![1639395496051](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193817-247948.png)
 
 因此，我们需要换一个问题的提法：每分钟经过某红绿灯的汽车数量之和？
 
@@ -1441,11 +1612,15 @@ object WordCount2 {
 
 第一分钟的数量为 8，第二分钟是 22，第三分钟是 27。。。这样，1 个小时内会有 60 个 window。
 
-再考虑一种情况，每 30 秒统计一次过去 1 分钟的汽车数量之和：![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClEV9uibzngtUOmI09YwjhDYAbUWUezia79oMKialmAF8GToD1OwmrsFgww/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)此时，window 出现了重合。这样，1 个小时内会有 120 个 window。
+再考虑一种情况，每 30 秒统计一次过去 1 分钟的汽车数量之和：
+
+![1639395511817](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193833-813633.png)
+
+此时，window 出现了重合。这样，1 个小时内会有 120 个 window。
 
 滑动窗口转换操作的计算过程如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClaibia3K6QQ6N1mACticPY5JaBCQp8NdsaqfuYLHGlfV1UpkQX8vAkozXw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395525180](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193846-575906.png)
 
 我们可以事先设定一个滑动窗口的长度(也就是窗口的持续时间)，并且设定滑动窗口的时间间隔(每隔多长时间执行一次计算)，
 
@@ -1453,7 +1628,7 @@ object WordCount2 {
 
 那么意思就是:每隔 1H 计算最近 24H 的数据
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClfdDyHP0aeowab0j0lgicHia1k8VcWHRibgx1EddvkMgP9ACR9lJ5RJLiag/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395540117](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193901-164781.png)
 
 **代码示例**：
 
@@ -1521,7 +1696,7 @@ spark 在 2.0 版本中发布了新的流计算的 API，Structured Streaming/�
 
   Spark Streaming 采用的数据抽象是 DStream，而本质上就是时间上连续的 RDD，对数据流的操作就是针对 RDD 的操作。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClXG0YdOubor4y64xgeJ79VH6aCx59woxicaic6CPBhCQQzQx7n8D2kDeA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395560944](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193921-907666.png)
 
 - **Structured Streaming 时代 - DataSet/DataFrame -RDD**
 
@@ -1529,7 +1704,7 @@ spark 在 2.0 版本中发布了新的流计算的 API，Structured Streaming/�
 
   Structured Streaming 相比于 Spark Streaming 的进步就类似于 Dataset 相比于 RDD 的进步。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClMvB1icXowjWxB6H43iaxkLslSw7bT7cW8Z9mDo7GRIeuibv0l5XsMBysA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395576671](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193937-515265.png)
 
 ### 2. 核心思想
 
@@ -1652,7 +1827,7 @@ ds.groupByKey(_.deviceType).agg(typed.avg(_.signal))    // using typed API
 
 **output mode**：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl0NMmDvj0fA6nmdxQVHhQuCvcU5P4t76Sk8NuoyFjYJyyWOkJ1VTr3Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395595333](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193957-774946.png)
 
 每当结果表更新时，我们都希望将更改后的结果行写入外部接收器。
 
@@ -1664,7 +1839,7 @@ ds.groupByKey(_.deviceType).agg(typed.avg(_.signal))    // using typed API
 
 **output sink**：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCl4icicknMqPXm7NrB1Ziaxq3NOGdVwzk1pX5purQUWXXEl9Yr86vZY8m4A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395620395](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194021-63180.png)
 
 - 说明：
 
@@ -1733,7 +1908,7 @@ Spark1.1 版本引入了 Sort Shuffle：
 
 一张图了解下 Spark Shuffle 的迭代历史：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClAezPeqp0pPl4dk1xh9Q9y2pzkjVeMhVSfq6ua8Qn4aMaBeXJnzFzqA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)Spark Shuffle 迭代历史
+![1639395702977](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194144-503864.png)Spark Shuffle 迭代历史
 
 **为什么 Spark 最终还是放弃了 HashShuffle ，使用了 Sorted-Based Shuffle？**
 
@@ -1759,7 +1934,7 @@ shuffle read 的拉取过程是一边拉取一边进行聚合的。每个 shuffl
 
 HashShuffleManager 工作原理如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClsAiabF0CzMbzcAjKicbLhZ8olRfTdUBcICia9zf56a8blDdkmsaHiaSclw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)未优化的HashShuffleManager工作原理
+![1639395721678](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194203-662364.png)未优化的HashShuffleManager工作原理
 
 #### 2. 优化的 HashShuffleManager
 
@@ -1775,7 +1950,9 @@ HashShuffleManager 工作原理如下图所示：
 
 优化后的 HashShuffleManager 工作原理如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClibdednS4E4OwekDtqpPvbUYSDhcbkWuIbnTnh30qQrXrdHk0mm0kw1A/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)优化后的HashShuffleManager工作原理
+![1639395737705](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194218-766086.png)
+
+优化后的HashShuffleManager工作原理
 
 ##### 基于 Hash 的 Shuffle 机制的优缺点
 
@@ -1810,7 +1987,9 @@ SortShuffleManager 由于有一个磁盘文件 merge 的过程，因此大大减
 
 普通运行机制的 SortShuffleManager 工作原理如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClxic0zHibkAEtbsnTXf9GGicz6xDeNMj2d4L7Y6KWxnrzzJN2AEucaxpFg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)普通运行机制的SortShuffleManager工作原理
+![1639395756169](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194237-596327.png)
+
+普通运行机制的SortShuffleManager工作原理
 
 #### 2. bypass 运行机制
 
@@ -1829,7 +2008,9 @@ bypass 运行机制的触发条件如下：
 
 bypass 运行机制的 SortShuffleManager 工作原理如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClx87Q1KVIFYdSMNFhPJ9eJ5B5ibCvHULQV5LgiaXN9MrhZbgnSZ5gVQKA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)bypass运行机制的SortShuffleManager工作原理
+![1639395772870](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639395772870.png)
+
+bypass运行机制的SortShuffleManager工作原理
 
 #### 3. Tungsten Sort Shuffle 运行机制
 
@@ -1868,7 +2049,9 @@ Spark 提供了配置属性，用于选择具体的 Shuffle 实现机制，但�
 
 ### Spark 运行流程
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BCllQj5O8mXHv1UaLeibJyxv53T5bKv5obibZK88WqX1PicVYnszouzOQ6CA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)Spark运行流程
+![1639395827782](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194348-308663.png)
+
+Spark运行流程
 
 具体运行流程如下：
 
@@ -1903,7 +2086,7 @@ dtinone.filter(...).foreach(...)
 
 上述代码的 DAG 图如下所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClicxzqwN9qGEtCdHukNrS7qKMj9XgCk881G1OKAF3G7FGIehIZRQxib1Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)构建DAG图
+![1639395845014](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194406-812232.png)构建DAG图
 
 Spark 内核会在需要计算发生的时刻绘制一张关于计算路径的有向无环图，也就是如上图所示的 DAG。
 
@@ -1931,7 +2114,9 @@ Spark 内核会从触发 Action 操作的那个 RDD 开始**从后往前推**，
 
 #### 3. 将 DAG 划分为 Stage 剖析
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClUh9icmu8GUhXHpptjuVvudsRJOWKUCmQaO892YS24tUZ4QbiaibyY3psw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)DAG划分Stage
+![1639395893175](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194454-947407.png)
+
+DAG划分Stage
 
 **一个 Spark 程序可以有多个 DAG(有几个 Action，就有几个 DAG，上图最后只有一个 Action（图中未表现）,那么就是一个 DAG)**。
 
@@ -1949,7 +2134,7 @@ Spark 内核会从触发 Action 操作的那个 RDD 开始**从后往前推**，
 
 而 TaskScheduler 的具体实现则会在得到计算资源的时候，进一步通过 TaskSetManager 调度具体的任务到对应的 Executor 节点上进行运算。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClPkNJ0YHYe5RA2fyLklFFUzPpUibuWrGyF6EkZDAbq0PBVr7mLO2PCrA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)
+![1639395933635](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194535-882822.png)
 
 #### 5. 监控 Job、Task、Executor
 
@@ -1987,7 +2172,7 @@ TaskScheduler 通过回调函数通知 DAGScheduler 具体的 Executor 的生命
 
 **一张图说明任务总体调度：**
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClojkLjQHYgr34kddApkJiaAo9qnXblwtb9qe8tmjXpCyGkiabDRmIbyOA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)任务总体调度
+![1639395949322](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194550-864075.png)
 
 ### Spark 运行架构特点
 
@@ -1997,7 +2182,9 @@ TaskScheduler 通过回调函数通知 DAGScheduler 具体的 Executor 的生命
 
 Spark Application 不能跨应用程序共享数据，除非将数据写入到外部存储系统。如图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClEUx0BvfKJH11htDdtOXyJ75Mibzs09mv6ql6qiauZa8ZthEG9rhwfkSw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)Executor进程专属
+![1639395985521](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194627-15396.png)
+
+Executor进程专属
 
 #### 2. 支持多种资源管理器
 
@@ -2005,7 +2192,9 @@ Spark 与资源管理器无关，只要能够获取 Executor 进程，并能保�
 
 Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2。如图所示:
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClW2U7iaUh1PyfnVRpZVbpLuLme91whfffBCibcMAypCRbdDPF9BCab6cA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)支持多种资源管理器
+![1639396010079](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194651-952705.png)
+
+支持多种资源管理器
 
 #### 3. Job 提交就近原则
 
@@ -2015,7 +2204,9 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 如图所示:
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClMrwB946RL5EYb0D6Df9xoLJTKTgtZaWpoqoELjqQKicZE67ZmialwY4w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)Job提交就近原则
+![1639396030617](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194711-410137.png)
+
+Job提交就近原则
 
 #### 4. 移动程序而非移动数据的原则执行
 
@@ -2025,7 +2216,9 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 如图所示:
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClmXs39yOT7wTfNvMicrEFJtsBKib2tuy7PhJ8xgwicecSBOzn0rK0Kkibtw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)数据本地性
+![1639396053165](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194734-242051.png)
+
+数据本地性
 
 ## 八、Spark 数据倾斜
 
@@ -2070,7 +2263,9 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 当使用了类似于groupByKey、reduceByKey这样的算子时，可以考虑使用随机key实现双重聚合，如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClZWcIfPWer9WXxwqN1UJCmXAUzUNB6XalXf7wdgibu8GKDoPk858xEhw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)随机key实现双重聚合
+![1639396075335](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194756-554148.png)
+
+随机key实现双重聚合
 
 首先，通过map算子给每个数据的key添加随机数前缀，对key进行打散，将原先一样的key变成不一样的key，然后进行第一次聚合，这样就可以让原本被一个task处理的数据分散到多个task上去做局部聚合；随后，去除掉每个key的前缀，再次进行聚合。
 
@@ -2086,7 +2281,9 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 倾斜key单独join的流程如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClK8gdxuDmC7o2amajrGnicWTPadyG2r6efQo6Lyico4Ve9tjtEJj1Np2g/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)倾斜key单独join流程
+![1639396089108](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194810-77770.png)
+
+倾斜key单独join流程
 
 适用场景分析：
 
@@ -2122,7 +2319,9 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 正常情况下，join操作都会执行shuffle过程，并且执行的是reduce join，也就是先将所有相同的key和对应的value汇聚到一个reduce task中，然后再进行join。普通join的过程如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClK5VKboavTe4gyf9LvH52QIic8vxNUgFTibym8vNXbb0k77wMJicOARn8Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)普通join过程
+![1639396148487](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194909-324674.png)
+
+普通join过程
 
 普通的join是会走shuffle过程的，而一旦shuffle，就相当于会将相同key的数据拉取到一个shuffle read task中再进行join，此时就是reduce join。但是如果一个RDD是比较小的，则可以采用广播小RDD全量数据+map算子来实现与join同样的效果，也就是map join，此时就不会发生shuffle操作，也就不会发生数据倾斜。
 
@@ -2138,7 +2337,9 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 map join的过程如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClK5VKboavTe4gyf9LvH52QIic8vxNUgFTibym8vNXbb0k77wMJicOARn8Q/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)map join过程
+![1639396166581](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194928-798959.png)
+
+map join过程
 
 **2. 不适用场景分析：**
 
@@ -2152,11 +2353,15 @@ map join的过程如下图所示：
 
 在对RDD进行算子时，要避免相同的算子和计算逻辑之下对RDD进行重复的计算，如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClERkXibI16JFqccMs6cxiaAdjPQ8HrsWYHw3p0cbsQu9fnjE92MoicWE2w/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)RDD的重复计算
+![1639396344028](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195224-281715.png)
+
+RDD的重复计算
 
 对上图中的RDD计算架构进行修改，得到如下图所示的优化结果：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClicEDzeDwxibiadlSX9ibwl1MV4rv67IiaOuaKD7ahkAc20jIsS2RBJjKRHA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)RDD架构优化
+![1639396360580](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195241-221777.png)
+
+RDD架构优化
 
 ### 2. 尽早filter
 
@@ -2206,11 +2411,15 @@ mapPartitions(_....)  表示每个分区的数据组成的迭代器
 
 如果是普通的map算子，假设一个partition有1万条数据，那么map算子中的function要执行1万次，也就是对每个元素进行操作。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClO6Wwaz4gmv5DGVcugbT0EeCPsE5xYnaicMYJ6NgqCPib3UAwbwzENmLQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)map 算子
+![1639396321891](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195203-304611.png)
+
+map 算子
 
 如果是mapPartition算子，由于一个task处理一个RDD的partition，那么一个task只会执行一次function，function一次接收所有的partition数据，效率比较高。
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClctVIQbaqwaZz49uowbRAJTUp7kXfuR0iaDXl0Cbqs0MLcAzjttwWmWA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)mapPartition 算子
+![1639396304247](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195204-120050.png)
+
+mapPartition 算子
 
 比如，**当要把RDD中的所有数据通过JDBC写入数据，如果使用map算子，那么需要对RDD中的每一个元素都创建一个数据库连接，这样对资源的消耗很大，如果使用mapPartitions算子，那么针对一个分区的数据，只需要建立一个数据库连接**。
 
@@ -2314,7 +2523,9 @@ Spark SQL的并行度不允许用户自己指定，Spark SQL自己会默认根�
 
 repartition 算子使用前后对比图如下：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClluuQGrck6TicLu0Xo0hZc9T9RUhPib1YCGHrfCrWtm8R6k2862AoEwPg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)repartition 算子使用前后对比图
+![1639396286805](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195127-191320.png)
+
+repartition 算子使用前后对比图
 
 **Spark SQL这一步的并行度和task数量肯定是没有办法去改变了，但是，对于Spark SQL查询出来的RDD，立即使用repartition算子，去重新进行分区，这样可以重新分区为多个partition，从repartition之后的RDD操作，由于不再涉及Spark SQL，因此stage的并行度就会等于你手动设置的值，这样就避免了Spark SQL所在的stage只能用少量的task去处理大量数据并执行复杂的算法逻辑。使用repartition算子的前后对比如上图所示**。
 
@@ -2324,7 +2535,9 @@ repartition 算子使用前后对比图如下：
 
 reduceByKey算子的执行过程如下图所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClWK5nAJBCGibKRhRoWY4MO9rSkwBhFVq39ib71Batnib28JPMvOhiaPFClg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)reduceByKey 算子执行过程
+![1639396267465](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195108-668641.png)
+
+reduceByKey 算子执行过程
 
 使用reduceByKey对性能的提升如下：
 
@@ -2337,9 +2550,13 @@ reduceByKey算子的执行过程如下图所示：
 
 groupByKey与reduceByKey的运行原理如下图1和图2所示：
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClL71POlOW4vRLbcEsNu7EKB4leWZ1nMTfkGVOspNn77MNegVOuR7yLA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)图1：groupByKey原理
+![1639396246826](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639396246826.png)
 
-![图片](https://mmbiz.qpic.cn/sz_mmbiz_png/ZubDbBye0zFsrnOGLdJAJn2Ul3LY8BClxZFwd0rn6rHjxuHEBuiaGMCnVa2LWrvIcibJpKR4VG2ptSKbrobvK1Pg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1)图2：reduceByKey原理
+图1：groupByKey原理
+
+![1639396232173](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/195033-502606.png)
+
+图2：reduceByKey原理
 
 根据上图可知，groupByKey不会进行map端的聚合，而是将所有map端的数据shuffle到reduce端，然后在reduce端进行数据的聚合操作。由于reduceByKey有map端聚合的特性，使得网络传输的数据量减小，因此效率要明显高于groupByKey。
 
@@ -2732,120 +2949,4 @@ spark通过这个参数spark.deploy.zookeeper.dir指定master元数据在zookeep
 > 1、在Master切换的过程中，所有的已经在运行的程序皆正常运行！因为Spark Application在运行前就已经通过Cluster Manager获得了计算资源，所以在运行时Job本身的 调度和处理和Master是没有任何关系。
 > 2、在Master的切换过程中唯一的影响是不能提交新的Job：一方面不能够提交新的应用程序给集群， 因为只有Active Master才能接受新的程序的提交请求；另外一方面，已经运行的程序中也不能够因 Action操作触发新的Job的提交请求。
 
-
-
---end--
-
-```
-扫描下方二维码
-添加好友，备注【交流】可私聊交流，也可进资源丰富学习群
-更文不易，点个“在看”支持一下👇
-```
-
-阅读原文
-
-阅读 1600
-
-分享收藏
-
-赞10
-
-在看9
-
-
-
-分享此内容的人还喜欢
-
-数据仓库和数据集市建模体系化总结
-
-
-
-
-
-阅读 508
-
-大数据学习与分享
-
-不喜欢
-
-不看的原因
-
-- 内容质量低
--  
-
-- 不看此公众号
-
-
-
-大规模业务技术架构设计与战术（架构师必看）
-
-
-
-
-
-阅读 2032
-
-DevOps技术栈
-
-不喜欢
-
-不看的原因
-
-- 内容质量低
--  
-
-- 不看此公众号
-
-
-
-一张图，详解大数据技术架构
-
-
-
-
-
-阅读 548
-
-架构师社区
-
-不喜欢
-
-不看的原因
-
-- 内容质量低
--  
-
-- 不看此公众号
-
-
-
-：
-
-，
-
-。
-
-视频
-
-小程序
-
-赞
-
-，轻点两下取消赞
-
-在看
-
-，轻点两下取消在看
-
-
-
-
-
-oss-cn-beijing
-
-[vscodepic](https://oss.console.aliyun.com/bucket/oss-c
-
-AccessKey ID     **LTAI5t6Nh1faCp7vgJ8nZv4K**
-
-AccessKey Secret    **immWi3ACavE8gXSTUbuTYttNXRNHmK**
 
