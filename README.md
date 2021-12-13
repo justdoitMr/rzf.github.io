@@ -153,7 +153,7 @@
 16. [Flink学习--Flink on Yarn](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%AD%A6%E4%B9%A0--Flink%20on%20Yarn.md)
 17. [Flink内存管理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86.md)
 18. [Flink CEP](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%20CEP.md)
-19. [Flink专题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
+
 
 #### 基于Flink的实时数仓项目
 
@@ -166,6 +166,7 @@
 7. [实时项目优化](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96.md)
 
 
+
 #### 离线数仓
 
 1. [离线数仓数据采集模块](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E6%95%B0%E6%8D%AE%E9%87%87%E9%9B%86%E6%A8%A1%E5%9D%97.md)
@@ -173,10 +174,10 @@
 
 ### 分布式
 
-1. [分布式基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3.md)
-2. [分布式事务](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1.md)
-3. [分布式锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.md)
-4. [分布式ID解决方案](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8FID%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88.md)
+1. [分布式基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E6%8A%80%E6%9C%AF%E8%AF%A6%E8%A7%A3.md)
+2. [分布式事务](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1.md)
+3. [分布式锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81.md)
+4. [分布式ID解决方案](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8FID%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88.md)
 
 ### 数据挖掘
 
@@ -184,13 +185,25 @@
 
 ---
 
-## 面试手册
+## 面经整理
+
+### 基础部分
+
+1. [Java核心](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E6%A0%B8%E5%BF%83.md)
+2. [Java集合](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E9%9B%86%E5%90%88.md)
+3. [并发编程](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E5%B9%B6%E5%8F%91.md)
+4. [虚拟机](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E8%99%9A%E6%8B%9F%E6%9C%BA.md)
+5. [数据库](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E6%95%B0%E6%8D%AE%E5%BA%93.md)
+6. [网络](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E7%BD%91%E7%BB%9C.md)
+
+### 框架部分
 
 1. [Hadoop篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Hadoop%E7%AF%87.md)
 2. [Kafka篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/kafka/Kafka.md)
 3. [zookeeper](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Zookeeper.md)
 4. [Hive篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Hive%E7%AF%87.md)
 5. [Spark篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Spark.md)
+6. [Flink](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
 
 ---
 
