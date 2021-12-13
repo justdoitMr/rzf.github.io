@@ -88,24 +88,28 @@
 
 ### Hive
 
-1. [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Hive.md)
+1. [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hive/Hive.md)
 
 ### HBase
 
-1. [HBase基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/HBase.md)
+1. [HBase基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hbase/HBase.md)
 
 ### Redis
 
-1. [Redis基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Redis.md)
-2. [Redis面经](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Redis%E9%9D%A2%E7%BB%8F.md)
+1. [Redis基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Redis.md)
+2. [Redis面经](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Redis%E9%9D%A2%E7%BB%8F.md)
 
 ### Zookeeper
 
-1. [zookeeper](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Zookeeper.md)
+1. [zookeeper](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/zookeeper/Zookeeper.md)
 
 ### Kafka
 
-1. [Kafka基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Kafka.md)
+1. [Kafka基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/kafka/Kafka%E5%AD%A6%E4%B9%A0.md)
+
+### Flume
+
+1. [Flume基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flume/Flume.md)
 
 
 ### Spark
