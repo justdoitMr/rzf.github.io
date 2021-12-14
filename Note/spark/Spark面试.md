@@ -129,7 +129,7 @@ pipeline 流水线，流水线内的多个平行的分区可以并行执行。
 
 Spark 内核会从触发 Action 操作的那个 RDD 开始 从后往前推 ，首先会为最后一个 RDD 创建一个 Stage，然后继续倒推，如果发现对某个 RDD 是宽依赖，那么就会将宽依赖的那个 RDD 创建一个新的 Stage，那个 RDD 就是新的 Stage的最后一个 RDD。然后依次类推，继续倒推，根据窄依赖或者宽依赖进行 Stage的划分，直到所有的 RDD 全部遍历完成为止。
 
-###  对于 k Spark 中的数据倾斜问题你有什么好的方案？
+###  对于Spark 中的数据倾斜问题你有什么好的方案？
 
 1. 前提是定位数据倾斜，是 OOM 了，还是任务执行缓慢，看日志，看 WebUI。
 2. 解决方法，有多个方面:
@@ -139,6 +139,54 @@ Spark 内核会从触发 Action 操作的那个 RDD 开始 从后往前推 ，�
   4. 自定义 paritioner，分散 key 的分布，使其更加均匀
 
 ### Spark中的OOM问题
+
+map 类型的算子执行中内存溢出如 flatMap，mapPatitions
+
+- 原因：map 端过程产生大量对象导致内存溢出：这种溢出的原因是在单个map 中产生了大量的对象导致的针对这种问题。
+
+**解决方案：**
+
+- 增加堆内内存。
+- 在不增加内存的情况下，可以减少每个 Task 处理数据量，使每个 Task产生大量的对象时，Executor 的内存也能够装得下。具体做法可以在会
+- 产生大量对象的 map 操作之前调用 repartition 方法，分区成更小的块传入 map。
+
+shuffle 后内存溢出如 join，reduceByKey，repartition。
+
+- shuffle 内存溢出的情况可以说都是 shuffle 后，单个文件过大导致的。在 shuffle 的使用，需要传入一个 partitioner，大部分 Spark 中的shuffle 操作，默认的 partitioner 都是 HashPatitioner，默认值是父
+  RDD 中最大的分区数．这个参数 spark.default.parallelism 只对HashPartitioner 有效．如果是别的 partitioner 导致的 shuffle 内存溢出就需要重写 partitioner 代码了
+
+driver 内存溢出
+
+- 用户在 Dirver 端口生成大对象，比如创建了一个大的集合数据结构。解决方案：将大对象转换成 Executor 端加载，比如调用 sc.textfile 或者评估大对象占用的内存，增加 dirver 端的内存
+- 从 Executor 端收集数据（collect）回 Dirver 端，建议将 driver 端对 collect 回来的数据所作的操作，转换成 executor 端 rdd 操作。
+
+### Spar 程序执行，有时候默认为什么会产生很多 task ，怎么修改默认 task 执行个数？
+
+输入数据有很多 task，尤其是有很多小文件的时候，有多少个输入 block就会有多少个 task 启动；
+
+spark 中有 partition 的概念，每个 partition 都会对应一个 task，task 越多，在处理大规模数据的时候，就会越有效率。不过 task 并不是越多越好，如果平时测试，或者数据量没有那么大，则没有必要 task 数量太多。
+
+参数可以通过 spark_home/conf/spark-default.conf 配置文件设置:
+
+~~~ java
+针对 spark sql 的 task 数量： spark.sql.shuffle.partitions=50
+  非 spark sql 程序设置生效： spark.default.parallelism=10
+~~~
+
+所以说分区数量就可以影响Task的数量，所以我们可以通过再程序中设置分区的数量，可以从四个层面设置：
+
+- 代码层面
+- 配置文件层面
+- 客户端提交时候设置
+- 环境层面
+
+> 上面的设置，优先级依次降低
+
+### 介绍一下join 操作优化经验？
+
+join 其实常见的就分为两类： map-side join 和 reduce-side join 。
+
+
 
 
 
