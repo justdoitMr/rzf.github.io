@@ -1,4 +1,112 @@
 
+<!-- TOC -->
+
+- [Kafka篇](#kafka篇)
+  - [请说明什么是Apache Kafka？](#请说明什么是apache-kafka)
+  - [Kafka的基本术语](#kafka的基本术语)
+  - [请说明什么是传统的消息传递方法？](#请说明什么是传统的消息传递方法)
+  - [数据传输的事务有几种？](#数据传输的事务有几种)
+  - [使用消息队列的好处](#使用消息队列的好处)
+  - [为什么选择kafka](#为什么选择kafka)
+  - [Kafka 缺点？](#kafka-缺点)
+  - [Kafka消息队列](#kafka消息队列)
+    - [点对点模式](#点对点模式)
+    - [发布订阅模式](#发布订阅模式)
+  - [请简述下你在哪些场景下会选择 Kafka？](#请简述下你在哪些场景下会选择-kafka)
+  - [如何保证每个应用程序都可以获取到 Kafka 主题中的所有消息，而不是部分消息？](#如何保证每个应用程序都可以获取到-kafka-主题中的所有消息而不是部分消息)
+  - [Kafka 的设计架构？](#kafka-的设计架构)
+  - [零拷贝技术](#零拷贝技术)
+  - [高性能高吞吐](#高性能高吞吐)
+    - [页缓存技术](#页缓存技术)
+    - [顺序写](#顺序写)
+    - [批发送](#批发送)
+    - [数据压缩](#数据压缩)
+    - [零拷贝技术](#零拷贝技术-1)
+  - [Kafka 分区的目的？](#kafka-分区的目的)
+  - [说一下什么是副本？](#说一下什么是副本)
+  - [Kafka消息是采用Pull模式，还是Push模式？](#kafka消息是采用pull模式还是push模式)
+  - [kafka消息队列优点或者对比](#kafka消息队列优点或者对比)
+    - [请说明Kafka相对于传统的消息传递方法有什么优势？](#请说明kafka相对于传统的消息传递方法有什么优势)
+    - [Kafka与传统消息队列的区别？](#kafka与传统消息队列的区别)
+  - [Kafka的设计是什么样的呢？](#kafka的设计是什么样的呢)
+  - [Kafka判断一个节点是否还活着有那两个条件？](#kafka判断一个节点是否还活着有那两个条件)
+  - [Kafa consumer是否可以消费指定分区消息？](#kafa-consumer是否可以消费指定分区消息)
+  - [producer是否直接将数据发送到broker的leader(主节点)？](#producer是否直接将数据发送到broker的leader主节点)
+  - [Kafka存储在硬盘上的消息格式是什么？](#kafka存储在硬盘上的消息格式是什么)
+  - [Kafka高效文件存储设计特点：](#kafka高效文件存储设计特点)
+  - [Kafka工作流程](#kafka工作流程)
+  - [生产者向 Kafka 发送消息的执行流程介绍一下？](#生产者向-kafka-发送消息的执行流程介绍一下)
+  - [Producer 发送的一条 message 中包含哪些信息？](#producer-发送的一条-message-中包含哪些信息)
+  - [kafka 如何实现多线程的消费？](#kafka-如何实现多线程的消费)
+  - [如何保证Kafka的消息有序](#如何保证kafka的消息有序)
+  - [kafka 如何保证数据的不重复和不丢失？](#kafka-如何保证数据的不重复和不丢失)
+  - [kafka如何保证对应类型数据写入相同的分区](#kafka如何保证对应类型数据写入相同的分区)
+  - [Kafka创建Topic时如何将分区放置到不同的Broker中](#kafka创建topic时如何将分区放置到不同的broker中)
+  - [Kafka新建的分区会在哪个目录下创建](#kafka新建的分区会在哪个目录下创建)
+  - [partition的数据如何保存到硬盘](#partition的数据如何保存到硬盘)
+  - [Kafka的消费者如何消费数据](#kafka的消费者如何消费数据)
+  - [kafaka生产数据时数据的分组策略](#kafaka生产数据时数据的分组策略)
+  - [kafka集群架构](#kafka集群架构)
+  - [Kafka的工作机制](#kafka的工作机制)
+  - [kafka文件存储结构](#kafka文件存储结构)
+  - [kafka应用场景](#kafka应用场景)
+  - [kafka生产者写入数据](#kafka生产者写入数据)
+    - [副本](#副本)
+    - [写入方式](#写入方式)
+    - [broker保存消息](#broker保存消息)
+    - [存储策略](#存储策略)
+    - [分区](#分区)
+  - [kafka写入数据可靠性保障](#kafka写入数据可靠性保障)
+  - [kafka的ack机制](#kafka的ack机制)
+    - [**Exactly Once**语义](#exactly-once语义)
+  - [kafka 事务了解吗？](#kafka-事务了解吗)
+  - [kafka有那些分区算法](#kafka有那些分区算法)
+    - [轮询策略](#轮询策略)
+    - [随机策略](#随机策略)
+    - [按 key 分配策略](#按-key-分配策略)
+  - [kafka消费者](#kafka消费者)
+    - [消费方式](#消费方式)
+    - [Consumer Group](#consumer-group)
+    - [分区分配策略](#分区分配策略)
+  - [Rebalance (重平衡)](#rebalance-重平衡)
+    - [Coordinator](#coordinator)
+    - [触发条件](#触发条件)
+    - [Rebalace 流程](#rebalace-流程)
+    - [如何避免 Rebalance](#如何避免-rebalance)
+  - [日志索引](#日志索引)
+  - [解释如何减少ISR中的扰动？broker什么时候离开ISR？](#解释如何减少isr中的扰动broker什么时候离开isr)
+  - [ISR、OSR、AR 是什么？](#isrosrar-是什么)
+  - [LEO、HW、LSO、LW等分别代表什么？](#leohwlsolw等分别代表什么)
+  - [如何进行 Leader 副本选举？](#如何进行-leader-副本选举)
+  - [如何进行 broker Leader 选举？](#如何进行-broker-leader-选举)
+  - [Kafka为什么需要复制？](#kafka为什么需要复制)
+  - [Kafka 的高可靠性是怎么实现的？](#kafka-的高可靠性是怎么实现的)
+    - [Topic分区副本](#topic分区副本)
+    - [Producer往Broker 发送消息](#producer往broker-发送消息)
+    - [Leader 选举](#leader-选举)
+    - [数据一致性（可回答“Kafka数据一致性原理？”）](#数据一致性可回答kafka数据一致性原理)
+  - [Kafka 分区数可以增加或减少吗？为什么？](#kafka-分区数可以增加或减少吗为什么)
+  - [Kafka消息可靠性的保证](#kafka消息可靠性的保证)
+    - [Broker](#broker)
+    - [Producer](#producer)
+    - [Consumer消费消息有下面几个步骤：](#consumer消费消息有下面几个步骤)
+  - [为什么kafka中1个partition只能被同组的一个consumer消费?](#为什么kafka中1个partition只能被同组的一个consumer消费)
+  - [kafka和zookeeper的关系](#kafka和zookeeper的关系)
+  - [zookeeper在kafka中的作用](#zookeeper在kafka中的作用)
+    - [作用](#作用)
+      - [Broker注册](#broker注册)
+      - [Topic注册](#topic注册)
+      - [生产者负载均衡](#生产者负载均衡)
+      - [消费者负载均衡](#消费者负载均衡)
+      - [分区与消费者的关系](#分区与消费者的关系)
+      - [消费进度Offset记录](#消费进度offset记录)
+      - [消费者注册](#消费者注册)
+  - [Kafka服务器能接收到的最大信息是多少？](#kafka服务器能接收到的最大信息是多少)
+  - [Kafka中的ZooKeeper是什么？Kafka是否可以脱离ZooKeeper独立运行？](#kafka中的zookeeper是什么kafka是否可以脱离zookeeper独立运行)
+
+<!-- /TOC -->
+
+
 ## Kafka篇
 
 ### 请说明什么是Apache Kafka？
@@ -17,14 +125,14 @@ Kafka 是由 `Linkedin` 公司开发的，**它是一个分布式的，支持多
 
 **术语解释**
 
-| 术语          | 说明                                                         |
-| ------------- | ------------------------------------------------------------ |
-| Topic         | 主题，可以理解为一个队列,可以有多个Topic                     |
-| Partition     | 分区，为了实现扩展性，一个非常大的topic可以分布到多个broker（即服务器）上，一个topic可以分为多个partition，每个partition是一个有序的队列。partition中的每条消息都会被分配一个有序的id（offset）。kafka只保证按一个partition中的顺序将消息发给consumer，不保证一个topic的整体（多个partition间）的顺序 |
-| offset        | 偏移量，kafka的存储文件都是按照offset.kafka来命名，用offset做名字的好处是方便查找。例如你想找位于2049的位置，只要找到2048.kafka的文件即可。当然the first offset就是00000000000.kafkaOffset |
-| Broker        | 一台kafka服务器就是一个broker。一个集群由多个broker组成。一个broker可以容纳多个topic |
-| Producer      | 消息生产者，向kafka broker发消息的客户端                     |
-| Consumer      | 消息消费者，向kafka broker取消息的客户端                     |
+| 术语          | 说明                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Topic         | 主题，可以理解为一个队列,可以有多个Topic                                                                                                                                                                                                                                                                                                                                                               |
+| Partition     | 分区，为了实现扩展性，一个非常大的topic可以分布到多个broker（即服务器）上，一个topic可以分为多个partition，每个partition是一个有序的队列。partition中的每条消息都会被分配一个有序的id（offset）。kafka只保证按一个partition中的顺序将消息发给consumer，不保证一个topic的整体（多个partition间）的顺序                                                                                                  |
+| offset        | 偏移量，kafka的存储文件都是按照offset.kafka来命名，用offset做名字的好处是方便查找。例如你想找位于2049的位置，只要找到2048.kafka的文件即可。当然the first offset就是00000000000.kafkaOffset                                                                                                                                                                                                             |
+| Broker        | 一台kafka服务器就是一个broker。一个集群由多个broker组成。一个broker可以容纳多个topic                                                                                                                                                                                                                                                                                                                   |
+| Producer      | 消息生产者，向kafka broker发消息的客户端                                                                                                                                                                                                                                                                                                                                                               |
+| Consumer      | 消息消费者，向kafka broker取消息的客户端                                                                                                                                                                                                                                                                                                                                                               |
 | Group消费者组 | 这是kafka用来实现一个topic消息的广播（发给所有的consumer）和单播（发给任意一个consumer）的手段。一个topic可以有多个CG。topic的消息会复制（不是真的复制，是概念上的）到所有的CG，但每个partion只会把消息发给该CG中的一个consumer。如果需要实现广播，只要每个consumer有一个独立的CG就可以了。要实现单播只要所有的consumer在同一个CG。用CG还可以将consumer进行自由的分组而不需要多次发送消息到不同的topic |
 
 ![1634970459399](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/23/142740-513794.png)

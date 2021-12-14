@@ -38,7 +38,7 @@ spark是借鉴了Mapreduce,并在其基础上发展起来的，继承了其分�
 
 2. Spark容错性高，它通过弹性分布式数据集RDD来实现高效容错，RDD是一组分布式的存储在 节点内存中的只读性的数据集，这些集合是弹性的，某一部分丢失或者出错，可以通过整个数据集的计算流程的血缘关系来实现重建，mapreduce的容错只能重新计算
 
-3. Spark更通用，提供了transformation和action这两大类的多功能api，另外还有流式处理sparkstreaming模块、图计算等等，mapreduce只提供了map和reduce两种操作，流计算及其他的模块支持比较缺乏
+3. Spark更通用，提供了transformation和action这两大类的多功能api，另外还有流式处sparkstreaming模块、图计算等等，mapreduce只提供了map和reduce两种操作，流计算及其他的模块支持比较缺乏
 
 4. Spark框架和生态更为复杂，有RDD，血缘lineage（依赖链）、执行时的有向无环图DAG,stage划分等，很多时候spark作业都需要根据不同业务场景的需要进行调优以达到性能要求，mapreduce框架及其生态相对较为简单，对性能的要求也相对较弱，运行较为稳定，适合长期后台运行。
 
@@ -70,6 +70,77 @@ Hadoop/MapReduce和Spark最适合的都是做**离线型**的数据分析，但H
 - Driver：运行程序的main方法，创建spark context对象。
 - spark context：控制整个application的生命周期，包括dagsheduler和task scheduler等组件。
 - client：用户提交程序的入口。
+
+### Spark中的RDD
+
+rdd 分布式弹性数据集，简单的理解成一种数据结构，是 spark 框架上的通用货币。所有算子都是基于 rdd 来执行的，不同的场景会有不同的 rdd 实现类，但是都可以进行互相转换。rdd 执行过程中会形成 dag 图，然后形成 lineage保证容错性等。从物理的角度来看 rdd 存储的是 block 和 node 之间的映射。
+
+RDD 是 spark 提供的核心抽象，全称为弹性分布式数据集。RDD 在逻辑上是一个 hdfs 文件，在抽象上是一种元素集合，包含了数据。它是被分区的，分为多个分区，每个分区分布在集群中的不同结点上，从而让 RDD 中的数据可以被并行操作（分布式数据集），比如有个 RDD 有 90W 数据，3 个 partition，则每个分区上有 30W 数据。RDD通常通过 Hadoop 上的文件，即 HDFS 或者 HIVE 表来创建，还可以通过应用程
+序中的集合来创建；RDD 最重要的特性就是容错性，可以自动从节点失败中恢复过来。即如果某个结点上的 RDD partition 因为节点故障，导致数据丢失，那么 RDD 可以通过自己的数据来源重新计算该 partition。这一切对使用者都是透明的。
+
+RDD 的数据默认存放在内存中，但是当内存资源不足时，spark 会自动将 RDD 数据写入磁盘。比如某结点内存只能处理 20W 数据，那么这 20W 数据就会放入内存中计算，剩下 10W 放到磁盘中。**RDD 的弹性体现在于 RDD 上自动进行内存和磁盘之间权衡和切换的机制。**
+
+### RDD 中reduceBykey 与groupByKey 哪个性能好，为什么？
+
+reduceByKey ：reduceByKey 会在结果发送至 reducer 之前会对每个 mapper 在本地进行 merge，有点类似于在 MapReduce 中的 combiner。这样做的好处在于，在 map 端进行一次 reduce 之后，数据量会大幅度减小，从而减小传输，保证reduce 端能够更快的进行结果计算。
+
+groupByKey ：groupByKey 会对每一个 RDD 中的 value 值进行聚合形成一个序列(Iterator)，此操作发生在 reduce 端，所以势必会将所有的数据通过网络进行传输，造成不必要的浪费。同时如果数据量十分大，可能还会造成OutOfMemoryError。
+
+所以在进行大量数据的 reduce 操作时候建议使用 reduceByKey。不仅可以提高速度，还可以防止使用 groupByKey 造成的内存溢出问题。
+
+### 介绍一下 cogroup rdd 实现原理 ，你在什么场景下用过这个 rdd ？
+
+cogroup ：对多个（2~4）RDD 中的 KV 元素，每个 RDD 中相同 key 中的元素分别聚合成一个集合。
+
+与reduceByKey 不同的是 ：reduceByKey 针对 个 一个 RDD D 中相同的 key 进行合并。而 cogroup 针对 个 多个 RDD 中相同的 key 的元素进行合并。cogroup 的函数实现 ：这个实现根据要进行合并的两个 RDD 操作，生成一个CoGroupedRDD 的实例，这个 RDD 的返回结果是把相同的 key 中两个 RDD 分别进行合并操作，最后返回的 RDD 的 value 是一个 Pair 的实例，这个实例包含两个 Iterable 的值，第一个值表示的是 RDD1 中相同 KEY 的值，第二个值表示的是 RDD2 中相同 key 的值。
+
+由于做 cogroup 的操作，需要通过 partitioner 进行重新分区的操作，因此，执行这个流程时，需要执行一次 shuffle 的操作(如果要进行合并的两个 RDD的都已经是 shuffle 后的 rdd，同时他们对应的 partitioner 相同时，就不需要执行 shuffle)。
+
+场景 ：表关联查询或者处理重复的 key。
+
+### **为什么要设计宽窄依赖**
+
+### DAG 是什么？
+
+DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程，有方向，无闭环(其实就是 RDD 执行的流程)；
+
+原始的 RDD 通过一系列的转换操作就形成了 DAG 有向无环图，任务执行时，可以按照 DAG 的描述，执行真正的计算(数据被操作的一个过程)。
+
+> 本质上描述的是数据的流向。
+
+###  G DAG 分 中为什么要划分 Stage ？
+
+并行计算 。
+
+一个复杂的业务逻辑如果有 shuffle，那么就意味着前面阶段产生结果后，才能执行下一个阶段，即下一个阶段的计算要依赖上一个阶段的数据。那么我们按照shuffle 进行划分(也就是按照宽依赖就行划分)，就可以将一个 DAG 划分成多个 Stage/阶段，在同一个 Stage 中，会有多个算子操作，可以形成一个
+pipeline 流水线，流水线内的多个平行的分区可以并行执行。
+
+###  分 如何划分 G DAG 的 的 stage ？
+
+对于窄依赖，partition 的转换处理在 stage 中完成计算，不划分(将窄依赖尽量放在在同一个 stage 中，可以实现流水线计算)。
+
+对于宽依赖，由于有 shuffle 的存在，只能在父 RDD 处理完成后，才能开始接下来的计算，也就是说需要要划分 stage。
+
+### DAG 为 划分为Stage 的算法了解吗？
+
+核心算法：回溯算法
+
+从后往前回溯/ / 反向解析，遇到窄依赖加入本 Stage，遇见宽依赖进行 e Stage 切分 。
+
+Spark 内核会从触发 Action 操作的那个 RDD 开始 从后往前推 ，首先会为最后一个 RDD 创建一个 Stage，然后继续倒推，如果发现对某个 RDD 是宽依赖，那么就会将宽依赖的那个 RDD 创建一个新的 Stage，那个 RDD 就是新的 Stage的最后一个 RDD。然后依次类推，继续倒推，根据窄依赖或者宽依赖进行 Stage的划分，直到所有的 RDD 全部遍历完成为止。
+
+###  对于 k Spark 中的数据倾斜问题你有什么好的方案？
+
+1. 前提是定位数据倾斜，是 OOM 了，还是任务执行缓慢，看日志，看 WebUI。
+2. 解决方法，有多个方面:
+  1. 避免不必要的 shuffle，如使用广播小表的方式，将 reduce-side-join提升为 map-side-join
+  2.  改变并行度，可能并行度太少了，导致个别 task 数据压力大
+  3. 两阶段聚合，先局部聚合，再全局聚合
+  4. 自定义 paritioner，分散 key 的分布，使其更加均匀
+
+### Spark中的OOM问题
+
+
 
 ### 简单说一下hadoop和spark的shuffle相同和差异？
 

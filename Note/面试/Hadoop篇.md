@@ -1,13 +1,18 @@
 
+
 <!-- TOC -->
 
 - [Hadoop篇](#hadoop篇)
+- [Hdfs](#hdfs)
   - [什么是Hadoop,介绍以下Hadoop](#什么是hadoop介绍以下hadoop)
   - [介绍下Hadoop和Spark的差异](#介绍下hadoop和spark的差异)
   - [Hadoop常见的版本有哪些，分别有哪些特点，你一般是如何进行选择的?](#hadoop常见的版本有哪些分别有哪些特点你一般是如何进行选择的)
   - [单介绍Hadoop1.0，2.0，3.0的区别吗？](#单介绍hadoop102030的区别吗)
   - [mapreduce和hdfs是一体的吗，有什么关系](#mapreduce和hdfs是一体的吗有什么关系)
   - [简单介绍一下搭建Hadoop集群的流程](#简单介绍一下搭建hadoop集群的流程)
+  - [hadoop的TextInputFormat作⽤是什么，如何⾃定义实现？](#hadoop的textinputformat作是什么如何定义实现)
+  - [Hadoop可以自定义哪些输入类型](#hadoop可以自定义哪些输入类型)
+  - [OutputFormat 数据输出](#outputformat-数据输出)
   - [HDFS组成架构](#hdfs组成架构)
   - [HDFS 中的 block 默认保存几份？](#hdfs-中的-block-默认保存几份)
   - [HDFS 默认 BlockSize 是多大？](#hdfs-默认-blocksize-是多大)
@@ -15,17 +20,25 @@
   - [如何判定一个job的map和reduce的数量?](#如何判定一个job的map和reduce的数量)
   - [文件大小设置，增大有什么影响？](#文件大小设置增大有什么影响)
   - [说下Hadoop常用的端口号](#说下hadoop常用的端口号)
-  - [HDFS在上传⽂件的时候，如果其中⼀个块突然损坏了怎么办？](#hdfs在上传件的时候如果其中个块突然损坏了怎么办)
   - [NameNode的作⽤，NameNode在启动的时候会做哪些操作？](#namenode的作namenode在启动的时候会做哪些操作)
   - [介绍一下HDFS读写流程](#介绍一下hdfs读写流程)
-  - [HDFS的数据压缩算法](#hdfs的数据压缩算法)
+    - [**读数据流程**](#读数据流程)
+    - [**写数据流程**](#写数据流程)
+  - [hdfs如果再读取数据过程中，读取的数据错误怎么办](#hdfs如果再读取数据过程中读取的数据错误怎么办)
+  - [HDFS 在上传文件的时候，如果其中一个 DataNode 突然挂掉了怎么办](#hdfs-在上传文件的时候如果其中一个-datanode-突然挂掉了怎么办)
   - [NameNode与SecondaryNameNode 的区别与联系？](#namenode与secondarynamenode-的区别与联系)
   - [为什么要引入secondary namenode](#为什么要引入secondary-namenode)
   - [secondary namenode工作机制](#secondary-namenode工作机制)
+  - [Secondary NameNode 不能恢复NameNode 的全部数据，那如何保证NameNode 数据存储安全](#secondary-namenode-不能恢复namenode-的全部数据那如何保证namenode-数据存储安全)
+  - [在NameNode HA 中，会出现脑裂问题吗？怎么解决脑裂](#在namenode-ha-中会出现脑裂问题吗怎么解决脑裂)
   - [DataNode工作机制](#datanode工作机制)
   - [掉线时限参数设置](#掉线时限参数设置)
   - [HAnamenode 是如何工作的?](#hanamenode-是如何工作的)
-  - [MapReduce](#mapreduce)
+  - [HDFS的数据压缩算法](#hdfs的数据压缩算法)
+- [MapReduce](#mapreduce)
+  - [MapReduce](#mapreduce-1)
+    - [**MapReduce工作机制**](#mapreduce工作机制)
+    - [**过程**](#过程)
   - [MapReduce的优缺点](#mapreduce的优缺点)
   - [简单说⼀下hadoop的map-reduce编程模型](#简单说下hadoop的map-reduce编程模型)
   - [MapReduce编程规范](#mapreduce编程规范)
@@ -34,21 +47,25 @@
     - [map side join](#map-side-join)
     - [SemiJoin](#semijoin)
   - [MapReduce工作原理](#mapreduce工作原理)
+  - [请说下MR 中 中Map Task 的工作机制](#请说下mr-中-中map-task-的工作机制)
+  - [请说下MR 中Reduce Task 的工作机制](#请说下mr-中reduce-task-的工作机制)
+  - [介绍一下MapReduce的Shuffle过程，并给出Hadoop优化的方案(包括：压缩、小文件、集群的优化)](#介绍一下mapreduce的shuffle过程并给出hadoop优化的方案包括压缩小文件集群的优化)
+    - [**Map阶段**](#map阶段)
+    - [**Reduce阶段**](#reduce阶段)
+    - [**IO 传输**](#io-传输)
+    - [**整体**](#整体)
+    - [**文件压缩**](#文件压缩)
+  - [请说下MR 中 中Shuffle 阶段](#请说下mr-中-中shuffle-阶段)
+  - [在写MR 时，什么情况下可以使用规约](#在写mr-时什么情况下可以使用规约)
   - [ReduceTask 并行度决定机制](#reducetask-并行度决定机制)
   - [描述mapReduce有几种排序及排序发生的阶段](#描述mapreduce有几种排序及排序发生的阶段)
   - [描述mapReduce中shuffle阶段的工作流程，如何优化shuffle阶段](#描述mapreduce中shuffle阶段的工作流程如何优化shuffle阶段)
-  - [分区](#分区)
+  - [mapreduce中的分区](#mapreduce中的分区)
+  - [如果没有定义partitioner，那数据在被送达reducer前是如何被分区的？](#如果没有定义partitioner那数据在被送达reducer前是如何被分区的)
   - [哪些场景才能使⽤Combiner呢？](#哪些场景才能使combiner呢)
   - [MapReduce 2.0 容错性](#mapreduce-20-容错性)
-  - [如果没有定义partitioner，那数据在被送达reducer前是如何被分区的？](#如果没有定义partitioner那数据在被送达reducer前是如何被分区的)
-  - [MapReduce 出现单点负载多大，怎么负载平衡？](#mapreduce-出现单点负载多大怎么负载平衡)
-  - [MapReduce 怎么实现 TopN？](#mapreduce-怎么实现-topn)
   - [如何使用mapReduce实现两个表的join?](#如何使用mapreduce实现两个表的join)
   - [序列化](#序列化)
-  - [hadoop的TextInputFormat作⽤是什么，如何⾃定义实现？](#hadoop的textinputformat作是什么如何定义实现)
-  - [Hadoop可以自定义哪些输入类型](#hadoop可以自定义哪些输入类型)
-  - [OutputFormat 数据输出](#outputformat-数据输出)
-  - [介绍一下MapReduce的Shuffle过程，并给出Hadoop优化的方案(包括：压缩、小文件、集群的优化)](#介绍一下mapreduce的shuffle过程并给出hadoop优化的方案包括压缩小文件集群的优化)
   - [hadoop小文件问题](#hadoop小文件问题)
     - [HDFS小文件影响](#hdfs小文件影响)
     - [如何解决小文件](#如何解决小文件)
@@ -56,9 +73,15 @@
       - [Sequence file](#sequence-file)
       - [ConbinFileInputFormat](#conbinfileinputformat)
       - [开启jvm重用](#开启jvm重用)
+  - [MapTask & ReduceTask 源码解析](#maptask--reducetask-源码解析)
+    - [MapTask 源码](#maptask-源码)
+    - [ReduceTask 源码](#reducetask-源码)
+- [Yarn](#yarn)
   - [为什么会产生 yarn,它解决了什么问题，有什么优势？](#为什么会产生-yarn它解决了什么问题有什么优势)
   - [Yarn架构](#yarn架构)
+  - [YARN 集群的架构和工作原理知道多少](#yarn-集群的架构和工作原理知道多少)
   - [Yarn工作机制](#yarn工作机制)
+  - [YARN 的任务提交流程是怎样的](#yarn-的任务提交流程是怎样的)
   - [介绍一下 Yarn 的 Job 提交流程](#介绍一下-yarn-的-job-提交流程)
   - [介绍下Yarn默认的调度器，调度器分类，以及它们之间的区别](#介绍下yarn默认的调度器调度器分类以及它们之间的区别)
   - [了解过哪些Hadoop的参数优化](#了解过哪些hadoop的参数优化)
@@ -74,9 +97,6 @@
     - [MapReduce优化方法](#mapreduce优化方法)
     - [数据倾斜](#数据倾斜)
     - [常用调优参数](#常用调优参数)
-  - [MapTask & ReduceTask 源码解析](#maptask--reducetask-源码解析)
-    - [MapTask 源码](#maptask-源码)
-    - [ReduceTask 源码](#reducetask-源码)
   - [MapReduce 开发总结](#mapreduce-开发总结)
   - [数据压缩](#数据压缩)
     - [MR 支持的压缩编码](#mr-支持的压缩编码)
@@ -86,6 +106,8 @@
 <!-- /TOC -->
 
 ## Hadoop篇
+
+## Hdfs
 
 ### 什么是Hadoop,介绍以下Hadoop
 
@@ -166,6 +188,69 @@ hdfs简单来说是一个分布式的存储系统，是用来存储我们的数�
 - 配置hadoop的核心文件
 - 格式化namenode
 - 启动....
+
+### hadoop的TextInputFormat作⽤是什么，如何⾃定义实现？
+
+InputFormat会在map操作之前对数据进⾏两⽅⾯的预处理
+
+1. 是getSplits，返回的是InputSplit数组，对数据进⾏split分⽚，每⽚交给map操作⼀次
+2. 是getRecordReader，返回的是RecordReader对象，对每个split分⽚进⾏转换为key-value键值对格式传递给map，常⽤的InputFormat是TextInputFormat，使⽤的是LineRecordReader对每个分⽚进⾏键值对的转换，以⾏偏移量作为键，
+   ⾏内容作为值。
+3. ⾃定义类继承InputFormat接⼜，重写createRecordReader和isSplitable⽅法 在createRecordReader中可以⾃定义分隔符
+
+### Hadoop可以自定义哪些输入类型
+
+![1633519780907](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/06/192943-955084.png)
+
+抽象类FileInputFormat实现了InputFormat接口，是所有操作文件类型输入类的父类。InputFormat常见的接口实现类包括：
+
+- TextInputFormat
+- KeyValueTextInputFormat
+- NLineInputFormat
+- CombineTextInputFormat
+- SequenceFileInputFormat
+- DBInputFormat
+
+**TextInputFormat**
+
+TextInputFormat是默认的InputFormat。TextInputFormat提供了一个LineRecordReader，这个类会把输入文件的每一行作为值，每一行在文件中的字节偏移量为键。每条记录是一行输入，键是LongWritable类型，存储该行在整个文件中的字节偏移量，值是这行的内容，不包括任何行终止符（换行符和回车符）。
+
+**KeyValueTextInputFormat**
+
+每一行均为一条记录，被分隔符分割为key，value。可以通过在驱动类中设置conf.set(KeyValueLineRecordReader.KEY_VALUE_SEPERATOR, "\t");来设定分隔符。默认分隔符是tab（\t）。
+
+**CombineTextInputFormat**
+
+如果已经是大量小文件在 HDFS 中了，可以使用另一种 InputFormat 来做切片(CombineTextInputFormat)，它的切片逻辑跟 TextFileInputFormat 不同:它可以将多个小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交给一个 maptask。经常使用在小文件过多的场景，可以把小文件逻辑上合并。
+
+**NLineInputFormat**
+
+如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按Block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数/N=切片数，如果不整除，切片数=商+1。
+
+**自定义步骤**
+
+1. 重写isSplitable()方法，返回false不可切割
+2. 重写createRecordReader()，创建自定义的RecordReader对象，并初始化
+3. 改写RecordReader，实现一次读取一个完整文件封装为KV。
+
+### OutputFormat 数据输出
+
+OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现了OutputFormat接口。下面我们介绍几种常见的OutputFormat实现类。
+
+![1633742055827](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/091418-794458.png)
+
+**文本输出TextOutputFormat**
+
+默认的输出格式是TextOutputFormat，它把每条记录写为文本行。它的键和值可以是任意类型，因为TextOutputFormat调用toString()方法把它们转换为字符串。
+
+**SequenceFileOutputFormat**
+
+将SequenceFileOutputFormat输出作为后续 MapReduce任务的输入，这便是一种好的输出格式，因为它的格式紧凑，很容易被压缩。
+
+**自定义OutputFormat**
+
+1. 自定义一个类继承FileOutputFormat。
+2. 改写RecordWriter，具体改写输出数据的方法write()。
 
 ### HDFS组成架构
 
@@ -326,13 +411,31 @@ HDFS中的文件在物理上是分块存储（block），块的大小可以通�
 > 3.x core-site.xml  hdfs-site.xml  yarn-site.xml  mapred-site.xml workers
 > 2.x core-site.xml  hdfs-site.xml  yarn-site.xml  mapred-site.xml slaves
 
-### HDFS在上传⽂件的时候，如果其中⼀个块突然损坏了怎么办？
-
-其中⼀个块坏了，只要有其它块存在，会⾃动检测还原。
-
 ### NameNode的作⽤，NameNode在启动的时候会做哪些操作？
 
 namenode总体来说是**管理和记录恢复**功能。⽐如管理datanode，保持⼼跳，如果超时则排除。对于上传⽂件都有镜像images和edits,这些可以⽤来恢复,总的来说是管理所有文件的元数据信息。
+
+NameNode 数据存储在内存和本地磁盘，本地磁盘数据存储在fsimage 镜像文件 和edits 编辑日志文件 
+
+**首次启动 NameNode：**
+
+1. 格式化文件系统，为了生成fsimage 镜像文件 ；
+2. 启动 NameNode：
+  1. 读取 fsimage 文件，将文件内容加载进内存
+  2. 等待 DataNade 注册与发送 block report
+3. 启动 DataNode：
+  1. 向 NameNode 注册
+  2. 发送 block report
+  3. 检查 fsimage 中记录的块的数量和 block report 中的块的总数是否相同
+4. 对文件系统进行操作（创建目录，上传文件，删除文件等）：
+  1. 此时内存中已经有文件系统改变的信息，但是磁盘中没有文件系统改变的信息，此时会将这些改变信息写入 edits 文件中，edits 文件中存储的是文件系统元数据改变的信息。
+
+**第二次启动 NameNode：**
+
+1. 读取 fsimage 和 edits 文件；
+2. 将 fsimage 和 edits 文件合并成新的 fsimage 文件；
+3. 创建新的 edits 文件，内容开始为空；
+4. 启动 DataNode。
 
 **NameNode启动的时候，会加载fsimage**，Fsimage加载过程完成的操作主要是为了：
 
@@ -349,18 +452,22 @@ namenode总体来说是**管理和记录恢复**功能。⽐如管理datanode，
 
 ### 介绍一下HDFS读写流程
 
-**读数据流程**
+#### **读数据流程**
 
 ![1633159973884](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/153254-65470.png)
 
-详细过程：
+**hdsf读数据**
 
-1. 客户端通过DistributedFileSystem 向NameNode 请求下载文件，NameNode 通过查询元数据，找到文件块所在的DataNode 地址。
-2. 挑选一台DataNode（就近原则，然后随机）服务器，请求读取数据。
-3. DataNode 开始传输数据给客户端（从磁盘里面读取数据输入流，以Packet 为单位来做校验）。
-4. 客户端以Packet 为单位接收，先在本地缓存，然后写入目标文件。
+1. Client 向 NameNode 发送 RPC 请求。请求文件 block 的位置；
+2. NameNode 收到请求之后会检查用户权限以及是否有这个文件，如果都符合，则会视情况返回部分或全部的 block 列表，对于每个 block，NameNode都会返回含有该block副本的DataNode地址；这些返回的DataNode地址，会按照集群拓扑结构得出 DataNode 与客户端的距离，然后进行排序， 排序两个规则 ：网络拓扑结构中距离 Client 近的排靠前；心跳机制中超时汇报的 DataNode 状态为 STALE，这样的排靠后；
+3.  Client 选取排序靠前的 DataNode 来读取 block，如果客户端本身就是DataNode,那么将从本地直接获取数据( 短路读取特性 )；
+4.  底层上本质是建立 Socket Strea（FSDataInputStream），重复的调用父类 DataInputStream 的 read 方法，直到这个块上的数据读取完毕；
+5.  当读完列表的 block 后，若文件读取还没有结束，客户端会继续向NameNode 获取下一批的 block 列表；
+6.  读取完一个 k block 都会进行 m checksum 验证 ，如果读取 DataNode 时出现错误，客户端会通知 NameNode，然后再从下一个拥有该 block 副本的DataNode 继续读；
+7.  read 方法是并行的读取 k block 信息，不是一块一块的读取 ；NameNode 只是返回 Client 请求包含块的 DataNode 地址， 并不是返回请求块的数据 ；
+8.  最终读取来所有的 block 会合并成一个完整的最终文件；
 
-**写数据流程**
+#### **写数据流程**
 
 ![1633240013210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/134654-145286.png)
 
@@ -379,6 +486,19 @@ namenode总体来说是**管理和记录恢复**功能。⽐如管理datanode，
 7. 客户端开始往dn1 上传第一个Block（先从磁盘读取数据放到一个本地内存缓存），以Packet 为单位，dn1 收到一个Packet 就会传给dn2，dn2 传给dn3；dn1 每传一个packet会放入一个应答队列等待应答。
 8. 当一个Block 传输完成之后，客户端再次请求NameNode 上传第二个Block 的服务器。（重复执行3-7 步）。
 
+**hdfs写流程**
+
+1. Client 客户端发送上传请求， 通过RPC与NameNode 建立通信 ，NameNode检查该用户是否有上传权限，以及上传的文件是否在 HDFS 对应的目录下重名，如果这两者有任意一个不满足，则直接报错，如果两者都满足，则返回给客户端一个可以上传的信息；
+2. Client 根据文件的大小进行切分，默认 128M 一块，切分完成之后给NameNode 发送请求第一个 block 块上传到哪些服务器上；
+3.  NameNode 收到请求之后，根据网络拓扑和**机架感知**以及**副本机制**进行文件分配，返回可用的 DataNode 的地址；
+> 注：Hadoop 在设计时考虑到数据的**安全与高效**, 数据文件默认在HDFS 上存放三份, 存储策略为本地一份,同机架内其它某一节点上一份, 不同机架的某一节点上一份。
+
+4. 客户端收到地址之后与服务器地址列表中的一个节点如 A 进行通信，本质上就是 RPC 调用，建立 pipeline，A 收到请求后会继续调用 B，B 在调用C，将整个 pipeline 建立完成，逐级返回 Client；
+5. Client 开始向 A 上发送第一个 block（ 先从磁盘读取数据然后放到本地内存缓存）， 以packet（数据包，64kb ）为单位，A收到一个packet 就会发送给B ，然后B 发送给C ，A每传完一个packet 就会放入一个应答队列等待应答 ；
+6.  数据被分割成一个个的 packet 数据包在 pipeline 上依次传输， 在pipeline 反向传输中，逐个发送 ack （命令正确应答） ，最终由 pipeline中第一个 DataNode 节点 A 将 pipelineack 发送给 Client；
+7.  当一个block传输完成之后, Client再次请求NameNode上传第二个block，NameNode 重新选择三台 DataNode 给 Client。
+
+
 > 存储文件副本的时候遵循机架感知策略：
 >
 > Hadoop3.1.3副本节点选择:
@@ -389,44 +509,28 @@ namenode总体来说是**管理和记录恢复**功能。⽐如管理datanode，
 
 ![1633228735017](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/103856-113171.png)
 
-### HDFS的数据压缩算法
+### hdfs如果再读取数据过程中，读取的数据错误怎么办
 
-Hadoop中常用的压缩算法有bzip2、gzip、lzo、snappy，其中lzo、snappy需要操作系统安装native库才可以支持。
+客户端读取完 DataNode 上的块之后会进行 checksum 验证，也就是把客户端读取到本地的块与 HDFS 上的原始块进行校验，如果发现校验结果不一致，客户端会通知 NameNode，然后再从下一个拥有该block副本的DataNode 继续读 。
 
-数据压缩的位置如下所示。
+### HDFS 在上传文件的时候，如果其中一个 DataNode 突然挂掉了怎么办
 
-![1633677986721](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/08/152628-735757.png)
+客户端上传文件时与 DataNode 建立 pipeline 管道，管道的正方向是客户端向DataNode 发送的数据包，管道反向是DataNode 向客户端发送 ack 确认，也就是正确接收到数据包之后发送一个已确认接收到的应答。
 
-**MapReduce数据压缩解析**
-
-**输入端采用压缩**
-
-在有大量数据并计划重复处理的情况下，应该考虑对输入进行压缩。然而，你无须显示指定使用的编解码方式。Hadoop自动检查文件扩展名，如果扩展名能够匹配，就会用恰当的编解码方式对文件进行压缩和解压。否则，Hadoop就不会使用任何编解码器。
-
-> 输入端的压缩需要支持数据的分片的压缩。
-
-**mapper输出端采用压缩**
-
-当map任务输出的中间数据量很大时，应考虑在此阶段采用压缩技术。这能显著改善内部数据Shuffle过程，而Shuffle过程在Hadoop处理过程中是资源消耗最多的环节。如果发现数据量大造成网络传输缓慢，应该考虑使用压缩技术。可用于压缩mapper输出的快速编解码器包括LZO或者Snappy。
-
-> shuffle阶段的压缩更考虑压缩效率高的压缩算法。
-
-**reducer输出采用压缩**
-
-在此阶段启用压缩技术能够减少要存储的数据量，因此降低所需的磁盘空间。当mapreduce作业形成作业链条时，因为第二个作业的输入也已压缩，所以启用压缩同样有效。
-
-> reduce如果直接输出文件到磁盘的时候，考虑压缩比高的算法，如果是mr的任务链，那就需要使用支持分片的压缩算法。
+当 DataNode 突然挂掉了，客户端接收不到这个 DataNode 发送的 ack 确认，客户端会通知 NameNode，NameNode 检查该块的副本与规定的不符，NameNode 会通知DataNode 去复制副本，并将挂掉的 DataNode 作下线处理，不再让它参与文件上传与下载。
 
 ### NameNode与SecondaryNameNode 的区别与联系？
+
+**首先需要了解两个概念**
 
 
 **Fsimage**
 
 Fsimage文件是HDFS文件系统元数据的一个永久性检查点，其中包含HDFS文件系统的所有目录和文件inode的序列化信息。
 
-**Edits文件**：编辑日志文件
+**Edits文件**：
 
-存放HDFS文件系统的所有更新操作的逻辑，文件系统客户端执行的所有写操作首先会记录大Edits文件中。
+编辑日志文件，存放HDFS文件系统的所有更新操作的逻辑，文件系统客户端执行的所有写操作首先会记录大Edits文件中。
 
 **Seen_txid**
 
@@ -502,6 +606,27 @@ Fsimage文件是HDFS文件系统元数据的一个永久性检查点，其中包
 > <description> 1 分钟检查一次操作次数</description>
 > </property>
 
+### Secondary NameNode 不能恢复NameNode 的全部数据，那如何保证NameNode 数据存储安全
+
+这个问题就要说 NameNode 的高可用了，即NameNode HA 。一个 NameNode 有单点故障的问题，那就配置双 NameNode，配置有两个关键点，一是必须要保证这两个 NameNode 的元数据信息必须要同步的，二是一个NameNode 挂掉之后另一个要立马补上。
+
+1. 元数据信息同步在HA 方案中采用的是 “ 共享存储 ” 。每次写文件时，需要将日志同步写入共享存储，这个步骤成功才能认定写文件成功。然后备份节点定期从共享存储同步日志，以便进行主备切换。
+2. 监控 NameNode 状态采用 zookeeper，两个 NameNode 节点的状态存放在zookeeper 中，另外两个 NameNode 节点分别有一个进程监控程序，实施读取 zookeeper 中有 NameNode 的状态，来判断当前的 NameNode 是不是已经 down 机。如果 Standby 的 NameNode 节点的 ZKFC 发现主节点已经挂掉，那么就会强制给原本的 Active NameNode 节点发送强制关闭请求，之后将备用的 NameNode 设置为 Active。
+
+### 在NameNode HA 中，会出现脑裂问题吗？怎么解决脑裂
+
+假设 NameNode1 当前为 Active 状态，NameNode2 当前为 Standby 状态。如果某一时刻 NameNode1 对应的 ZKFailoverController 进程发生了“假死”现象，那么Zookeeper 服务端会认为 NameNode1 挂掉了，根据前面的主备切换逻辑，NameNode2会替代 NameNode1 进入 Active 状态。但是此时 NameNode1 可能仍然处于 Active状态正常运行，这样 NameNode1 和 NameNode2 都处于 Active 状态，都可以对外提供服务。这种情况称为脑裂。
+
+脑裂对于 NameNode 这类对数据一致性要求非常高的系统来说是灾难性的，数据会发生错乱且无法恢复。zookeeper 社区对这种问题的解决方法叫做 fencing，中文翻译为隔离，也就是想办法把旧的 Active NameNode 隔离起来，使它不能正常对外提供服务。
+
+在进行 fencing 的时候，会执行以下的操作：
+
+1. 首先尝试调用这个旧 Active NameNode 的 HAServiceProtocol RPC 接口的 transitionToStandby 方法，看能不能把它转换为 Standby 状态。
+2. 如果 transitionToStandby 方法调用失败，那么就执行 Hadoop 配置文件之中预定义的隔离措施，Hadoop 目前主要提供两种隔离措施，通常会选择 sshfence：
+
+> sshfence：通过 SSH 登录到目标机器上，执行命令 fuser 将对应的进程杀死；
+> shellfence：执行一个用户自定义的 shell 脚本来将对应的进程隔离。
+
 ### DataNode工作机制
 
 ![1633229449785](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/105051-961526.png)
@@ -522,38 +647,72 @@ Fsimage文件是HDFS文件系统元数据的一个永久性检查点，其中包
 ![1633163094225](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/162454-597162.png)
 
 
-在一个典型的HA集群中，每个NameNode是一***立的服务器。在任一时刻，只有一个NameNode处于active状态，另一个处于standby状态。其中，active状态的NameNode负责所有的客户端操作，standby状态的NameNode处于从属地位，维护着数据状态，随时准备切换。
+在一个典型的HA集群中，每个NameNode是一立的服务器。在任一时刻，只有一个NameNode处于active状态，另一个处于standby状态。其中，active状态的NameNode负责所有的客户端操作，standby状态的NameNode处于从属地位，维护着数据状态，随时准备切换。
 
-两个NameNode为了数据同步，会通过一组称作JournalNodes的独立进程进行相互通信。当active状态的NameNode的命名空间有任何修改时，会告知大部分的JournalNodes进程。standby状态的NameNode有能力读取JNs中的变更信息，并且一直监控edit log的变化，把变化应用于自己的命名空间。standby可以确保在集群出错时，命名空间状态已经完全同步。
+两个NameNode为了数据同步，会通过一组称作**JournalNodes的独立进程进行相互通信**。当active状态的NameNode的命名空间有任何修改时，会告知大部分的JournalNodes进程。standby状态的NameNode有能力读取JNs中的变更信息，并且一直监控edit log的变化，把变化应用于自己的命名空间。standby可以确保在集群出错时，命名空间状态已经完全同步。
 
 为了确保快速切换，standby状态的NameNode有必要知道集群中所有数据块的位置。为了做到这点，所有的datanodes必须配置两个NameNode的地址，发送数据块位置信息和心跳给他们两个。
 
 对于HA集群而言，确保同一时刻只有一个NameNode处于active状态是至关重要的。否则，两个NameNode的数据状态就会产生分歧，可能丢失数据，或者产生错误的结果。为了保证这点，JNs必须确保同一时刻只有一个NameNode可以向自己写数据。
-ZKFC
+
+**ZKFC**
 
 ZKFC即ZKFailoverController，作为独立进程存在，负责控制NameNode的主备切换，ZKFC会监测NameNode的健康状况，当发现Active NameNode出现异常时会通过Zookeeper集群进行一次主备选举，完成Active和Standby状态的切换。
-HealthMonitor
+
+**HealthMonitor**
 
 定时调用NameNode的HAServiceProtocol RPC接口(monitorHealth和getServiceStatus)，监控NameNode的健康状态并向ZKFC反馈。
-ActiveStandbyElector
+
+**ActiveStandbyElector**
 
 接收ZKFC的选举请求，通过Zookeeper自动完成主备选举，选举完成后回调ZKFC的主备切换方法对NameNode进行Active和Standby状态的切换。
-JouranlNode集群
+
+**JouranlNode集群**
 
 共享存储系统，负责存储HDFS的元数据，Active NameNode(写入)和Standby NameNode(读取)通过共享存储系统实现元数据同步，在主备切换过程中，新的Active NameNode必须确保元数据同步完成才能对外提供服务。
 
 > NameNode的HA⼀个备⽤，⼀个⼯作，且⼀个失败后，另⼀个被激活。他们通过journal node来实现共享数据。
 
+### HDFS的数据压缩算法
+
+Hadoop中常用的压缩算法有bzip2、gzip、lzo、snappy，其中lzo、snappy需要操作系统安装native库才可以支持。
+
+数据压缩的位置如下所示。
+
+![1633677986721](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/08/152628-735757.png)
+
+**MapReduce数据压缩解析**
+
+**输入端采用压缩**
+
+在有大量数据并计划重复处理的情况下，应该考虑对输入进行压缩。然而，你无须显示指定使用的编解码方式。Hadoop自动检查文件扩展名，如果扩展名能够匹配，就会用恰当的编解码方式对文件进行压缩和解压。否则，Hadoop就不会使用任何编解码器。
+
+> 输入端的压缩需要支持数据的分片的压缩。
+
+**mapper输出端采用压缩**
+
+当map任务输出的中间数据量很大时，应考虑在此阶段采用压缩技术。这能显著改善内部数据Shuffle过程，而Shuffle过程在Hadoop处理过程中是资源消耗最多的环节。如果发现数据量大造成网络传输缓慢，应该考虑使用压缩技术。可用于压缩mapper输出的快速编解码器包括LZO或者Snappy。
+
+> shuffle阶段的压缩更考虑压缩效率高的压缩算法。
+
+**reducer输出采用压缩**
+
+在此阶段启用压缩技术能够减少要存储的数据量，因此降低所需的磁盘空间。当mapreduce作业形成作业链条时，因为第二个作业的输入也已压缩，所以启用压缩同样有效。
+
+> reduce如果直接输出文件到磁盘的时候，考虑压缩比高的算法，如果是mr的任务链，那就需要使用支持分片的压缩算法。
+
+## MapReduce
+
 ### MapReduce
 
-**MapReduce工作机制**
+#### **MapReduce工作机制**
 
 1. 分布式的运算程序往往需要分成至少2个阶段。
 2. 第一个阶段的MapTask并发实例，完全并行运行，互不相干。
 3. 第二个阶段的ReduceTask并发实例互不相干，但是他们的数据依赖于上一个阶段的所有MapTask并发实例的输出，map阶段输出的分区个数决定下一个阶段reduce的个数。
 4. MapReduce编程模型只能包含一个Map阶段和一个Reduce阶段，如果用户的业务逻辑非常复杂，那就只能多个MapReduce程序，串行运行。
 
-**过程**
+#### **过程**
 
 1. InputFormat
    1. 默认的是TextInputformat  kv  key偏移量，v :一行内容
@@ -597,14 +756,10 @@ JouranlNode集群
 
 ### 简单说⼀下hadoop的map-reduce编程模型
 
-1. map task会从本地⽂件系统读取数据，转换成key-value形式的键值对集合。使⽤的是hadoop内置的数据类型，⽐如
-   longwritable、text等。
-2. 将键值对集合输⼊mapper进⾏业务处理过程，将其转换成需要的key-value在输出之后会进⾏⼀个partition分区操作，
-   默认使⽤的是hashpartitioner，可以通过重写hashpartitioner的getpartition⽅法来⾃定义分区规则。
-3. 会对key进⾏进⾏sort排序，grouping分组操作将相同key的value合并分组输出，在这⾥可以使⽤⾃定义的数据类型，重
-   写WritableComparator的Comparator⽅法来⾃定义排序规则，重写RawComparator的compara⽅法来⾃定义分组规则
-4. 进⾏⼀个combiner归约操作，其实就是⼀个本地段的reduce预处理，以减⼩后⾯shufle和reducer的⼯作量
-   reduce task会通过⽹络将各个数据收集进⾏reduce处理，最后将数据保存或者显⽰，结束整个job。
+1. map task会从本地⽂件系统读取数据，转换成key-value形式的键值对集合。使⽤的是hadoop内置的数据类型，⽐如longwritable、text等。
+2. 将键值对集合输⼊mapper进⾏业务处理过程，将其转换成需要的key-value在输出之后会进⾏⼀个partition分区操作，默认使⽤的是hashpartitioner，可以通过重写hashpartitioner的getpartition⽅法来⾃定义分区规则。
+3. 会对key进⾏进⾏sort排序，grouping分组操作将相同key的value合并分组输出，在这⾥可以使⽤⾃定义的数据类型，重写WritableComparator的Comparator⽅法来⾃定义排序规则，重写RawComparator的compara⽅法来⾃定义分组规则
+4. 进⾏⼀个combiner归约操作，其实就是⼀个本地段的reduce预处理，以减⼩后⾯shufle和reducer的⼯作量,reduce task会通过⽹络将各个数据收集进⾏reduce处理，最后将数据保存或者显⽰，结束整个job。
 
 ### MapReduce编程规范
 
@@ -682,10 +837,10 @@ SemiJoin，也叫半连接，是从分布式数据库中借鉴过来的方法。
 
 **Collect收集阶段**：在用户编写map()函数中，当数据处理完成后，一般会调用OutputCollector.collect()输出结果。在该函数内部，它会将生成的key/value分区（调用Partitioner），并写入一个环形内存缓冲区中。分区是根据key的hash()进行分区操作，可以自定义分区操作。
 
-**Spill阶段**：即“溢写”，当环形缓冲区满后(默认是达到80%后开始发生溢写)，MapReduce会将数据写到本地磁盘上，生成一个临时文件。需要注意的是，将数据写入本地磁盘之前，先要对数据进行一次本地排序（也就是每次溢写出一个文件之前，都会对文件进行排序），并在必要时对数据进行合并、压缩等操作。在文件写出阶段会生成多个文件（每一个文件都有序），文件是按照分区进行划分，每一个文件相当于一个分区。
+**Spill阶段**：即“溢写”，当环形缓冲区满后(默认是达到80%后开始发生溢写)，MapReduce会将数据写到本地磁盘上，生成一个临时文件。需要注意的是，将数据写入本地磁盘之前，先要对数据进行一次本地排序（也就是每次溢写出一个文件之前，都会对文件进行排序），并在必要时对数据进行合并、压缩等操作。在文件写出阶段会生成多个文件,每一个文件内部都存在多个分区的数据，多个分区之间是有序的，分区内部的数据是有序的。
 
 1. 利用快速排序算法对缓存区内的数据进行排序，排序方式是，先按照分区编号Partition 进行排序，然后按照 key 进行排序。这样，经过排序后，数据以分区为单位聚集在一起，且同一分区内所有数据按照 key 有序。
-2. 按照分区编号由小到大依次将每个分区中的数据写入任务工作目录下的临时文件 output/spillN.out（N 表示当前溢写次数）中。如果用户设置了 Combiner，则写入文件之前，对每个分区中的数据进行一次聚集操作。
+2. 按照分区编号由小到大依次将每个分区中的数据写入任务工作目录下的临时文件output/spillN.out（N 表示当前溢写次数）中。如果用户设置了 Combiner，则写入文件之前，对每个分区中的数据进行一次聚集操作。
 3. 将分区数据的元信息写到内存索引数据结构 SpillRecord 中，其中每个分区的元信息包括在临时文件中的偏移量、压缩前数据大小和压缩后数据大小。如果当前内存索引大小超过 1MB，则将内存索引写到文件 output/spillN.out.index 中。
 
 在溢出本地文件之前，可能使用combine对分区数据进行局部的聚合操作。
@@ -721,6 +876,114 @@ SemiJoin，也叫半连接，是从分布式数据库中借鉴过来的方法。
 > （1）Shuffle 中的缓冲区大小会影响到 MapReduce 程序的执行效率，原则上说，缓冲区越大，磁盘 io 的次数越少，执行速度就越快。
 > （2）缓冲区的大小可以通过参数调整，参数：mapreduce.task.io.sort.mb 默认 100M。
 
+### 请说下MR 中 中Map Task 的工作机制
+
+**简单过程**
+
+inputFile 通过 split 被切割为多个 split 文件，通过 Record 按行读取内容给map（自己写的处理逻辑的方法） ，数据被 map 处理完之后交给 OutputCollect收集器，对其结果key进行分区（默认使用的hashPartitioner），然后写入buffer，每个map task 都有一个内存缓冲区 （环形缓冲区），存放着 map 的输出结果，当缓冲区快满的时候需要将缓冲区的数据以一个临时文件的方式溢写到磁盘，当
+整个 map task 结束后再对磁盘中这个 maptask 产生的所有临时文件做合并，生成最终的正式输出文件，然后等待 reduce task 的拉取。
+
+**详细过程**
+
+1. 读取数据组件 InputFormat (默认 TextInputFormat) 会通过getSplits 方法对输入目录中的文件进行逻辑切片规划得到 block，有多少个 block 就对应启动多少个 MapTask。
+
+2. 将输入文件切分为 block 之后，由 RecordReader 对象 (默认是LineRecordReader) 进行读取，以 \n 作为分隔符, 读取一行数据, 返回<key，value>， Key 表示每行首字符偏移值，Value 表示这一行文本内
+    容。
+3. 读取 block 返回 <key,value>, 进入用户自己继承的 Mapper 类中，执行用户重写的 map 函数，RecordReader 读取一行这里调用一次。
+4. Mapper 逻辑结束之后，将 Mapper 的每条结果通过 context.write 进行collect 数据收集。在 collect 中，会先对其进行分区处理，默认使用HashPartitioner。也就是先把数据进行分区，数据以分区的形式放在一个文件中。
+5. 接下来，会将数据写入内存，内存中这片区域叫做环形缓冲区( ( 默认 100M) ，是 缓冲区的作用是 集 批量收集 Mapper结果，减少磁盘  IO 的影响。我们的Key/Value 及 对以及Partition 的结果都会被写入缓冲区 。 当然 ， 写入之前 ， Key 与Value 值都会被序列化成字节数组 。
+6. 当环形缓冲区的数据达到溢写比列(默认 0.8)，也就是 80M 时，溢写线程启动， 这 需要对这80MB 的 空间内的Key 序 做排序 (Sort) 。排序是 MapReduce模型默认的行为，这里的排序也是对序列化的字节做的排序，这里排序是先按照分区进行排序，然后再把分区中元素继续排序。
+7. 合并溢写文件，每次溢写会在磁盘上生成一个临时文件 (写之前判断是否有 Combiner)，如果 Mapper 的输出结果真的很大，有多次这样的溢写发生，磁盘上相应的就会有多个临时文件存在。当整个数据处理结束之后开始对磁盘中的临时文件进行 Merge 合并，因为最终的文件只有一个写入磁盘，并且为这个文件提供了一个索引文件，以记录每个 reduce 对应数据的偏移量。
+
+### 请说下MR 中Reduce Task 的工作机制
+
+简单描述 ：
+Reduce 大致分为 copy、sort、reduce 三个阶段，重点在前两个阶段。
+
+copy 阶段包含一个 eventFetcher 来获取已完成的 map 列表，由 Fetcher 线程去 copy 数据，在此过程中会启动两个 merge 线程，分别为 inMemoryMerger和 onDiskMerger，分别将内存中的数据 merge 到磁盘和将磁盘中的数据进行merge。待数据 copy 完成之后，copy 阶段就完成了。开始进行 sort 阶段，sort 阶段主要是执行 finalMerge 操作，纯粹的 sort 阶段，完成之后就是 reduce 阶段，调用用户定义的 reduce 函数进行处理。
+
+**详细步骤 ：**
+
+1. Copy 阶段 ：简单地拉取数据。Reduce 进程启动一些数据 copy 线程(Fetcher)，通过 HTTP 方式请求 maptask 获取属于自己的文件（map task的分区会标识每个 map task 属于哪个 reduce task ，默认 reduce task的标识从 0 开始）。
+2. Merge 阶段 ：在远程拷贝数据的同时，ReduceTask 启动了两个后台线程对内存和磁盘上的文件进行合并，以防止内存使用过多或磁盘上文件过多。merge 有三种形式：内存到内存；内存到磁盘；磁盘到磁盘。默认情况下第一种形式不启用。当内存中的数据量到达一定阈值，就直接启动内存到磁盘的 merge。与 map 端类似，这也是溢写的过程，这个过程中如果你设置有 Combiner，也是会启用的，然后在磁盘中生成了众多的溢写文件。内存到磁盘的 merge 方式一直在运行，直到没有 map 端的数据时才结束，然后启动第三种磁盘到磁盘的 merge 方式生成最终的文件。
+3. 合并排序 ：把分散的数据合并成一个大的数据后，还会再对合并后的数据排序。
+4. 对排序后的键值对调用 reduce 方法 ：键相等的键值对调用一次 reduce 方法，每次调用会产生零个或者多个键值对，最后把这些输出的键值对写入到 HDFS 文件中。
+
+### 介绍一下MapReduce的Shuffle过程，并给出Hadoop优化的方案(包括：压缩、小文件、集群的优化)
+
+![1633740865646](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/085430-232977.png)
+
+MapReduce数据读取并写入HDFS流程实际上是有10步：
+
+![1633160204104](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/153645-130196.png)
+
+那么到底什么是shuffle过程呢？
+
+1. Map方法之后Reduce方法之前这段处理过程叫**「Shuffle」**
+2. Map方法之后，数据首先进入到分区方法（partitioin()），把数据标记好分区，然后把数据发送到环形缓冲区；环形缓冲区默认大小100m，环形缓冲区达到80%时，进行溢写；溢写前对数据进行排序，排序按照对key的索引进行字典顺序排序，排序的手段**「快排」**；溢写产生大量溢写文件，需要对溢写文件进行**「归并排序」**；对溢写的文件也可以进行Combiner操作，前提是汇总操作，求平均值不行。最后将文件按照分区存储到磁盘，等待Reduce端拉取。
+3. 每个Reduce拉取Map端对应分区的数据。拉取数据后先存储到内存中，内存不够了，再存储到磁盘。拉取完所有数据后，采用归并排序将内存和磁盘中的数据都进行排序。在进入Reduce方法前，可以对数据进行分组操作。
+
+#### **Map阶段**
+
+- 增大环形缓冲区大小。由100m扩大到200m。
+- 增大环形缓冲区溢写的比例。由80%扩大到90%
+- 减少对溢写文件的merge次数。（10个文件，一次20个merge）
+- 不影响实际业务的前提下，采用Combiner提前合并，减少 I/O
+
+#### **Reduce阶段**
+
+- 合理设置Map和Reduce数：两个都不能设置太少，也不能设置太多。太少，会导致Task等待，延长处理时间；太多，会导致 Map、Reduce任务间竞争资源，造成处理超时等错误。
+- 设置Map、Reduce共存：调整 `slowstart.completedmaps` 参数，使Map运行到一定程度后，Reduce也开始运行，减少Reduce的等待时间，也即是不必等待map任务执行完成后才执行reduce任务。
+- 规避使用Reduce，因为Reduce在用于连接数据集的时候将会产生大量的网络消耗。
+- 增加每个Reduce去Map中拿数据的并行数
+- 集群性能可以的前提下，增大Reduce端存储数据内存的大小
+
+#### **IO 传输**
+
+- 采用数据压缩的方式，减少网络IO的的时间
+- 使用SequenceFile二进制文件
+
+#### **整体**
+
+- MapTask默认内存大小为1G，可以增加MapTask内存大小为4G
+- ReduceTask默认内存大小为1G，可以增加ReduceTask内存大小为4-5g
+- 可以增加MapTask的cpu核数，增加ReduceTask的CPU核数
+- 增加每个Container的CPU核数和内存大小
+- 调整每个Map Task和Reduce Task最大重试次数
+
+#### **文件压缩**
+
+![1633160722552](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/14/200831-111343.png)
+
+> 如果面试过程问起，我们一般回答压缩方式为Snappy，特点速度快，缺点无法切分（可以回答在链式MR中，Reduce端输出使用bzip2压缩，以便后续的map任务对数据进行split）
+
+**行式存储和列式存储**
+
+行式存储并不会破坏原来数据存储的行信息，行式存储对于条件查询，性能是比较差的，因为需要遍历表中所有数据。
+
+![1633243363844](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/144244-269611.png)
+
+对于列时存储，如果是条件查询，因为列上建立有索引，所以查询起来只会操作对应的列，磁盘io压力小很多。
+
+![1633243494835](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/144456-160161.png)
+
+### 请说下MR 中 中Shuffle 阶段
+
+shuffle 阶段分为四个步骤：依次为：**分区，排序，规约，分组**，其中前三个步骤在 map 阶段完成，最后一个步骤在 reduce 阶段完成。
+
+shuffle 是 Mapreduce 的核心，它分布在 Mapreduce 的 map 阶段和 reduce阶段。一般把从 Map 产生输出开始到 Reduce 取得数据作为输入之前的过程称作 shuffle。
+
+1. Collect 阶段 ：将 MapTask 的结果输出到默认大小为 100M 的环形缓冲区，保存的是 key/value，Partition 分区信息等。
+2. Spill 阶段 ：当内存中的数据量达到一定的阀值的时候，就会将数据写入本地磁盘，在将数据写入磁盘之前需要对数据进行一次排序的操作，如果配置了 combiner，还会将有相同分区号和 key 的数据进行排序。
+3. MapTask 阶段的 Merge ：把所有溢出的临时文件进行一次合并操作，以确保一个 MapTask 最终只产生一个中间数据文件。
+4. Copy 阶段 ：ReduceTask 启动 Fetcher 线程到已经完成 MapTask 的节点上复制一份属于自己的数据，这些数据默认会保存在内存的缓冲区中，当内存的缓冲区达到一定的阀值的时候，就会将数据写到磁盘之上。
+5. ReduceTask 阶段的 Merge ：在 ReduceTask 远程复制数据的同时，会在后台开启两个线程对内存到本地的数据文件进行合并操作。
+6. Sort 阶段 ：在对数据进行合并的同时，会进行排序操作，由于 MapTask 阶段已经对数据进行了局部的排序，ReduceTask 只需保证 Copy 的数据的最终整体有效性即可。Shuffle 中的缓冲区大小会影响到 mapreduce 程序的执行效率，原则上说，缓冲区越大，磁盘 io 的次数越少，执行速度就越快。缓冲区的大小可以通过参数调整, 参数： mapreduce.task.io.sort.mb 默认 100M.
+
+### 在写MR 时，什么情况下可以使用规约
+
+规约（combiner）是不能够影响任务的运行结果的局部汇总，适用于求和类，不适用于求平均值，如果 reduce 的输入参数类型和输出参数的类型是一样的，则规约的类可以使用 reduce 类，只需要在驱动类中指明规约的类即可。
+
 ### ReduceTask 并行度决定机制
 
 回顾：MapTask 并行度由切片个数决定，切片个数由输入文件和切片规则决定。
@@ -737,15 +1000,22 @@ job.setNumReduceTasks(4);
 > **注意：**
 >
 > 1. ReduceTask=0，表示没有Reduce阶段，输出文件个数和Map个数一致。
+>
 > 2. ReduceTask默认值就是1，所以输出文件个数为一个。
+>
 > 3. 如果数据分布不均匀，就有可能在Reduce阶段产生数据倾斜
+>
 > 4. ReduceTask数量并不是任意设置，还要考虑业务逻辑需求，有些情况下，需要计算全局汇总结果，就只能有1个ReduceTask。
+>
 > 5. 具体多少个ReduceTask，需要根据集群性能而定。
-> 6. 如果分区数不是1，但是ReduceTask为1，是否执行分区过程。答案是：不执行分区过程。因为在MapTask的源码中，执行分区的前提是先判断ReduceNum个数是否大于1。不大于1肯定不执行。
+>
+> 6. 如果分区数不是1，但是ReduceTask为1，是否执行分区过程。
+>
+>    **答案是：不执行分区过程。因为在MapTask的源码中，执行分区的前提是先判断ReduceNum个数是否大于1。不大于1肯定不执行。**
 
 ### 描述mapReduce有几种排序及排序发生的阶段
 
-对于MapTask，它会将处理的结果暂时放到环形缓冲区中，当环形缓冲区使用率达到一定阈值后，再对缓冲区中的数据进行一次快速排序，并将这些有序数据溢写到磁盘上，而当数据处理完毕后，它会对磁盘上所有文件进行归并排序。
+对于MapTask，它会将处理的结果暂时放到环形缓冲区中，当环形缓冲区使用率达到一定阈值后，再对缓冲区中的数据进行一次快速排序，并将这些有序数据溢写到磁盘上，而当数据处理完毕后，它会对磁盘上所有文件进行归并排序，保证最终输出的只有一个文件。
 
 对于ReduceTask，它从每个MapTask上远程拷贝相应的数据文件，如果文件大小超过一定阈值，则溢写磁盘上，否则存储在内存中。如果磁盘上文件数目达到一定阈值，则进行一次归并排序以生成一个更大文件；如果内存中文件大小或者数目超过一定阈值，则进行一次合并后将数据溢写到磁盘上。当所有数据拷贝完毕后，ReduceTask统一对内存和磁盘上的所有数据进行一次归并排序。
 
@@ -771,7 +1041,7 @@ return this.sumFlow > o.getSumFlow() ? -1 : 1;
 
 **排序发生的阶段**
 
-1. 一个是在map side发生在spill后partition前。使用的是快速排序，对每一个溢出文件中的分区进行排序操作。在map端对溢出的多个本地文件进行排序的时候，也会使用到归并排序。
+1. 一个是在map side发生在spill后partition前。使用的是快速排序，对每一个溢出文件中的分区进行排序操作，然后在对分区内部的数据进行排序。在map端对溢出的多个本地文件进行排序的时候，也会使用到归并排序，因为再map端最终输出的是一个文件
 2. 一个是在reduce side发生在copy后 reduce前。使用的是归并排序，对来自多个map端的相同key的数据进行归并排序，形成一个大文件。
 
 ### 描述mapReduce中shuffle阶段的工作流程，如何优化shuffle阶段
@@ -784,7 +1054,7 @@ mr程序最大的瓶紧就在于磁盘的io，所以主要从下面几个方面�
 
 **分区，排序，溢写，拷贝到对应reduce机器上，增加combiner，压缩溢写的文件。**
 
-### 分区
+### mapreduce中的分区
 
 默认的Partition 分区
 
@@ -796,6 +1066,10 @@ mr程序最大的瓶紧就在于磁盘的io，所以主要从下面几个方面�
 2. 如果1<ReduceTask的数量<getPartition的结果数，则有一部分分区数据无处安放，会Exception；
 3. 如果ReduceTask的数量=1，则不管MapTask端输出多少个分区文件，最终结果都交给这一个ReduceTask，最终也就只会产生一个结果文件 part-r-00000；
 4. 分区号必须从零开始，逐一累加。
+
+### 如果没有定义partitioner，那数据在被送达reducer前是如何被分区的？
+
+如果没有自定义的partitioning，则默认的partition算法，即根据每一条数据的key的hashcode值模运算（%）reduce的数量，得到的数字就是“分区号“。
 
 ### 哪些场景才能使⽤Combiner呢？
 
@@ -821,19 +1095,7 @@ mr程序最大的瓶紧就在于磁盘的io，所以主要从下面几个方面�
 
 **Map Task/Reduce**
 
-Task Task周期性向MRAppMaster汇报心跳；一旦Task 挂掉，则MRAppMaster将为之重新申请资源，并运行之。最多重新运行次数可由用户设置，默认4 次。
-
-### 如果没有定义partitioner，那数据在被送达reducer前是如何被分区的？
-
-如果没有自定义的partitioning，则默认的partition算法，即根据每一条数据的key的hashcode值模运算（%）reduce的数量，得到的数字就是“分区号“。
-
-### MapReduce 出现单点负载多大，怎么负载平衡？
-
-通过Partitioner实现。或者增大Reduce个数实现，目标是把数据均匀的分配到各个Reduce上。
-
-### MapReduce 怎么实现 TopN？
-
-可以自定义groupingcomparator，对结果进行最大值排序，然后再reduce输出时，控制只输出前n个数。就达到了topn输出的目的。
+Task周期性向MRAppMaster汇报心跳；一旦Task 挂掉，则MRAppMaster将为之重新申请资源，并运行之。最多重新运行次数可由用户设置，默认4 次。
 
 ### 如何使用mapReduce实现两个表的join?
 
@@ -875,85 +1137,7 @@ Hadoop序列化的特点
 
 > 之所以需要序列化，就是因为map阶段和reducer阶段在不同的服务器中，所以中间需要传输bean对象，所以需要先将对象进行序列化操作。
 
-### hadoop的TextInputFormat作⽤是什么，如何⾃定义实现？
-
-InputFormat会在map操作之前对数据进⾏两⽅⾯的预处理
-
-1. 是getSplits，返回的是InputSplit数组，对数据进⾏split分⽚，每⽚交给map操作⼀次
-2. 是getRecordReader，返回的是RecordReader对象，对每个split分⽚进⾏转换为key-value键值对格式传递给map，常⽤的InputFormat是TextInputFormat，使⽤的是LineRecordReader对每个分⽚进⾏键值对的转换，以⾏偏移量作为键，
-   ⾏内容作为值。
-3. ⾃定义类继承InputFormat接⼜，重写createRecordReader和isSplitable⽅法 在createRecordReader中可以⾃定义分隔符
-
-### Hadoop可以自定义哪些输入类型
-
-![1633519780907](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/06/192943-955084.png)
-
-抽象类FileInputFormat实现了InputFormat接口，是所有操作文件类型输入类的父类。InputFormat常见的接口实现类包括TextInputFormat、KeyValueTextInputFormat、NLineInputFormat、CombineTextInputFormat、SequenceFileInputFormat、DBInputFormat等。
-
-**TextInputFormat**
-
-TextInputFormat是默认的InputFormat。TextInputFormat提供了一个LineRecordReader，这个类会把输入文件的每一行作为值，每一行在文件中的字节偏移量为键。每条记录是一行输入，键是LongWritable类型，存储该行在整个文件中的字节偏移量，值是这行的内容，不包括任何行终止符（换行符和回车符）。
-
-**KeyValueTextInputFormat**
-
-每一行均为一条记录，被分隔符分割为key，value。可以通过在驱动类中设置conf.set(KeyValueLineRecordReader.KEY_VALUE_SEPERATOR, "\t");来设定分隔符。默认分隔符是tab（\t）。
-
-**CombineTextInputFormat**
-
-如果已经是大量小文件在 HDFS 中了，可以使用另一种 InputFormat 来做切片(CombineTextInputFormat)，它的切片逻辑跟 TextFileInputFormat 不同:它可以将多个小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交给一个 maptask。经常使用在小文件过多的场景，可以把小文件逻辑上合并。
-
-**NLineInputFormat**
-
-如果使用NlineInputFormat，代表每个map进程处理的InputSplit不再按Block块去划分，而是按NlineInputFormat指定的行数N来划分。即输入文件的总行数/N=切片数，如果不整除，切片数=商+1。
-
-**自定义步骤**
-
-1. 重写isSplitable()方法，返回false不可切割
-2. 重写createRecordReader()，创建自定义的RecordReader对象，并初始化
-3. 改写RecordReader，实现一次读取一个完整文件封装为KV。
-
-### OutputFormat 数据输出
-
-OutputFormat是MapReduce输出的基类，所有实现MapReduce输出都实现了OutputFormat接口。下面我们介绍几种常见的OutputFormat实现类。
-
-![1633742055827](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/091418-794458.png)
-
-**文本输出TextOutputFormat**
-
-默认的输出格式是TextOutputFormat，它把每条记录写为文本行。它的键和值可以是任意类型，因为TextOutputFormat调用toString()方法把它们转换为字符串。
-
-**SequenceFileOutputFormat**
-
-将SequenceFileOutputFormat输出作为后续 MapReduce任务的输入，这便是一种好的输出格式，因为它的格式紧凑，很容易被压缩。
-
-**自定义OutputFormat**
-
-1. 自定义一个类继承FileOutputFormat。
-2. 改写RecordWriter，具体改写输出数据的方法write()。
-
-### 介绍一下MapReduce的Shuffle过程，并给出Hadoop优化的方案(包括：压缩、小文件、集群的优化)
-
-![1633740865646](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/085430-232977.png)
-
-MapReduce数据读取并写入HDFS流程实际上是有10步：
-
-![1633160204104](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/153645-130196.png)
-
-那么到底什么是shuffle过程呢？
-
-1. Map方法之后Reduce方法之前这段处理过程叫**「Shuffle」**
-2. Map方法之后，数据首先进入到分区方法（partitioin()），把数据标记好分区，然后把数据发送到环形缓冲区；环形缓冲区默认大小100m，环形缓冲区达到80%时，进行溢写；溢写前对数据进行排序，排序按照对key的索引进行字典顺序排序，排序的手段**「快排」**；溢写产生大量溢写文件，需要对溢写文件进行**「归并排序」**；对溢写的文件也可以进行Combiner操作，前提是汇总操作，求平均值不行。最后将文件按照分区存储到磁盘，等待Reduce端拉取。
-3. 每个Reduce拉取Map端对应分区的数据。拉取数据后先存储到内存中，内存不够了，再存储到磁盘。拉取完所有数据后，采用归并排序将内存和磁盘中的数据都进行排序。在进入Reduce方法前，可以对数据进行分组操作。
-
 ### hadoop小文件问题
-
-小文件的优化无非以下几种方式：
-
-（1）在数据采集的时候，就将小文件或小批数据合成大文件再上传HDFS。
-
-（2）在业务处理之前，在HDFS上使用MapReduce程序对小文件进行合并。
-
-（3）在MapReduce处理时，可采用CombineTextInputFormat提高效率。
 
 #### HDFS小文件影响
 
@@ -989,49 +1173,21 @@ Sequence file： sequence file由一系列的二进制key/value组成，如果�
 
   再spark中就没有jvm重用，因为spark是线程级别调度，而mapreduce是进程级别调度。
 
-**Map阶段**
+> 为什么需要开启jvm重用，因为mapreduce是进程级别的调度。
 
-- 增大环形缓冲区大小。由100m扩大到200m。
-- 增大环形缓冲区溢写的比例。由80%扩大到90%
-- 减少对溢写文件的merge次数。（10个文件，一次20个merge）
-- 不影响实际业务的前提下，采用Combiner提前合并，减少 I/O
+### MapTask & ReduceTask 源码解析
 
-**Reduce阶段**
+#### MapTask 源码
 
-- 合理设置Map和Reduce数：两个都不能设置太少，也不能设置太多。太少，会导致Task等待，延长处理时间；太多，会导致 Map、Reduce任务间竞争资源，造成处理超时等错误。
-- 设置Map、Reduce共存：调整 `slowstart.completedmaps` 参数，使Map运行到一定程度后，Reduce也开始运行，减少Reduce的等待时间，也即是不必等待map任务执行完成后才执行reduce任务。
-- 规避使用Reduce，因为Reduce在用于连接数据集的时候将会产生大量的网络消耗。
-- 增加每个Reduce去Map中拿数据的并行数
-- 集群性能可以的前提下，增大Reduce端存储数据内存的大小
+![1633743947700](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/094549-647470.png)
 
-**IO 传输**
+#### ReduceTask 源码
 
-- 采用数据压缩的方式，减少网络IO的的时间
-- 使用SequenceFile二进制文件
+![1633743986625](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/094643-670040.png)
 
-**整体**
+![1633744008207](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/094651-523443.png)
 
-- MapTask默认内存大小为1G，可以增加MapTask内存大小为4G
-- ReduceTask默认内存大小为1G，可以增加ReduceTask内存大小为4-5g
-- 可以增加MapTask的cpu核数，增加ReduceTask的CPU核数
-- 增加每个Container的CPU核数和内存大小
-- 调整每个Map Task和Reduce Task最大重试次数
-
-**文件压缩**
-
-![1633160722552](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1633160722552.png)
-
-> 如果面试过程问起，我们一般回答压缩方式为Snappy，特点速度快，缺点无法切分（可以回答在链式MR中，Reduce端输出使用bzip2压缩，以便后续的map任务对数据进行split）
-
-**行式存储和列式存储**
-
-行式存储并不会破坏原来数据存储的行信息，行式存储对于条件查询，性能是比较差的，因为需要遍历表中所有数据。
-
-![1633243363844](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/144244-269611.png)
-
-对于列时存储，如果是条件查询，因为列上建立有索引，所以查询起来只会操作对应的列，磁盘io压力小很多。
-
-![1633243494835](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/03/144456-160161.png)
+## Yarn
 
 ### 为什么会产生 yarn,它解决了什么问题，有什么优势？
 
@@ -1041,6 +1197,36 @@ Sequence file： sequence file由一系列的二进制key/value组成，如果�
 ### Yarn架构
 
 ![1633929954257](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/11/132557-163506.png)
+
+### YARN 集群的架构和工作原理知道多少
+
+YARN 的基本设计思想是将 MapReduce V1 中的 JobTracker 拆分为两个独立的服务：ResourceManager 和 ApplicationMaster。
+
+ResourceManager 负责整个系统的资源管理和分配，ApplicationMaster 负责单个应用程序的的管理。
+
+**ResourceManager ：** 
+
+RM 是一个全局的资源管理器，负责整个系统的资源管理和分配，它主要由两个部分组成：调度器（Scheduler）和应用程序管理器（ApplicationManager）。
+
+调度器根据容量、队列等限制条件，将系统中的资源分配给正在运行的应用程序，在保证容量、公平性和服务等级的前提下，优化集群资源利用率，让所有的资源都被充分利用应用程序管理器负责管理整个系统中的所有的应用程序，包括应用程序的提交、与调度器协商资源以启动 ApplicationMaster、监控
+ApplicationMaster 运行状态并在失败时重启它。
+
+**ApplicationMaster ：** 
+
+用户提交的一个应用程序会对应于一个ApplicationMaster，它的主要功能有：
+
+- 与 RM 调度器协商以获得资源，资源以 Container 表示。
+- 将得到的任务进一步分配给内部的任务。
+- 与 NM 通信以启动/停止任务。
+- 监控所有的内部任务状态，并在任务运行失败的时候重新为任务申请资源以重启任务。
+
+**NodeManager ：** 
+
+NodeManager 是每个节点上的资源和任务管理器，一方面，它会定期地向 RM 汇报本节点上的资源使用情况和各个 Container 的运行状态；另一方面，他接收并处理来自 AM 的 Container 启动和停止请求。
+
+**Container ：**
+
+Container 是 YARN 中的资源抽象，封装了各种资源。 一个应用程序会分配一个 Container ，这个应用程序只能使用这个 r Container 中描述的资源 。不同于 MapReduceV1 中槽位 slot 的资源封装，Container 是一个动态资源的划分单位，更能充分利用资源。
 
 ### Yarn工作机制
 
@@ -1061,6 +1247,20 @@ Sequence file： sequence file由一系列的二进制key/value组成，如果�
 13. MrAppMaster等待所有MapTask运行完毕后，向RM申请容器，运行ReduceTask。
 14. ReduceTask向MapTask获取相应分区的数据。
 15. 程序运行完毕后，MR会向RM申请注销自己。
+
+### YARN 的任务提交流程是怎样的
+
+当 jobclient 向 YARN 提交一个应用程序后，YARN 将分两个阶段运行这个应用程序：一是启动 ApplicationMaster;第二个阶段是由 ApplicationMaster 创建应用程序，为它申请资源，监控运行直到结束。 具体步骤如下:
+
+1. 用户向 YARN 提交一个应用程序，并指定 ApplicationMaster 程序、启动ApplicationMaster 的命令、用户程序。
+2. RM 为这个应用程序分配第一个 Container，并与之对应的 NM 通讯，要求它在这个 Container 中启动应用程序 ApplicationMaster。
+3. ApplicationMaster 向 RM 注册，然后拆分为内部各个子任务，为各个内部任务申请资源，并监控这些任务的运行，直到结束。
+4. AM 采用轮询的方式向 RM 申请和领取资源。
+5. RM 为 AM 分配资源，以 Container 形式返回。
+6. AM 申请到资源后，便与之对应的 NM 通讯，要求 NM 启动任务。
+7. NodeManager 为任务设置好运行环境，将任务启动命令写到一个脚本中，并通过运行这个脚本启动任务。
+8. 各个任务向 AM 汇报自己的状态和进度，以便当任务失败时可以重启任务。
+9. 应用程序完成后，ApplicationMaster 向 ResourceManager 注销并关闭自己。
 
 ### 介绍一下 Yarn 的 Job 提交流程
 
@@ -1143,11 +1343,14 @@ Hadoop作业调度器主要有三种：FIFO、Capacity Scheduler和Fair Schedule
 
 **先进先出调度器（FIFO）**
 
+FIFO Scheduler 把应用按提交的顺序排成一个队列，这是一个先进先出队列，在进行资源分配的时候，先给队列中最头上的应用进行分配资源，待最头上的应用需求满足后再给下一个分配，以此类推。
+
+FIFO Scheduler 是最简单也是最容易理解的调度器，也不需要任何配置，但它并不适用于共享集群。大的应用可能会占用所有集群资源，这就导致其它应用被阻塞，比如有个大任务在执行，占用了全部的资源，再提交一个小任务，则此小任务会一直被阻塞。
+
 ![1633678316114](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/08/153157-99769.png)
 
 - FIFO Scheduler：先进先出调度器：优先提交的，优先执行，后面提交的等待【生产环境不会使用】
 - 只有一个队列。
-- 它先按照作业的优先级高低，再按照到达时间的先后选择被执行的作业。
 
 **容量调度器（Capacity Scheduler）**
 
@@ -1450,16 +1653,16 @@ JobConf.setNumReduceTasks(int)
 
 （1）以下参数是在用户自己的MR应用程序中配置就可以生效（mapred-default.xml）
 
-| 配置参数                                      | 参数说明                                                     |
-| --------------------------------------------- | ------------------------------------------------------------ |
-| mapreduce.map.memory.mb                       | 一个MapTask可使用的资源上限（单位:MB），默认为1024。如果MapTask实际使用的资源量超过该值，则会被强制杀死。 |
+| 配置参数                                      | 参数说明                                                                                                        |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| mapreduce.map.memory.mb                       | 一个MapTask可使用的资源上限（单位:MB），默认为1024。如果MapTask实际使用的资源量超过该值，则会被强制杀死。       |
 | mapreduce.reduce.memory.mb                    | 一个ReduceTask可使用的资源上限（单位:MB），默认为1024。如果ReduceTask实际使用的资源量超过该值，则会被强制杀死。 |
-| mapreduce.map.cpu.vcores                      | 每个MapTask可使用的最多cpu core数目，默认值: 1               |
-| mapreduce.reduce.cpu.vcores                   | 每个ReduceTask可使用的最多cpu core数目，默认值: 1            |
-| mapreduce.reduce.shuffle.parallelcopies       | 每个Reduce去Map中取数据的并行数。默认值是5                   |
-| mapreduce.reduce.shuffle.merge.percent        | Buffer中的数据达到多少比例开始写入磁盘。默认值0.66           |
-| mapreduce.reduce.shuffle.input.buffer.percent | Buffer大小占Reduce可用内存的比例。默认值0.7                  |
-| mapreduce.reduce.input.buffer.percent         | 指定多少比例的内存用来存放Buffer中的数据，默认值是0.0        |
+| mapreduce.map.cpu.vcores                      | 每个MapTask可使用的最多cpu core数目，默认值: 1                                                                  |
+| mapreduce.reduce.cpu.vcores                   | 每个ReduceTask可使用的最多cpu core数目，默认值: 1                                                               |
+| mapreduce.reduce.shuffle.parallelcopies       | 每个Reduce去Map中取数据的并行数。默认值是5                                                                      |
+| mapreduce.reduce.shuffle.merge.percent        | Buffer中的数据达到多少比例开始写入磁盘。默认值0.66                                                              |
+| mapreduce.reduce.shuffle.input.buffer.percent | Buffer大小占Reduce可用内存的比例。默认值0.7                                                                     |
+| mapreduce.reduce.input.buffer.percent         | 指定多少比例的内存用来存放Buffer中的数据，默认值是0.0                                                           |
 
 （2）应该在YARN启动之前就配置在服务器的配置文件中才能生效（yarn-default.xml）
 
@@ -1480,23 +1683,11 @@ JobConf.setNumReduceTasks(int)
 
 **容错相关参数(MapReduce性能优化)**
 
-| 配置参数                     | 参数说明                                                     |
-| ---------------------------- | ------------------------------------------------------------ |
-| mapreduce.map.maxattempts    | 每个Map Task最大重试次数，一旦重试参数超过该值，则认为Map Task运行失败，默认值：4。 |
-| mapreduce.reduce.maxattempts | 每个Reduce Task最大重试次数，一旦重试参数超过该值，则认为Map Task运行失败，默认值：4。 |
+| 配置参数                     | 参数说明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| mapreduce.map.maxattempts    | 每个Map Task最大重试次数，一旦重试参数超过该值，则认为Map Task运行失败，默认值：4。                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| mapreduce.reduce.maxattempts | 每个Reduce Task最大重试次数，一旦重试参数超过该值，则认为Map Task运行失败，默认值：4。                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | mapreduce.task.timeout       | Task超时时间，经常需要设置的一个参数，该参数表达的意思为：如果一个Task在一定时间内没有任何进入，即不会读取新的数据，也没有输出数据，则认为该Task处于Block状态，可能是卡住了，也许永远会卡住，为了防止因为用户程序永远Block住不退出，则强制设置了一个该超时时间（单位毫秒），默认是600000。如果你的程序对每条输入数据的处理时间过长（比如会访问数据库，通过网络拉取数据等），建议将该参数调大，该参数过小常出现的错误提示是“AttemptID:attempt_14267829456721_123456_m_000224_0   Timed out after 300 secsContainer killed by the ApplicationMaster.”。 |
-
-### MapTask & ReduceTask 源码解析
-
-#### MapTask 源码
-
-![1633743947700](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/094549-647470.png)
-
-#### ReduceTask 源码
-
-![1633743986625](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/094643-670040.png)
-
-![1633744008207](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/09/094651-523443.png)
 
 ### MapReduce 开发总结
 
