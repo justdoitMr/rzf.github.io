@@ -35,16 +35,19 @@ client运行模式，cluster适合生产，driver运行在集群子节点，具�
 spark是借鉴了Mapreduce,并在其基础上发展起来的，继承了其分布式计算的优点并进行了改进，spark生态更为丰富，功能更为强大，性能更加适用范围广，mapreduce更简单，稳定性好。主要区别
 
 1. spark把运算的中间数据(shuffle阶段产生的数据)存放在内存，迭代计算效率更高，mapreduce的中间结果需要落地，保存到磁盘，这也是最重要的一点原因。
-
 2. Spark容错性高，它通过弹性分布式数据集RDD来实现高效容错，RDD是一组分布式的存储在 节点内存中的只读性的数据集，这些集合是弹性的，某一部分丢失或者出错，可以通过整个数据集的计算流程的血缘关系来实现重建，mapreduce的容错只能重新计算
-
 3. Spark更通用，提供了transformation和action这两大类的多功能api，另外还有流式处sparkstreaming模块、图计算等等，mapreduce只提供了map和reduce两种操作，流计算及其他的模块支持比较缺乏
-
 4. Spark框架和生态更为复杂，有RDD，血缘lineage（依赖链）、执行时的有向无环图DAG,stage划分等，很多时候spark作业都需要根据不同业务场景的需要进行调优以达到性能要求，mapreduce框架及其生态相对较为简单，对性能的要求也相对较弱，运行较为稳定，适合长期后台运行。
-
 5. Spark计算框架对内存的利用和运行的并行度比mapreduce高，Spark运行容器为executor，内部ThreadPool中线程运行一个Task,mapreduce在线程内部运行container，container容器分类为MapTask和ReduceTask.程序运行并行度高
-
 6. Spark对于executor的优化，在JVM虚拟机的基础上对内存弹性利用：storage memory与Execution memory的弹性扩容，使得内存利用效率更高
+
+###  通常来说，Spark 与MapReduce 相比，Spark 运行效率更高。请说明效率更高来源于Spark 内置的哪些机制？
+
+1. 基于内存计算，减少低效的磁盘交互；
+2. 高效的调度算法，基于 DAG；
+3. 容错机制 Linage。
+
+> 重点部分就是 DAG 和 Lingae
 
 ### Spark和Hadoop的应用场景
 
@@ -108,14 +111,14 @@ DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程�
 
 > 本质上描述的是数据的流向。
 
-###  G DAG 分 中为什么要划分 Stage ？
+###  DAG 分 中为什么要划分 Stage ？
 
 并行计算 。
 
 一个复杂的业务逻辑如果有 shuffle，那么就意味着前面阶段产生结果后，才能执行下一个阶段，即下一个阶段的计算要依赖上一个阶段的数据。那么我们按照shuffle 进行划分(也就是按照宽依赖就行划分)，就可以将一个 DAG 划分成多个 Stage/阶段，在同一个 Stage 中，会有多个算子操作，可以形成一个
 pipeline 流水线，流水线内的多个平行的分区可以并行执行。
 
-###  分 如何划分 G DAG 的 的 stage ？
+###  如何划分 G DAG 的 的 stage ？
 
 对于窄依赖，partition 的转换处理在 stage 中完成计算，不划分(将窄依赖尽量放在在同一个 stage 中，可以实现流水线计算)。
 
@@ -186,9 +189,16 @@ spark 中有 partition 的概念，每个 partition 都会对应一个 task，ta
 
 join 其实常见的就分为两类： map-side join 和 reduce-side join 。
 
+当大表和小表 join 时，用 map-side join 能显著提高效率。
 
+将多份数据进行关联是数据处理过程中非常普遍的用法，不过在分布式计算系统中，这个问题往往会变的非常麻烦，因为框架提供的 join 操作一般会将所有数据根据 key 发送到所有的 reduce 分区中去，也就是 shuffle 的过程。造成大量的网络以及磁盘 IO 消耗，运行效率极其低下，这个过程一般被称为reduce-side-join。
 
+如果其中有张表较小的话，我们则可以自己实现在 map 端实现数据关联，跳过大量数据进行 shuffle 的过程，运行时间得到大量缩短，根据不同数据可能会有几倍到数十倍的性能提升。在大数据量的情况下，join 是一中非常昂贵的操作，需要在 join 之前应尽可能的先缩小数据量。
 
+对于缩小数据量，有以下几条建议 ：
+1. 若两个 RDD 都有重复的 key，join 操作会使得数据量会急剧的扩大。所有，最好先使用 distinct 或者 combineByKey 操作来减少 key 空间或者用 cogroup 来处理重复的 key，而不是产生所有的交叉结果。在combine 时，进行机智的分区，可以避免第二次 shuffle。
+2. 如果只在一个 RDD 出现，那你将在无意中丢失你的数据。所以使用外连接会更加安全，这样你就能确保左边的 RDD 或者右边的 RDD 的数据完整性，在 join 之后再过滤数据。
+3. 如果我们容易得到 RDD 的可以的有用的子集合，那么我们可以先用filter 或者 reduce，如何在再用 join。
 
 ### 简单说一下hadoop和spark的shuffle相同和差异？
 
@@ -205,6 +215,28 @@ sortByKey() 的操作；如果你是Spark 1.1的用户，可以将spark.shuffle.
 如果我们将 map 端划分数据、持久化数据的过程称为 shuffle write，而将 reducer 读入数据、aggregate 数据的过程称为 shuffle read。那么在 Spark 中，问题就变为怎么在 job 的逻辑或者物理执行图中加入 shuffle write 和 shuffle read的处理逻辑？以及两个处理逻辑应该怎么高效实现？
 
 Shuffle write由于不要求数据有序，shuffle write 的任务很简单：将数据 partition 好，并持久化。之所以要持久化，一方面是要减少内存存储空间压力，另一方面也是为了 fault-tolerance。
+
+### Spark L SQL 执行的流程？
+
+这个问题如果深挖还挺复杂的，这里简单介绍下总体流程：
+
+1. parser：基于 antlr 框架对 sql 解析，生成**抽象语法树**。
+2. 变量替换：通过正则表达式找出符合规则的字符串，替换成系统缓存环境的变量，SQLConf 中的 spark.sql.variable.substitute ，默认是可用的；参考SparkSqlParser
+3. parser：将 antlr 的 tree 转成 spark catalyst 的 LogicPlan，也就是 未解析的逻辑计划；详细参考 AstBuild , ParseDriver
+4. analyzer：通过分析器，结合 catalog，把 logical plan 和实际的数据绑定起来，将 未解析的逻辑计划 生成 逻辑计划；详细参考QureyExecution
+5. 缓存替换：通过 CacheManager，替换有相同结果的 logical plan（逻辑计划）
+6. logical plan 优化，基于规则的优化；优化规则参考 Optimizer，优化执行器 RuleExecutor
+7. 生成 spark plan，也就是物理计划；参考 QueryPlanner 和 SparkStrategies
+8. spark plan 准备阶段
+9. 构造 RDD 执行，涉及 spark 的 wholeStageCodegenExec 机制，基于janino 框架生成 java 代码并编译
+
+### Spark SQL 到是如何将数据写到Hive 表的？
+
+
+方式一：是利用 Spark RDD 的 API 将数据写入 hdfs 形成 hdfs 文件，之后再将 hdfs 文件和 hive 表做加载映射。
+
+方式二：利用 Spark SQL 将获取的数据 RDD 转换成 DataFrame，再将DataFrame 写成缓存表，最后利用 Spark SQL 直接插入 hive 表中。而对于利用 Spark SQL 写 hive 表官方有两种常见的 API，**第一种是利用**
+**JavaBean 做映射，第二种是利用 StructType 创建 Schema 做映射。**
 
 ### Spark工作机制
 
@@ -492,6 +524,16 @@ Spark中的数据本地性有三种：
 
 通常读取数据PROCESS_LOCAL>NODE_LOCAL>ANY，尽量使数据以PROCESS_LOCAL或NODE_LOCAL方式读取。其中PROCESS_LOCAL还和cache有关，如果RDD经常用的话将该RDD cache到内存中，注意，由于cache是lazy的，所以必须通过一个action的触发，才能真正的将该RDD cache到内存中。
 
+### RDD 持久化原理？
+
+spark 非常重要的一个功能特性就是可以将 RDD 持久化在内存中。
+
+调用 cache()和 persist()方法即可。cache()和 persist()的区别在于，cache()是 persist()的一种简化方式，cache()的底层就是调用 persist()的无参版本
+
+persist(MEMORY_ONLY)，将数据持久化到内存中。
+
+如果需要从内存中清除缓存，可以使用 unpersist()方法。RDD 持久化是可以手动选择不同的策略的。在调用 persist()时传入对应的 StorageLevel 即可。
+
 ### Spark为什么要持久化，一般什么场景下要进行persist操作？
 
 **为什么要进行持久化？**
@@ -509,6 +551,56 @@ spark所有复杂一点的算法都会有persist身影，spark默认数据放在
 4. shuffle之后要persist，shuffle要进性网络传输，风险很大，数据丢失重来，恢复代价很大
 5. shuffle之前进行persist，框架默认将数据持久化到磁盘，这个是框架自动做的。
 
+### Checkpoint 检查点机制？
+
+
+应用场景：当 spark 应用程序特别复杂，从初始的 RDD 开始到最后整个应用程序完成有很多的步骤，而且整个应用运行时间特别长，这种情况下就比较适合使用 checkpoint 功能。
+
+原因：对于特别复杂的 Spark 应用，会出现某个反复使用的 RDD，即使之前持久化过但由于节点的故障导致数据丢失了，没有容错机制，所以需要重新计算一次数据。
+
+Checkpoint 首先会调用 SparkContext 的 setCheckPointDIR()方法，设置一个容错的文件系统的目录，比如说 HDFS；然后对 RDD 调用 checkpoint()方法。之后在 RDD 所处的 job 运行结束之后，会启动一个单独的 job，来将checkpoint 过的 RDD 数据写入之前设置的文件系统，进行高可用、容错的类持久化操作。
+
+检查点机制是我们在 spark streaming 中用来保障容错性的主要机制，它可以使 spark streaming 阶段性的把应用数据存储到诸如 HDFS 等可靠存储系统中，以供恢复时使用。具体来说基于以下两个目的服务：
+
+1. 控制发生失败时需要重算的状态数。Spark streaming 可以通过转化图的谱系图来重算状态，检查点机制则可以控制需要在转化图中回溯多远。
+2. 提供驱动器程序容错。如果流计算应用中的驱动器程序崩溃了，你可以重启驱动器程序并让驱动器程序从检查点恢复，这样 spark streaming 就可以读取之前运行的程序处理数据的进度，并从那里继续。
+
+### Checkpoint 和持久化机制的区别？
+
+最主要的区别在于持久化只是将数据保存在 BlockManager 中，但是 RDD 的lineage(血缘关系，依赖关系)是不变的。但是 checkpoint 执行完之后，rdd 已经没有之前所谓的依赖 rdd 了，而只有一个强行为其设置的 checkpointRDD，checkpoint 之后 rdd 的 lineage 就改变了。
+
+持久化的数据丢失的可能性更大，因为节点的故障会导致磁盘、内存的数据丢失。但是 checkpoint 的数据通常是保存在高可用的文件系统中，比如 HDFS 中，所以数据丢失可能性比较低。
+
+### Spark Streaming 以及基本工作原理？
+
+
+Spark streaming 是 spark core API 的一种扩展，可以用于进行大规模、高吞吐量、容错的实时数据流的处理。它支持从多种数据源读取数据，比如 Kafka、Flume、Twitter 和 TCP Socket，并且能够使用算子比如 map、reduce、join 和 window 等来处理数据，处理后的数据可以保存到文件系统、数据库等存储中。
+
+Spark streaming 内部的基本工作原理是：接受实时输入数据流，然后将数据拆分成 batch，比如每收集一秒的数据封装成一个 batch，然后将每个 batch 交给 spark 的计算引擎进行处理，最后会生产处一个结果数据流，其中的数据也是一个一个的 batch 组成的。
+
+### DStream 以及基本工作原理？
+
+DStream 是 spark streaming 提供的一种高级抽象，代表了一个持续不断的数据流。DStream 可以通过输入数据源来创建，比如 Kafka、flume 等，也可以通过其他DStream 的高阶函数来创建，比如 map、reduce、join 和 window 等。
+
+DStream 内部其实不断产生 RDD，每个 RDD 包含了一个时间段的数据。Spark streaming 一定是有一个输入的 DStream 接收数据，按照时间划分成一个一个的 batch，并转化为一个 RDD，RDD 的数据是分散在各个子节点的partition 中。
+
+### Spark 主备切换机制原理知道吗？
+
+Master 实际上可以配置两个，Spark 原生的 standalone 模式是支持 Master主备切换的。当 Active Master 节点挂掉以后，我们可以将 Standby Master 切换为 Active Master。
+
+Spark Master 主备切换可以基于两种机制，一种是基于文件系统的，一种是基于 ZooKeeper 的。
+
+基于文件系统的主备切换机制，需要在 Active Master 挂掉之后手动切换到Standby Master 上；而基于 Zookeeper 的主备切换机制，可以实现自动切换 Master。
+
+### Spark 了 解决了 p Hadoop 的哪些问题？
+
+1. MR ：抽象层次低，需要使用手工代码来完成程序编写，使用上难以上手；Spark ：Spark 采用 RDD 计算模型，简单容易上手。
+2. MR ：只提供 map 和 reduce 两个操作，表达能力欠缺；Spark ：Spark 采用更加丰富的算子模型，包括 map、flatmap、groupbykey、reducebykey 等；
+3. MR ：一个 job 只能包含 map 和 reduce 两个阶段，复杂的任务需要包含很多个 job，这些 job 之间的管理以来需要开发者自己进行管理；Spark ：Spark 中一个 job 可以包含多个转换操作，在调度时可以生成多个 stage，而且如果多个 map 操作的分区不变，是可以放在同一个 task里面去执行；
+4. MR ：中间结果存放在 hdfs 中；Spark ：Spark 的中间结果一般存在内存中，只有当内存不够了，才会存入本地磁盘，而不是 hdfs；
+5. MR ：只有等到所有的 map task 执行完毕后才能执行 reduce task；Spark ：Spark 中分区相同的转换构成流水线在一个 task 中执行，分区不同的需要进行 shuffle 操作，被划分成不同的 stage 需要等待前面的stage 执行完才能执行。
+6. MR ：只适合 batch 批处理，时延高，对于交互式处理和实时处理支持不够；Spark ：Spark streaming 可以将流拆成时间间隔的 batch 进行处理，实时计算。
+
 ### 介绍一下join操作的优化
 
 join其实常见的就分为两类： map-side join 和 reduce-side join。当大表和小表join时，用map-side
@@ -520,6 +612,31 @@ join能显著提高效率。将多份数据进行关联是数据处理过程中�
 到数十倍的性能提升。
 
 > 备注：这个题目面试中非常非常大概率见到，务必搜索相关资料掌握，这里抛砖引玉。
+
+### 数据倾斜的产生和解决办法？
+
+数据倾斜以为着某一个或者某几个 partition 的数据特别大，导致这几个partition 上的计算需要耗费相当长的时间。在 spark 中同一个应用程序划分成多个 stage，这些 stage 之间是串行执行的，而一个 stage 里面的多个 task 是可以并行执行，task 数目由 partition 数目决定，如果一个 partition 的数目特别大，那么导致这个 task 执行时间很长，导致接下来的 stage 无法执行，从而导致整个 job 执行变慢。避免数据倾斜，一般是要选用合适的 key，或者自己定义相关的 partitioner，通过加盐或者哈希值来拆分这些 key，从而将这些数据分散到不同的 partition去执行。
+
+如下算子会导致 shuffle 操作，是导致数据倾斜可能发生的关键点所在：groupByKey；reduceByKey；aggregaByKey；join；cogroup；
+
+### Spark  Master A HA 主从切换过程不会影响到集群已有作业的运行 ，为什么？
+
+不会的。
+因为程序在运行之前，已经申请过资源了，driver 和 Executors 通讯，不需要和 master 进行通讯的。
+
+### Spark rMaster 使用 Zookeeper 进行 HA ，有哪些源数据保存到Zookeeper 里面？
+
+spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zookeeper 中保存的位置，包括 Worker，Driver 和 Application 以及Executors。standby 节点要从 zk 中，获得元数据信息，恢复集群运行状态，才能对外继续提供服务，作业提交资源申请等，在恢复前是不能接受请求的。
+
+注：Master 切换需要注意 2 点：
+
+1. 在 Master 切换的过程中，所有的已经在运行的程序皆正常运行！ 因为 SparkApplication 在运行前就已经通过 Cluster Manager 获得了计算资源，所以在运行时 Job 本身的 调度和处理和 Master 是没有任何关系。
+2. 在 Master 的切换过程中唯一的影响是不能提交新的 Job：一方面不能够提交新的应用程序给集群， 因为只有 Active Master 才能接受新的程序的提交请求；另外一方面，已经运行的程序中也不能够因 Action 操作触发新的 Job 的提交请求。
+
+###  RDD 有哪些缺陷？
+
+1. 不支持细粒度的写和更新操作 ，Spark 写数据是粗粒度的，所谓粗粒度，就是批量写入数据，目的是为了提高效率。但是 Spark 读数据是细粒度的，也就是说可以一条条的读。
+2. 不支持增量迭代计算 ，如果对 Flink 熟悉，可以说下 Flink 支持增量迭代计算。
 
 ### 描述Yarn执行一个任务的过程？
 
