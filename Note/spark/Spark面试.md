@@ -18,8 +18,10 @@ Spark不一定非要跑在hadoop集群，可以在本地，起多个线程的方
 #### Spark on yarn模式
 
 分布式部署集群，资源和任务监控交给yarn管理，但是目前仅支持粗粒度资源分配方式，包含cluster和
-client运行模式，cluster适合生产，driver运行在集群子节点，具有容错功能，client适合调试，dirver
-运行在客户端。
+client运行模式:
+
+- cluster适合生产，driver运行在集群子节点，具有容错功能，
+- client适合调试，dirver运行在客户端。
 
 #### Spark On Mesos模式
 
@@ -35,13 +37,21 @@ client运行模式，cluster适合生产，driver运行在集群子节点，具�
 spark是借鉴了Mapreduce,并在其基础上发展起来的，继承了其分布式计算的优点并进行了改进，spark生态更为丰富，功能更为强大，性能更加适用范围广，mapreduce更简单，稳定性好。主要区别
 
 1. spark把运算的中间数据(shuffle阶段产生的数据)存放在内存，迭代计算效率更高，mapreduce的中间结果需要落地，保存到磁盘，这也是最重要的一点原因。
-2. Spark容错性高，它通过弹性分布式数据集RDD来实现高效容错，RDD是一组分布式的存储在 节点内存中的只读性的数据集，这些集合是弹性的，某一部分丢失或者出错，可以通过整个数据集的计算流程的血缘关系来实现重建，mapreduce的容错只能重新计算
-3. Spark更通用，提供了transformation和action这两大类的多功能api，另外还有流式处sparkstreaming模块、图计算等等，mapreduce只提供了map和reduce两种操作，流计算及其他的模块支持比较缺乏
+2. Spark容错性高，它通过**弹性分布式数据集RDD来实现高效容错**，RDD是一组分布式的存储在节点内存中的**只读性**的数据集，**这些集合是弹性的，某一部分丢失或者出错，可以通过整个数据集的计算流程的血缘关系来实现重建，mapreduce的容错只能重新计算**.，其中弹性还体现在中间的数据可以存储在内存中，如果内存不足的话会存放到磁盘上面。
+3. Spark更通用，**提供了transformation和action这两大类的多功能api**，另外还有流式处sparkstreaming模块、图计算等等，mapreduce只提供了map和reduce两种操作，流计算及其他的模块支持比较缺乏
 4. Spark框架和生态更为复杂，有RDD，血缘lineage（依赖链）、执行时的有向无环图DAG,stage划分等，很多时候spark作业都需要根据不同业务场景的需要进行调优以达到性能要求，mapreduce框架及其生态相对较为简单，对性能的要求也相对较弱，运行较为稳定，适合长期后台运行。
 5. Spark计算框架对内存的利用和运行的并行度比mapreduce高，Spark运行容器为executor，内部ThreadPool中线程运行一个Task,mapreduce在线程内部运行container，container容器分类为MapTask和ReduceTask.程序运行并行度高
 6. Spark对于executor的优化，在JVM虚拟机的基础上对内存弹性利用：storage memory与Execution memory的弹性扩容，使得内存利用效率更高
 
-###  通常来说，Spark 与MapReduce 相比，Spark 运行效率更高。请说明效率更高来源于Spark 内置的哪些机制？
+### spark有哪些组件？
+
+- master：管理集群和节点，不参与计算。
+- worker：计算节点，进程本身不参与计算，和master汇报。
+- Driver：运行程序的main方法，创建spark context对象。
+- spark context：控制整个application的生命周期，包括dagsheduler和task scheduler等组件。
+- client：用户提交程序的入口。
+
+### 通常来说，Spark 与MapReduce 相比，Spark 运行效率更高。请说明效率更高来源于Spark 内置的哪些机制？
 
 1. 基于内存计算，减少低效的磁盘交互；
 2. 高效的调度算法，基于 DAG；
@@ -64,24 +74,25 @@ Hadoop/MapReduce和Spark最适合的都是做**离线型**的数据分析，但H
 
 **spark与hadoop最大的区别在于迭代式计算模型**。基于mapreduce框架的Hadoop主要分为map和reduce两个阶段，两个阶段完了就结束了，所以在一个job里面能做的处理很有限；spark计算模型是基于内存的迭代式计算模型，可以分为n个阶段，根据用户编写的RDD算子和程序，在处理完一个阶段后可以继续往下处理很多个阶段，而不只是两个阶段。所以spark相较于mapreduce，计算模型更加灵活，可以提供更强大的功能。
 
-但是spark也有劣势，由于spark基于内存进行计算，虽然开发容易，但是真正面对大数据的时候，在没有进行调优的情况下下，可能会出现各种各样的问题，比如OOM内存溢出等情况，导致spark程序可能无法运行起来，而mapreduce虽然运行缓慢，但是至少可以慢慢运行完。
+但是spark也有劣势，由于spark基于内存进行计算，虽然开发容易，但是真正面对大数据的时候，在没有进行调优的情况下下，可能会出现各种各样的问题，**比如OOM内存溢出等情况**，导致spark程序可能无法运行起来，而mapreduce虽然运行缓慢，但是至少可以慢慢运行完。
 
-###  spark有哪些组件？
+### Spark RDD 和 MapReduce2的区别？
 
-- master：管理集群和节点，不参与计算。
-- worker：计算节点，进程本身不参与计算，和master汇报。
-- Driver：运行程序的main方法，创建spark context对象。
-- spark context：控制整个application的生命周期，包括dagsheduler和task scheduler等组件。
-- client：用户提交程序的入口。
+1. mr2只有2个阶段，数据需要大量访问磁盘，数据来源相对单一 ,spark RDD ,可以无数个阶段进行迭
+   代计算，数据来源非常丰富，数据落地介质也非常丰富spark计算基于内存
+2. MapReduce2需要频繁操作磁盘IO，需要大家明确的是如果是SparkRDD的话，你要知道每一种数
+   据来源对应的是什么，RDD从数据源加载数据，将数据放到不同的partition针对这些partition中的数据
+   进行迭代式计算计算完成之后，落地到不同的介质当中。
+
+> 本质上是计算模型的不同。
 
 ### Spark中的RDD
 
 rdd 分布式弹性数据集，简单的理解成一种数据结构，是 spark 框架上的通用货币。所有算子都是基于 rdd 来执行的，不同的场景会有不同的 rdd 实现类，但是都可以进行互相转换。rdd 执行过程中会形成 dag 图，然后形成 lineage保证容错性等。从物理的角度来看 rdd 存储的是 block 和 node 之间的映射。
 
-RDD 是 spark 提供的核心抽象，全称为弹性分布式数据集。RDD 在逻辑上是一个 hdfs 文件，在抽象上是一种元素集合，包含了数据。它是被分区的，分为多个分区，每个分区分布在集群中的不同结点上，从而让 RDD 中的数据可以被并行操作（分布式数据集），比如有个 RDD 有 90W 数据，3 个 partition，则每个分区上有 30W 数据。RDD通常通过 Hadoop 上的文件，即 HDFS 或者 HIVE 表来创建，还可以通过应用程
-序中的集合来创建；RDD 最重要的特性就是容错性，可以自动从节点失败中恢复过来。即如果某个结点上的 RDD partition 因为节点故障，导致数据丢失，那么 RDD 可以通过自己的数据来源重新计算该 partition。这一切对使用者都是透明的。
+RDD 是 spark 提供的**核心抽象**，全称为弹性分布式数据集。RDD 在逻辑上是一个 hdfs 文件，在抽象上是一种**元素集合**，包含了数据。它是被分区的，分为多个分区，每个分区分布在集群中的不同结点上，从而让 RDD 中的数据可以被并行操作（分布式数据集），比如有个 RDD 有 90W 数据，3 个 partition，则每个分区上有 30W 数据。RDD通常通过 Hadoop 上的文件，即 HDFS 或者 HIVE 表来创建，还可以通过应用程序中的集合来创建；RDD 最重要的特性就是**容错性**，可以自动从节点失败中恢复过来。即如果某个结点上的 RDD partition 因为节点故障，导致数据丢失，那么 RDD 可以通过自己的数据来源重新计算该 partition。这一切对使用者都是透明的。
 
-RDD 的数据默认存放在内存中，但是当内存资源不足时，spark 会自动将 RDD 数据写入磁盘。比如某结点内存只能处理 20W 数据，那么这 20W 数据就会放入内存中计算，剩下 10W 放到磁盘中。**RDD 的弹性体现在于 RDD 上自动进行内存和磁盘之间权衡和切换的机制。**
+**RDD 的数据默认存放在内存中，但是当内存资源不足时，spark 会自动将 RDD 数据写入磁盘**。比如某结点内存只能处理 20W 数据，那么这 20W 数据就会放入内存中计算，剩下 10W 放到磁盘中。**RDD 的弹性体现在于 RDD 上自动进行内存和磁盘之间权衡和切换的机制。**
 
 ### RDD 中reduceBykey 与groupByKey 哪个性能好，为什么？
 
@@ -90,16 +101,6 @@ reduceByKey ：reduceByKey 会在结果发送至 reducer 之前会对每个 mapp
 groupByKey ：groupByKey 会对每一个 RDD 中的 value 值进行聚合形成一个序列(Iterator)，此操作发生在 reduce 端，所以势必会将所有的数据通过网络进行传输，造成不必要的浪费。同时如果数据量十分大，可能还会造成OutOfMemoryError。
 
 所以在进行大量数据的 reduce 操作时候建议使用 reduceByKey。不仅可以提高速度，还可以防止使用 groupByKey 造成的内存溢出问题。
-
-### 介绍一下 cogroup rdd 实现原理 ，你在什么场景下用过这个 rdd ？
-
-cogroup ：对多个（2~4）RDD 中的 KV 元素，每个 RDD 中相同 key 中的元素分别聚合成一个集合。
-
-与reduceByKey 不同的是 ：reduceByKey 针对 个 一个 RDD D 中相同的 key 进行合并。而 cogroup 针对 个 多个 RDD 中相同的 key 的元素进行合并。cogroup 的函数实现 ：这个实现根据要进行合并的两个 RDD 操作，生成一个CoGroupedRDD 的实例，这个 RDD 的返回结果是把相同的 key 中两个 RDD 分别进行合并操作，最后返回的 RDD 的 value 是一个 Pair 的实例，这个实例包含两个 Iterable 的值，第一个值表示的是 RDD1 中相同 KEY 的值，第二个值表示的是 RDD2 中相同 key 的值。
-
-由于做 cogroup 的操作，需要通过 partitioner 进行重新分区的操作，因此，执行这个流程时，需要执行一次 shuffle 的操作(如果要进行合并的两个 RDD的都已经是 shuffle 后的 rdd，同时他们对应的 partitioner 相同时，就不需要执行 shuffle)。
-
-场景 ：表关联查询或者处理重复的 key。
 
 ### **为什么要设计宽窄依赖**
 
@@ -115,20 +116,16 @@ DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程�
 
 并行计算 。
 
+想象一个场景，如果spark中没有shuffle操作，那么在遇到这种一个分区的数据发往多个分区的时候，可能有的分区计算还没有完成，所以在下游的分区位置，就需要阻塞主，不能向下执行，那么在上游的算子中，各个算子的执行过程我们不能预知，所以为了优化执行，将数据流划分为多个阶段，每一个阶段内可能有多个分区的数据，分区和分区之间就可以形成一个pipline操作，优化执行。
+
 一个复杂的业务逻辑如果有 shuffle，那么就意味着前面阶段产生结果后，才能执行下一个阶段，即下一个阶段的计算要依赖上一个阶段的数据。那么我们按照shuffle 进行划分(也就是按照宽依赖就行划分)，就可以将一个 DAG 划分成多个 Stage/阶段，在同一个 Stage 中，会有多个算子操作，可以形成一个
 pipeline 流水线，流水线内的多个平行的分区可以并行执行。
-
-###  如何划分 G DAG 的 的 stage ？
-
-对于窄依赖，partition 的转换处理在 stage 中完成计算，不划分(将窄依赖尽量放在在同一个 stage 中，可以实现流水线计算)。
-
-对于宽依赖，由于有 shuffle 的存在，只能在父 RDD 处理完成后，才能开始接下来的计算，也就是说需要要划分 stage。
 
 ### DAG 为 划分为Stage 的算法了解吗？
 
 核心算法：回溯算法
 
-从后往前回溯/ / 反向解析，遇到窄依赖加入本 Stage，遇见宽依赖进行 e Stage 切分 。
+从后往前回溯/ / 反向解析，遇到窄依赖加入本 Stage，遇见宽依赖进行Stage 切分 。
 
 Spark 内核会从触发 Action 操作的那个 RDD 开始 从后往前推 ，首先会为最后一个 RDD 创建一个 Stage，然后继续倒推，如果发现对某个 RDD 是宽依赖，那么就会将宽依赖的那个 RDD 创建一个新的 Stage，那个 RDD 就是新的 Stage的最后一个 RDD。然后依次类推，继续倒推，根据窄依赖或者宽依赖进行 Stage的划分，直到所有的 RDD 全部遍历完成为止。
 
@@ -1148,14 +1145,6 @@ shuffle中文翻译为洗牌，需要shuffle的原因是：某种具有共同特
 所有的任务拥有大致相当的优先级来共享集群资源，spark多以轮训的方式为任务分配资源，不管长任
 务还是端任务都可以获得资源，并且获得不错的响应时间，对于短任务，不会像FIFO那样等待较长时间
 了，通过参数spark.scheduler.mode 为FAIR指定。
-
-### Spark RDD 和 MapReduce2的区别？
-
-1. mr2只有2个阶段，数据需要大量访问磁盘，数据来源相对单一 ,spark RDD ,可以无数个阶段进行迭
-   代计算，数据来源非常丰富，数据落地介质也非常丰富spark计算基于内存
-2. MapReduce2需要频繁操作磁盘IO，需要大家明确的是如果是SparkRDD的话，你要知道每一种数
-   据来源对应的是什么，RDD从数据源加载数据，将数据放到不同的partition针对这些partition中的数据
-   进行迭代式计算计算完成之后，落地到不同的介质当中
 
 ### Spark sql为什么比hive快呢？
 
