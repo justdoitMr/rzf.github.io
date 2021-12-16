@@ -94,6 +94,39 @@ RDD 是 spark 提供的**核心抽象**，全称为弹性分布式数据集。RD
 
 **RDD 的数据默认存放在内存中，但是当内存资源不足时，spark 会自动将 RDD 数据写入磁盘**。比如某结点内存只能处理 20W 数据，那么这 20W 数据就会放入内存中计算，剩下 10W 放到磁盘中。**RDD 的弹性体现在于 RDD 上自动进行内存和磁盘之间权衡和切换的机制。**
 
+### Spark master HA主从切换过程不会影响到集群已有作业的运行，为什么
+
+不会的。
+
+因为程序在运行之前，已经申请过资源了，driver和Executors通讯，不需要和master进行通讯的。
+
+### 数据本地性是在哪个环节确定的？
+
+具体的task运行在那他机器上，DAG划分stage的时候确定的，我们尽量移动计算，而不是移动数据，这样可以减少数据在节点之间传输的延迟。
+
+### RDD的弹性表现在哪几点？
+
+**存储的弹性：**
+
+内存与磁盘的自动切换，Spark优先把数据放到内存中，如果内存放不下，就会放到磁盘里面，程序进行自动的存储切换
+
+**容错的弹性：**
+
+数据丢失可以自动恢复，在RDD进行转换和动作的时候，会形成RDD的Lineage依赖链，当某一个RDD失效的时候，可以通过重新计算上游的RDD来重新生成丢失的RDD数据，还可以设置检查点。
+
+**计算的弹性：**计算出错重试机制
+
+1. Task如果失败会自动进行特定次数的重试，RDD的计算任务如果运行失败，会自动进行任务的重新计算，默认次数是4次。
+2. Stage如果失败会自动进行特定次数的重试，如果Job的某个Stage阶段计算失败，框架也会自动进行任务的重新计算，默认次数也是4次。
+
+**分片的弹性：**
+
+可根据需要重新分片，可以根据业务的特征，动态调整数据分片的个数，提升整体的应用执行效率
+
+**Checkpoint和Persist可主动或被动触发**
+
+RDD可以通过Persist持久化将RDD缓存到内存或者磁盘，当再次用到该RDD时直接读取就行。也可以将RDD进行检查点，检查点会将数据存储在HDFS中，该RDD的所有父RDD依赖都会被移除。
+
 ### RDD 中reduceBykey 与groupByKey 哪个性能好，为什么？
 
 reduceByKey ：reduceByKey 会在结果发送至 reducer 之前会对每个 mapper 在本地进行 merge，有点类似于在 MapReduce 中的 combiner。这样做的好处在于，在 map 端进行一次 reduce 之后，数据量会大幅度减小，从而减小传输，保证reduce 端能够更快的进行结果计算。
@@ -186,7 +219,7 @@ spark 中有 partition 的概念，每个 partition 都会对应一个 task，ta
 
 join 其实常见的就分为两类： map-side join 和 reduce-side join 。
 
-当大表和小表 join 时，用 map-side join 能显著提高效率。
+当大表和小表 join 时，用 map-side join 能显著提高效率。那么在spark中，我们优先使用shuffle hashjoin和boardcast join这两种方法，对于达标join小表和小表join小表非常号，但是如果join的是两张大表的话，我们就需要使用sort shuffle join了。
 
 将多份数据进行关联是数据处理过程中非常普遍的用法，不过在分布式计算系统中，这个问题往往会变的非常麻烦，因为框架提供的 join 操作一般会将所有数据根据 key 发送到所有的 reduce 分区中去，也就是 shuffle 的过程。造成大量的网络以及磁盘 IO 消耗，运行效率极其低下，这个过程一般被称为reduce-side-join。
 
@@ -204,7 +237,7 @@ join 其实常见的就分为两类： map-side join 和 reduce-side join 。
 里的 ShuffleMapTask，也可能是 ResultTask）。Reducer 以内存作缓冲区，边 shuffle 边 aggregate
 数据，等到数据 aggregate 好以后进行 reduce() （Spark 里可能是后续的一系列操作）。
 
-从 low-level 的角度来看，两者差别不小。 Hadoop MapReduce 是 sort-based，进入 combine()和 reduce() 的 records 必须先 sort，分区内部数据有序。这样的好处在于 combine/reduce() 可以处理大规模的数据，因为其输入数据可以通过外排得到（mapper 对每段数据先做排序，reducer 的 shuffle 对排好序的每段数据做归并）。目前的 Spark 默认选择的是 hash-based，通常使用 HashMap 来对 shuffle 来的数据进行 aggregate，不会对数据进行提前排序。如果用户需要经过排序的数据，那么需要自己调用类似
+从 low-level 的角度来看，两者差别不小。 Hadoop MapReduce 是 sort-based，进入 combine()和 reduce() 的 records 必须先 sort，**分区内部数据有序**。这样的好处在于 combine/reduce() 可以处理大规模的数据，因为其输入数据可以通过外排得到（mapper 对每段数据先做排序，reducer 的 shuffle 对排好序的每段数据做归并）。目前的 Spark 默认选择的是 hash-based，通常使用 HashMap 来对 shuffle 来的数据进行 aggregate，不会对数据进行提前排序。如果用户需要经过排序的数据，那么需要自己调用类似
 sortByKey() 的操作；如果你是Spark 1.1的用户，可以将spark.shuffle.manager设置为sort，则会对数据进行排序。在Spark 1.2中，sort将作为默认的Shuffle实现。
 
 从实现角度来看，两者也有不少差别。 Hadoop MapReduce 将处理流程划分出明显的几个阶段：map(), spill, merge, shuffle, sort, reduce() 等。每个阶段各司其职，可以按照过程式的编程思想来逐一实现每个阶段的功能。在 Spark 中，没有这样功能明确的阶段，只有不同的 stage 和一系列的transformation()，所以 spill, merge, aggregate 等操作需要蕴含在 transformation() 中。
@@ -213,31 +246,11 @@ sortByKey() 的操作；如果你是Spark 1.1的用户，可以将spark.shuffle.
 
 Shuffle write由于不要求数据有序，shuffle write 的任务很简单：将数据 partition 好，并持久化。之所以要持久化，一方面是要减少内存存储空间压力，另一方面也是为了 fault-tolerance。
 
-### Spark L SQL 执行的流程？
 
-这个问题如果深挖还挺复杂的，这里简单介绍下总体流程：
-
-1. parser：基于 antlr 框架对 sql 解析，生成**抽象语法树**。
-2. 变量替换：通过正则表达式找出符合规则的字符串，替换成系统缓存环境的变量，SQLConf 中的 spark.sql.variable.substitute ，默认是可用的；参考SparkSqlParser
-3. parser：将 antlr 的 tree 转成 spark catalyst 的 LogicPlan，也就是 未解析的逻辑计划；详细参考 AstBuild , ParseDriver
-4. analyzer：通过分析器，结合 catalog，把 logical plan 和实际的数据绑定起来，将 未解析的逻辑计划 生成 逻辑计划；详细参考QureyExecution
-5. 缓存替换：通过 CacheManager，替换有相同结果的 logical plan（逻辑计划）
-6. logical plan 优化，基于规则的优化；优化规则参考 Optimizer，优化执行器 RuleExecutor
-7. 生成 spark plan，也就是物理计划；参考 QueryPlanner 和 SparkStrategies
-8. spark plan 准备阶段
-9. 构造 RDD 执行，涉及 spark 的 wholeStageCodegenExec 机制，基于janino 框架生成 java 代码并编译
-
-### Spark SQL 到是如何将数据写到Hive 表的？
-
-
-方式一：是利用 Spark RDD 的 API 将数据写入 hdfs 形成 hdfs 文件，之后再将 hdfs 文件和 hive 表做加载映射。
-
-方式二：利用 Spark SQL 将获取的数据 RDD 转换成 DataFrame，再将DataFrame 写成缓存表，最后利用 Spark SQL 直接插入 hive 表中。而对于利用 Spark SQL 写 hive 表官方有两种常见的 API，**第一种是利用**
-**JavaBean 做映射，第二种是利用 StructType 创建 Schema 做映射。**
 
 ### Spark工作机制
 
-用户在client端提交作业后，会由Driver运行main方法并创建spark context上下文。执行add算子，形成dag图输入dagscheduler，按照add之间的依赖关系划分stage输入task scheduler。task scheduler会将stage划分为task set分发到各个节点的executor中执行。
+用户在client端提交作业后，会由Driver运行main方法并创建spark context上下文。执行add算子，每遇到一个行动算子，就会触发一个job然后形成dag图输入dagscheduler，按照add之间的依赖关系划分stage输入task scheduler。task scheduler会将stage划分为task set分发到各个节点的executor中执行。
 
 ![1635393855062](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/125451-838441.png)
 
@@ -270,16 +283,33 @@ Spark Master主备切换可以基于两种机制，一种是基于文件系统�
 
 ### spark解决了hadoop的哪些问题？
 
+**从API抽象层次来看**
+
 - MR：抽象层次低，需要使用手工代码来完成程序编写，使用上难以上手；
 - Spark：Spark采用RDD计算模型，简单容易上手。
+
+**从数据的处理角度看**
+
 - MR：只提供map和reduce两个操作，表达能力欠缺；
 - Spark：Spark采用更加丰富的算子模型，包括map、flatmap、groupbykey、reducebykey等；
+
+**从作业的角度看**
+
 - MR：一个job只能包含map和reduce两个阶段，复杂的任务需要包含很多个job，这些job之间的管理以来需要开发者自己进行管理；
 - Spark：Spark中一个job可以包含多个转换操作，在调度时可以生成多个stage，而且如果多个map操作的分区不变，是可以放在同一个task里面去执行；
-- MR：中间结果存放在hdfs中；
+
+**从数据的存储过程看**
+
+- MR：中间结果存放在hdfs中，需要io，所以导致延迟很高。
 - Spark：Spark的中间结果一般存在内存中，只有当内存不够了，才会存入本地磁盘，而不是hdfs；
-- MR：只有等到所有的map task执行完毕后才能执行reduce task；
+
+**是否有shuffle操作**
+
+- MR：只有等到所有的map task执行完毕后才能执行reduce task；中间的过程是shuffle操作。
 - Spark：Spark中分区相同的转换构成流水线在一个task中执行，分区不同的需要进行shuffle操作，被划分成不同的stage需要等待前面的stage执行完才能执行。
+
+**是否是批处理**
+
 - MR：只适合batch批处理，时延高，对于交互式处理和实时处理支持不够；
 - Spark：Spark streaming可以将流拆成时间间隔的batch进行处理，实时计算。
 
@@ -287,23 +317,13 @@ Spark Master主备切换可以基于两种机制，一种是基于文件系统�
 
 Spark调优比较复杂，但是大体可以分为三个方面来进行
 
-**平台层面的调优**：防止不必要的jar包分发，提高数据的本地性，选择高效的存储格式如parquet
+**平台层面的调优**：防止不必要的jar包分发，提高数据的本地性，选择高效的存储格式如parquet。
 
 **应用程序层面的调优**：过滤操作符的优化降低过多小任务，降低单条记录的资源开销，处理数据倾
-斜，复用RDD进行缓存，作业并行化执行等等
+斜，复用RDD进行缓存，作业并行化执行等等。
 
 **JVM层面的调优**：设置合适的资源量，设置合理的JVM，启用高效的序列化方法如kyro，增大off
-head内存等等
-
-### 数据倾斜的产生和解决办法？
-
-数据倾斜意味着某一个或者某几个partition的数据特别大，导致这几个partition上的计算需要耗费相当长的时间。
-
-在spark中同一个应用程序划分成多个stage，这些stage之间是串行执行的，而一个stage里面的多个task是可以并行执行，task数目由partition数目决定，如果一个partition的数目特别大，那么导致这个task执行时间很长，导致接下来的stage无法执行，从而导致整个job执行变慢。
-
-避免数据倾斜，一般是要选用合适的key，或者自己定义相关的partitioner，通过哈希值来拆分这些key，从而将这些数据分散到不同的partition去执行。
-
-如下算子会导致shuffle操作，是导致数据倾斜可能发生的关键点所在：groupByKey；reduceByKey；aggregaByKey；join；cogroup；
+head内存等等。
 
 ### RDD中reduceBykey与groupByKey哪个性能好，为什么
 
@@ -312,44 +332,6 @@ head内存等等
 **groupByKey**：groupByKey会对每一个RDD中的value值进行聚合形成一个序列(Iterator)，此操作发生在reduce端，所以势必会将所有的数据通过网络进行传输，造成不必要的浪费。同时如果数据量十分大，可能还会造成OutOfMemoryError。
 
 所以在进行大量数据的reduce操作时候建议使用reduceByKey。不仅可以提高速度，还可以防止使用groupByKey造成的内存溢出问题。
-
-### Spark master HA主从切换过程不会影响到集群已有作业的运行，为什么
-
-不会的。
-
-因为程序在运行之前，已经申请过资源了，driver和Executors通讯，不需要和master进行通讯的。
-
-### 数据本地性是在哪个环节确定的？
-
-具体的task运行在那他机器上，DAG划分stage的时候确定的，我们尽量移动计算，而不是移动数据，这样可以减少数据在节点之间传输的延迟。
-
-### RDD的弹性表现在哪几点？
-
-**存储的弹性：**
-
-内存与磁盘的自动切换，Spark优先把数据放到内存中，如果内存放不下，就会放到磁盘里面，程序进行自动的存储切换
-
-**容错的弹性：**
-
-数据丢失可以自动恢复，在RDD进行转换和动作的时候，会形成RDD的Lineage依赖链，当某一个RDD失效的时候，可以通过重新计算上游的RDD来重新生成丢失的RDD数据，还可以设置检查点。
-
-**计算的弹性：**计算出错重试机制
-
-1. Task如果失败会自动进行特定次数的重试，RDD的计算任务如果运行失败，会自动进行任务的重新计算，默认次数是4次。
-2. Stage如果失败会自动进行特定次数的重试，如果Job的某个Stage阶段计算失败，框架也会自动进行任务的重新计算，默认次数也是4次。
-
-**分片的弹性：**
-
-可根据需要重新分片，可以根据业务的特征，动态调整数据分片的个数，提升整体的应用执行效率
-
-**Checkpoint和Persist可主动或被动触发**
-
-RDD可以通过Persist持久化将RDD缓存到内存或者磁盘，当再次用到该RDD时直接读取就行。也可以将RDD进行检查点，检查点会将数据存储在HDFS中，该RDD的所有父RDD依赖都会被移除。
-
-### RDD有那些缺陷
-
-1. 不支持细粒度的写和更新操作（如网络爬虫），spark写数据是粗粒度的。所谓粗粒度，就是批量写入数据，为了提高效率。但是读数据是细粒度的也就是说可以一条条的读
-2. 不支持增量迭代计算，Flink支持
 
 ### Spark的Shuffle过程
 
@@ -408,9 +390,9 @@ Spark丰富了任务类型，有些任务之间数据流转不需要通过Shuffl
 Shuffle来传递数据，比如wide dependency的group by key。
 
 Spark中需要Shuffle输出的Map任务会为每个Reduce创建对应的bucket，Map产生的结果会根据设置
-的partitioner得到对应的bucketId，然后填充到相应的bucket中去。每个Map的输出结果可能包含所有
-的Reduce所需要的数据，所以每个Map会创建R个bucket（R是reduce的个数），M个Map总共会创建
-M*R个bucket。
+的partitioner得到对应的bucketId，然后填充到相应的bucket中去。**每个Map的输出结果可能包含所有**
+**的Reduce所需要的数据，所以每个Map会创建R个bucket（R是reduce的个数），M个Map总共会创建**
+**M*R个bucket。**
 
 Map创建的bucket其实对应磁盘上的一个文件，Map的结果写到每个bucket中其实就是写到那个磁盘
 文件中，这个文件也被称为blockFile，是Disk Block Manager管理器通过文件名的Hash值对应到本地
@@ -421,22 +403,21 @@ Map创建的bucket其实对应磁盘上的一个文件，Map的结果写到每�
 针对上述Shuffle过程产生的文件过多问题，Spark有另外一种改进的Shuffle过程：consolidation
 Shuffle，以期显著减少Shuffle文件的数量。在consolidation Shuffle中每个bucket并非对应一个文
 件，而是对应文件中的一个segment部分。Job的map在某个节点上第一次执行，为每个reduce创建
-bucket对应的输出文件，把这些文件组织成ShuffleFileGroup，当这次map执行完之后，这个
-
-ShuffleFileGroup可以释放为下次循环利用；当又有map在这个节点上执行时，不需要创建新的bucket
+bucket对应的输出文件，把这些文件组织成ShuffleFileGroup，当这次map执行完之后，这个ShuffleFileGroup可以释放为下次循环利用；当又有map在这个节点上执行时，不需要创建新的bucket
 文件，而是在上次的ShuffleFileGroup中取得已经创建的文件继续追加写一个segment；当前次map还
 没执行完，ShuffleFileGroup还没有释放，这时如果有新的map在这个节点上执行，无法循环利用这个
 ShuffleFileGroup，而是只能创建新的bucket文件组成新的ShuffleFileGroup来写输出。
 
-比如一个Job有3个Map和2个reduce：(1) 如果此时集群有3个节点有空槽，每个节点空闲了一个core，
-则3个Map会调度到这3个节点上执行，每个Map都会创建2个Shuffle文件，总共创建6个Shuffle文件；
+比如一个Job有3个Map和2个reduce：
+
+(1) 如果此时集群有3个节点有空槽，每个节点空闲了一个core，则3个Map会调度到这3个节点上执行，每个Map都会创建2个Shuffle文件，总共创建6个Shuffle文件；
+
 (2) 如果此时集群有2个节点有空槽，每个节点空闲了一个core，则2个Map先调度到这2个节点上执行，
 每个Map都会创建2个Shuffle文件，然后其中一个节点执行完Map之后又调度执行另一个Map，则这个
 Map不会创建新的Shuffle文件，而是把结果输出追加到之前Map创建的Shuffle文件中；总共创建4个
-Shuffle文件；(3) 如果此时集群有2个节点有空槽，一个节点有2个空core一个节点有1个空core，则一
-个节点调度2个Map一个节点调度1个Map，调度2个Map的节点上，一个Map创建了Shuffle文件，后面
-的Map还是会创建新的Shuffle文件，因为上一个Map还正在写，它创建的ShuffleFileGroup还没有释
-放；总共创建6个Shuffle文件。
+Shuffle文件；
+
+(3) 如果此时集群有2个节点有空槽，一个节点有2个空core一个节点有1个空core，则一个节点调度2个Map一个节点调度1个Map，调度2个Map的节点上，一个Map创建了Shuffle文件，后面的Map还是会创建新的Shuffle文件，因为上一个Map还正在写，它创建的ShuffleFileGroup还没有释放；总共创建6个Shuffle文件。
 
 **Shuffle Fetcher**
 
@@ -449,12 +430,9 @@ Reduce去拖Map的输出数据，Spark提供了两套不同的拉取数据框架
 求。当Reduce的GET_BLOCK的请求过来时，读取本地文件将这个blockId的数据返回给Reduce。如果
 使用的是Netty框架，BlockManager会创建ShuffleSender用于发送Shuffle数据。并不是所有的数据都是通过网络读取，对于在本节点的Map数据，Reduce直接去磁盘上读取而不再通过网络框架。
 
-Reduce拖过来数据之后以什么方式存储呢？Spark Map输出的数据没有经过排序，Spark Shuffle过来
-的数据也不会进行排序，Spark认为Shuffle过程中的排序不是必须的，并不是所有类型的Reduce需要
-的数据都需要排序，强制地进行排序只会增加Shuffle的负担。Reduce拖过来的数据会放在一个
-HashMap中，HashMap中存储的也是<key, value>对，key是Map输出的key，Map输出对应这个key
-的所有value组成HashMap的value。Spark将Shuffle取过来的每一个<key, value>对插入或者更新到
-HashMap中，来一个处理一个。HashMap全部放在内存中。
+Reduce拖过来数据之后以什么方式存储呢？
+
+Spark Map输出的数据没有经过排序，Spark Shuffle过来的数据也不会进行排序，Spark认为Shuffle过程中的排序不是必须的，并不是所有类型的Reduce需要的数据都需要排序，强制地进行排序只会增加Shuffle的负担。Reduce拖过来的数据会放在一个HashMap中，HashMap中存储的也是<key, value>对，key是Map输出的key，Map输出对应这个key的所有value组成HashMap的value。Spark将Shuffle取过来的每一个<key, value>对插入或者更新到HashMap中，来一个处理一个。HashMap全部放在内存中。
 
 Shuffle取过来的数据全部存放在内存中，对于数据量比较小或者已经在Map端做过合并处理的Shuffle
 数据，占用内存空间不会太大，但是对于比如group by key这样的操作，Reduce需要得到key对应的所
@@ -469,13 +447,12 @@ Shuffle取过来的数据全部存放在内存中，对于数据量比较小或�
 
 **MapReduce和Spark的Shuffle过程对比**
 
-|                        | MapReduce                                         | Spark                                                        |
-| ---------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
-| collect                | 在内存中构造了一块数据结构用于map输出的缓冲       | 没有在内存中构造一块数据结构用于map输出的缓冲，而是直接把输出写到磁盘文件 |
-| sort                   | map输出的数据有排序                               | map输出的数据没有排序                                        |
-| merge                  | 对磁盘上的多个spill文件最后进行合并成一个输出文件 | 在map端没有merge过程，在输出时直接是对应一个
-reduce的数据写到一个文件中，这些文件同时存在并发
-写，最后不需要合并成一个 |
+|         | MapReduce                                         | Spark                                                        |
+| ------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| collect | 在内存中构造了一块数据结构用于map输出的缓冲       | 没有在内存中构造一块数据结构用于map输出的缓冲，而是直接把输出写到磁盘文件 |
+| sort    | map输出的数据有排序                               | map输出的数据没有排序                                        |
+| merge   | 对磁盘上的多个spill文件最后进行合并成一个输出文件 | 在map端没有merge过程，在输出时直接是对应一个<reduce的数据写到一个文件中，这些文件同时存在并发写，最后不需要合并成一个 |
+| |  |  |
 | copy框架               | jetty                                             | netty或者直接socket流                                        |
 | 对于本节点上的文件     | 仍然是通过网络框架拖取数据                        | 不通过网络框架，对于在本节点上的map输出文件，采用本地读取的方式 |
 | copy过来的数据存放位置 | 先放在内存，内存放不下时写到磁盘                  | 一种方式全部放在内存；另一种方式先放在内存                   |
@@ -1196,3 +1173,24 @@ Spark streaming内部的基本工作原理是：接受实时输入数据流，�
 - DStream可以通过输入数据源来创建，比如Kafka、flume等，也可以通过其他DStream的高阶函数来创建，比如map、reduce、join和window等。
 - DStream内部其实不断产生RDD，每个RDD包含了一个时间段的数据。
 - Spark streaming一定是有一个输入的DStream接收数据，按照时间划分成一个一个的batch，并转化为一个RDD，RDD的数据是分散在各个子节点的partition中。
+
+### Spark SQL 执行的流程？
+
+这个问题如果深挖还挺复杂的，这里简单介绍下总体流程：
+
+1. parser：基于 antlr 框架对 sql 解析，生成**抽象语法树**。
+2. 变量替换：通过正则表达式找出符合规则的字符串，替换成系统缓存环境的变量，SQLConf 中的 spark.sql.variable.substitute ，默认是可用的；参考SparkSqlParser
+3. parser：将 antlr 的 tree 转成 spark catalyst 的 LogicPlan，也就是 未解析的逻辑计划；详细参考 AstBuild , ParseDriver
+4. analyzer：通过分析器，结合 catalog，把 logical plan 和实际的数据绑定起来，将 未解析的逻辑计划 生成 逻辑计划；详细参考QureyExecution
+5. 缓存替换：通过 CacheManager，替换有相同结果的 logical plan（逻辑计划）
+6. logical plan 优化，基于规则的优化；优化规则参考 Optimizer，优化执行器 RuleExecutor
+7. 生成 spark plan，也就是物理计划；参考 QueryPlanner 和 SparkStrategies
+8. spark plan 准备阶段
+9. 构造 RDD 执行，涉及 spark 的 wholeStageCodegenExec 机制，基于janino 框架生成 java 代码并编译
+
+### Spark SQL 到是如何将数据写到Hive 表的？
+
+方式一：是利用 Spark RDD 的 API 将数据写入 hdfs 形成 hdfs 文件，之后再将 hdfs 文件和 hive 表做加载映射。
+
+方式二：利用 Spark SQL 将获取的数据 RDD 转换成 DataFrame，再将DataFrame 写成缓存表，最后利用 Spark SQL 直接插入 hive 表中。而对于利用 Spark SQL 写 hive 表官方有两种常见的 API，**第一种是利用**
+**JavaBean 做映射，第二种是利用 StructType 创建 Schema 做映射。**
