@@ -1,5 +1,112 @@
 ## Spark整理
 
+### Spark有哪两种算子？
+
+Transformation（转化）算子和Action（执行）算子。
+
+### Spark有哪些聚合类的算子,我们应该尽量避免什么类型的算子？
+
+在我们的开发过程中，能避免则尽可能避免使用reduceByKey、join、distinct、repartition等会进行
+shuffle的算子，尽量使用map类的非shuffle算子。这样的话，没有shuffle操作或者仅有较少shuffle操
+作的Spark作业，可以大大减少性能开销。
+
+### RDD创建方式？
+
+**从集合创建rdd**
+
+```scala
+val rdd: RDD[Int] = sc.parallelize(Array(1, 2, 1 3, 4, 5, 6, 7, 8))
+```
+
+**从外部存储系统的数据集创建rdd**
+由外部存储系统的数据集创建RDD包括：本地的文件系统，还有所有Hadoop支持的数据集，比如
+HDFS、HBase等
+
+```scala
+//读取文件。input为集群路径：hdfs://hadoop102:9000/input
+val lineWordRdd: RDD[String] = sc.textFile("input")
+```
+
+**从其它rdd创建**
+
+```scala
+//创建一个RDD
+val rdd: RDD[Int] = sc.makeRDD(1 to 4,2)
+//调用map方法，每个元素乘以2
+val mapRdd: RDD[Int] = rdd.map(_ * 2)
+```
+
+### Spark并行度怎么设置比较合适？
+
+spark并行度，每个core承载2~4个partition,如，32个core，那么64~128之间的并行度，也就是设置
+64~128个partion，并行读和数据规模无关，只和内存使用量和cpu使用时间有关。
+
+### Spark如何处理不能被序列化的对象？
+
+将不能序列化的内容封装成object。
+
+### collect功能是什么，其底层是怎么实现的？
+
+driver通过collect把集群中各个节点的内容收集过来汇总成结果，collect返回结果是Array类型的，collect把各个节点上的数据抓过来，抓过来数据是Array型，collect对Array抓过来的结果进行合并，合并后Array中只有一个元素，是tuple类型（KV类型的）的。
+
+### Spark on Mesos中，什么是的粗粒度分配，什么是细粒度分配，各自的优点和缺点是什么？
+
+- 粗粒度：启动时就分配好资源， 程序启动，后续具体使用就使用分配好的资源，不需要再分配资源；
+  - 好处：作业特别多时，资源复用率高，适合粗粒度；
+  - 不好：容易资源浪费，假如一个job有1000个task，完成了999个，还有一个没完成，那么使用粗粒度，999个资源就会闲置在那里，资源浪费。
+- 细粒度分配：用资源的时候分配，用完了就立即回收资源，启动会麻烦一点，启动一次分配一次，会比较麻烦
+
+### Driver的功能是什么？
+
+一个Spark作业运行时包括一个Driver进程，也是作业的主进程，具有main函数，并且有SparkContext
+的实例，是程序的入口点，driver负责创建spark context。
+
+功能：负责向master注册信息，负责了作业的调度，负责作业的解析、生成Stage并调度Task到Executor上，包括DAGScheduler，TaskScheduler。
+
+### Spark技术栈有哪些组件，每个组件都有什么功能，适合什么应用场景？
+
+可以画一个这样的技术栈图先，然后分别解释下每个组件的功能和场景
+
+- Spark core：是其它组件的基础，spark的内核，主要包含：有向循环图、RDD、Lingage、Cache、broadcast等，并封装了底层通讯框架，是Spark的基础。
+- Spark Streaming：是一个对实时数据流进行高通量、容错处理的流式处理系统，可以对多种数据
+  源（如Kafka、Flume、Twitter、Zero和TCP 套接字）进行类似Map、Reduce和Join等复杂操作，将流式计算分解成一系列短小的批处理作业。
+- Spark sql：Shark是SparkSQL的前身，Spark SQL的一个重要特点是其能够统一处理关系表和RDD，使得开发人员可以轻松地使用SQL命令进行外部查询，同时进行更复杂的数据分析
+- BlinkDB：是一个用于在海量数据上运行交互式 SQL 查询的大规模并行查询引擎，它允许用户通过
+  权衡数据精度来提升查询响应时间，其数据的精度被控制在允许的误差范围内。
+- MLBase：是Spark生态圈的一部分专注于机器学习，让机器学习的门槛更低，让一些可能并不了解
+  机器学习的用户也能方便地使用MLbase。MLBase分为四部分：MLlib、MLI、ML Optimizer和
+  MLRuntime。
+- GraphX：是Spark中用于图和图并行计算
+
+### Spark中Worker的主要工作是什么？
+
+**主要功能**
+
+管理当前节点内存，CPU的使用状况，接收master分配过来的资源指令，通过ExecutorRunner启动程
+序分配任务，worker就类似于包工头，管理分配新进程，做计算的服务，相当于process服务。
+
+> 相当于yarn中的nodemanager角色，负责管理本节点资源。
+
+**需要注意的点**
+
+1. worker不会汇报当前信息给master，worker心跳给master主要只有workid，它不会发送资源信
+   息以心跳的方式给mater，master分配的时候就知道work，只有出现故障的时候才会发送资源
+2. worker不会运行代码，具体运行的是Executor是可以运行具体appliaction写的业务逻辑代码，操作
+   代码的节点，它不会运行程序的代码的
+
+### Mapreduce和Spark的都是并行计算，那么他们有什么相同和区别？
+
+两者都是用mr模型来进行并行计算：
+
+1. hadoop的一个作业称为job，job里面分为map task和reduce task，每个task都是在自己的**进程**中
+   运行的，当task结束时，进程也会结束
+2. spark用户提交的任务成为application，一个application对应一个SparkContext，app中存在多个
+   job，每触发一次action操作就会产生一个job。这些job可以并行或串行执行，每个job中有多个stage，stage是shuffle过程中DAGSchaduler通过RDD之间的依赖关系划分job而来的，每个stage里面有多个task，组成taskset，有TaskSchaduler分发到各个executor中执行，executor的生命周期是和app一样的，即使没有job运行也是存在的，所以task可以快速启动读取内存进行计算
+3. hadoop的job只有map和reduce操作，表达能力比较欠缺而且在mr过程中会重复的读写hdfs，造
+   成大量的io操作，多个job需要自己管理关系
+4. spark的迭代计算都是在内存中进行的，API中提供了大量的RDD操作如join，groupby等，而且通
+   过DAG图可以实现良好的容错
+
 ### spark的有几种部署模式，每种模式特点？
 
 #### 本地模式
@@ -45,11 +152,17 @@ spark是借鉴了Mapreduce,并在其基础上发展起来的，继承了其分�
 
 ### spark有哪些组件？
 
-- master：管理集群和节点，不参与计算。
-- worker：计算节点，进程本身不参与计算，和master汇报。
-- Driver：运行程序的main方法，创建spark context对象。
-- spark context：控制整个application的生命周期，包括dagsheduler和task scheduler等组件。
-- client：用户提交程序的入口。
+1、Driver：是一个JVM Process 进程，编写的Spark应用程序就运行在Driver上，由Driver进程执行；
+
+2）、Master(ResourceManager)：是一个JVM Process 进程，主要负责资源的调度和分配，并进行集群的监控等职责；
+
+3）、Worker(NodeManager)：是一个JVM Process 进程，一个Worker运行在集群中的一台服务器上，主要负责两个职责，一个是用自己的内存存储RDD的某个或某些partition；另一个是启动其他进程和线程（Executor），对RDD上的partition进行并行的处理和计算。
+
+4）、Executor：是一个JVM Process 进程，一个Worker(NodeManager)上可以运行多个Executor，Executor通过启动多个线程（task）来执行对RDD的partition进行并行计算，也就是执行我们对RDD定义的例如map、flatMap、reduce等算子操作。
+
+5）、spark context：控制整个application的生命周期，包括dagsheduler和task scheduler等组件。
+
+6）、client：用户提交程序的入口。
 
 ### 通常来说，Spark 与MapReduce 相比，Spark 运行效率更高。请说明效率更高来源于Spark 内置的哪些机制？
 
@@ -246,8 +359,6 @@ sortByKey() 的操作；如果你是Spark 1.1的用户，可以将spark.shuffle.
 
 Shuffle write由于不要求数据有序，shuffle write 的任务很简单：将数据 partition 好，并持久化。之所以要持久化，一方面是要减少内存存储空间压力，另一方面也是为了 fault-tolerance。
 
-
-
 ### Spark工作机制
 
 用户在client端提交作业后，会由Driver运行main方法并创建spark context上下文。执行add算子，每遇到一个行动算子，就会触发一个job然后形成dag图输入dagscheduler，按照add之间的依赖关系划分stage输入task scheduler。task scheduler会将stage划分为task set分发到各个节点的executor中执行。
@@ -270,16 +381,6 @@ val sc = new SparkContext(conf)
 5. SparkContext就建成DAG图，DAGScheduler将DAG图解析成Stage，每个Stage有多个task，形成
    taskset发送给task Scheduler，由task Scheduler将Task发送给Executor运行
 6. Task在Executor上运行，运行完释放所有资源
-
-### Spark主备切换机制原理知道吗？
-
-Master实际上可以配置两个，Spark原生的standalone模式是支持Master主备切换的。当Active Master节点挂掉以后，我们可以将Standby Master切换为Active Master。
-
-Spark Master主备切换可以基于两种机制，一种是基于文件系统的，一种是基于ZooKeeper的。
-
-基于文件系统的主备切换机制，需要在Active Master挂掉之后手动切换到Standby Master上；
-
-而基于Zookeeper的主备切换机制，可以实现自动切换Master。
 
 ### spark解决了hadoop的哪些问题？
 
@@ -452,16 +553,13 @@ Shuffle取过来的数据全部存放在内存中，对于数据量比较小或�
 | collect | 在内存中构造了一块数据结构用于map输出的缓冲       | 没有在内存中构造一块数据结构用于map输出的缓冲，而是直接把输出写到磁盘文件 |
 | sort    | map输出的数据有排序                               | map输出的数据没有排序                                        |
 | merge   | 对磁盘上的多个spill文件最后进行合并成一个输出文件 | 在map端没有merge过程，在输出时直接是对应一个<reduce的数据写到一个文件中，这些文件同时存在并发写，最后不需要合并成一个 |
-| |  |  |
-| copy框架               | jetty                                             | netty或者直接socket流                                        |
+| copy框架 | jetty | netty或者直接socket流 |
+| merge<br/>sort | 最后会对磁盘文件和内存中的数据进行合并排序                        | 对于采用另一种方式时也会有合并排序的过程                    |
 | 对于本节点上的文件     | 仍然是通过网络框架拖取数据                        | 不通过网络框架，对于在本节点上的map输出文件，采用本地读取的方式 |
 | copy过来的数据存放位置 | 先放在内存，内存放不下时写到磁盘                  | 一种方式全部放在内存；另一种方式先放在内存                   |
-| merge
-sort              | 最后会对磁盘文件和内存中的数据进行合并排序        | 对于采用另一种方式时也会有合并排序的过程                     |
-
 #### shuffer后续优化方向
 
-通过上面的介绍，我们了解到，Shuffle过程的主要存储介质是磁盘，尽量的减少IO是Shuffle的主要优
+通过上面的介绍，我们了解到，Shuffle过程的主要存储介质是**磁盘**，尽量的减少IO是Shuffle的主要优
 化方向。我们脑海中都有那个经典的存储金字塔体系，Shuffle过程为什么把结果都放在磁盘上，那是因
 为现在内存再大也大不过磁盘，内存就那么大，还这么多张嘴吃，当然是分配给最需要的了。如果具有
 “土豪”内存节点，减少Shuffle IO的最有效方式无疑是尽量把数据放在内存中。下面列举一些现在看可以
@@ -498,9 +596,27 @@ Spark中的数据本地性有三种：
 
 通常读取数据PROCESS_LOCAL>NODE_LOCAL>ANY，尽量使数据以PROCESS_LOCAL或NODE_LOCAL方式读取。其中PROCESS_LOCAL还和cache有关，如果RDD经常用的话将该RDD cache到内存中，注意，由于cache是lazy的，所以必须通过一个action的触发，才能真正的将该RDD cache到内存中。
 
-### RDD 持久化原理？
+### RDD 持久化或者说是缓存原理？
 
 spark 非常重要的一个功能特性就是可以将 RDD 持久化在内存中。
+
+- 如果一个RDD需要重复使用，那么需要从头再次执行来获取数据
+
+- RDD对象可以重用，但是数据不可以重用
+
+- RDD通过Cache或者Persist方法讲前面计算的结果缓存，把数据以缓存在JVM的堆内存中
+
+- 但是并不是这两方法被调用时立即缓存，而是触发后面的action算子时，该RDD将会被缓存在计算节点的内存中，供后面重用
+
+- cache操作会增加血缘关系，不改变原来的血缘关系
+
+持久化的作用 & 注意点：
+
+1.  数据能够重复使用
+2. cache默认持久化的操作，只能将数据保存到内存中
+3.  如果想要保存磁盘文件，需要更改存储级别 StorageLevel.DISK_ONLY
+4. 持久化操作必须在行动算子执行时完成
+5.  RDD对象持久化不一定是为了重用数据，有些数据重要的场合也可以使用
 
 调用 cache()和 persist()方法即可。cache()和 persist()的区别在于，cache()是 persist()的一种简化方式，cache()的底层就是调用 persist()的无参版本
 
@@ -527,10 +643,16 @@ spark所有复杂一点的算法都会有persist身影，spark默认数据放在
 
 ### Checkpoint 检查点机制？
 
+- 通过将RDD中间结果写入到磁盘
+
+- 由于血缘依赖过长会造成容错成本过高，这样就不如在中间阶段左检查点容错
+
+- 对RDD进行检查点操作并不会马上被执行，必须和执行Action操作才能触发
+
 
 应用场景：当 spark 应用程序特别复杂，从初始的 RDD 开始到最后整个应用程序完成有很多的步骤，而且整个应用运行时间特别长，这种情况下就比较适合使用 checkpoint 功能。
 
-原因：对于特别复杂的 Spark 应用，会出现某个反复使用的 RDD，即使之前持久化过但由于节点的故障导致数据丢失了，没有容错机制，所以需要重新计算一次数据。
+原因：对于特别复杂的 Spark 应用，会出现某个反复使用的 RDD，即使之前持久化过但由于节点的故障导致数据丢失了，因为持久化的内存默认是存储在内存当中的，没有容错机制，所以需要重新计算一次数据。
 
 Checkpoint 首先会调用 SparkContext 的 setCheckPointDIR()方法，设置一个容错的文件系统的目录，比如说 HDFS；然后对 RDD 调用 checkpoint()方法。之后在 RDD 所处的 job 运行结束之后，会启动一个单独的 job，来将checkpoint 过的 RDD 数据写入之前设置的文件系统，进行高可用、容错的类持久化操作。
 
@@ -541,22 +663,20 @@ Checkpoint 首先会调用 SparkContext 的 setCheckPointDIR()方法，设置一
 
 ### Checkpoint 和持久化机制的区别？
 
-最主要的区别在于持久化只是将数据保存在 BlockManager 中，但是 RDD 的lineage(血缘关系，依赖关系)是不变的。但是 checkpoint 执行完之后，rdd 已经没有之前所谓的依赖 rdd 了，而只有一个强行为其设置的 checkpointRDD，checkpoint 之后 rdd 的 lineage 就改变了。
+最主要的区别在于**持久化只是将数据保存在 BlockManager** 中，但是 RDD 的lineage(血缘关系，依赖关系)是不变的。但是 checkpoint 执行完之后，rdd 已经没有之前所谓的依赖 rdd 了，而只有一个强行为其设置的 checkpointRDD，checkpoint 之后 rdd 的 lineage 就改变了。
 
 持久化的数据丢失的可能性更大，因为节点的故障会导致磁盘、内存的数据丢失。但是 checkpoint 的数据通常是保存在高可用的文件系统中，比如 HDFS 中，所以数据丢失可能性比较低。
 
-### Spark Streaming 以及基本工作原理？
+联系：两者都是做RDD持久化的
 
-
-Spark streaming 是 spark core API 的一种扩展，可以用于进行大规模、高吞吐量、容错的实时数据流的处理。它支持从多种数据源读取数据，比如 Kafka、Flume、Twitter 和 TCP Socket，并且能够使用算子比如 map、reduce、join 和 window 等来处理数据，处理后的数据可以保存到文件系统、数据库等存储中。
-
-Spark streaming 内部的基本工作原理是：接受实时输入数据流，然后将数据拆分成 batch，比如每收集一秒的数据封装成一个 batch，然后将每个 batch 交给 spark 的计算引擎进行处理，最后会生产处一个结果数据流，其中的数据也是一个一个的 batch 组成的。
-
-### DStream 以及基本工作原理？
-
-DStream 是 spark streaming 提供的一种高级抽象，代表了一个持续不断的数据流。DStream 可以通过输入数据源来创建，比如 Kafka、flume 等，也可以通过其他DStream 的高阶函数来创建，比如 map、reduce、join 和 window 等。
-
-DStream 内部其实不断产生 RDD，每个 RDD 包含了一个时间段的数据。Spark streaming 一定是有一个输入的 DStream 接收数据，按照时间划分成一个一个的 batch，并转化为一个 RDD，RDD 的数据是分散在各个子节点的partition 中。
+- 区别：
+  - cache：
+    - Cache缓存只是将数据保存起来，数据通常存储在磁盘、内存等地方，可靠性差；
+    - 不会截断血缘关系，使用计算过程中的数据缓存
+  - checkpoint：
+  - ck的数据通常存储在HDFS等高可用、容错性好的文件系统；
+  - 截断血缘关系，在checkpoint之前必须没有任何任务提交才会生效，ck过程会额外提交一次任务
+  - 建议对ck的RDD使用Cache缓存，联合使用效果更好
 
 ### Spark 主备切换机制原理知道吗？
 
@@ -566,39 +686,7 @@ Spark Master 主备切换可以基于两种机制，一种是基于文件系统�
 
 基于文件系统的主备切换机制，需要在 Active Master 挂掉之后手动切换到Standby Master 上；而基于 Zookeeper 的主备切换机制，可以实现自动切换 Master。
 
-### Spark 了 解决了 p Hadoop 的哪些问题？
-
-1. MR ：抽象层次低，需要使用手工代码来完成程序编写，使用上难以上手；Spark ：Spark 采用 RDD 计算模型，简单容易上手。
-2. MR ：只提供 map 和 reduce 两个操作，表达能力欠缺；Spark ：Spark 采用更加丰富的算子模型，包括 map、flatmap、groupbykey、reducebykey 等；
-3. MR ：一个 job 只能包含 map 和 reduce 两个阶段，复杂的任务需要包含很多个 job，这些 job 之间的管理以来需要开发者自己进行管理；Spark ：Spark 中一个 job 可以包含多个转换操作，在调度时可以生成多个 stage，而且如果多个 map 操作的分区不变，是可以放在同一个 task里面去执行；
-4. MR ：中间结果存放在 hdfs 中；Spark ：Spark 的中间结果一般存在内存中，只有当内存不够了，才会存入本地磁盘，而不是 hdfs；
-5. MR ：只有等到所有的 map task 执行完毕后才能执行 reduce task；Spark ：Spark 中分区相同的转换构成流水线在一个 task 中执行，分区不同的需要进行 shuffle 操作，被划分成不同的 stage 需要等待前面的stage 执行完才能执行。
-6. MR ：只适合 batch 批处理，时延高，对于交互式处理和实时处理支持不够；Spark ：Spark streaming 可以将流拆成时间间隔的 batch 进行处理，实时计算。
-
-### 介绍一下join操作的优化
-
-join其实常见的就分为两类： map-side join 和 reduce-side join。当大表和小表join时，用map-side
-join能显著提高效率。将多份数据进行关联是数据处理过程中非常普遍的用法，不过在分布式计算系统
-中，这个问题往往会变的非常麻烦，因为框架提供的 join 操作一般会将所有数据根据 key 发送到所有
-的 reduce 分区中去，也就是 shuffle 的过程。造成大量的网络以及磁盘IO消耗，运行效率极其低下，
-这个过程一般被称为 reduce-side-join。如果其中有张表较小的话，我们则可以自己实现在 map 端实
-现数据关联，跳过大量数据进行 shuffle 的过程，运行时间得到大量缩短，根据不同数据可能会有几倍
-到数十倍的性能提升。
-
-> 备注：这个题目面试中非常非常大概率见到，务必搜索相关资料掌握，这里抛砖引玉。
-
-### 数据倾斜的产生和解决办法？
-
-数据倾斜以为着某一个或者某几个 partition 的数据特别大，导致这几个partition 上的计算需要耗费相当长的时间。在 spark 中同一个应用程序划分成多个 stage，这些 stage 之间是串行执行的，而一个 stage 里面的多个 task 是可以并行执行，task 数目由 partition 数目决定，如果一个 partition 的数目特别大，那么导致这个 task 执行时间很长，导致接下来的 stage 无法执行，从而导致整个 job 执行变慢。避免数据倾斜，一般是要选用合适的 key，或者自己定义相关的 partitioner，通过加盐或者哈希值来拆分这些 key，从而将这些数据分散到不同的 partition去执行。
-
-如下算子会导致 shuffle 操作，是导致数据倾斜可能发生的关键点所在：groupByKey；reduceByKey；aggregaByKey；join；cogroup；
-
-### Spark  Master A HA 主从切换过程不会影响到集群已有作业的运行 ，为什么？
-
-不会的。
-因为程序在运行之前，已经申请过资源了，driver 和 Executors 通讯，不需要和 master 进行通讯的。
-
-### Spark rMaster 使用 Zookeeper 进行 HA ，有哪些源数据保存到Zookeeper 里面？
+### Spark Master 使用 Zookeeper 进行 HA ，有哪些源数据保存到Zookeeper 里面？
 
 spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zookeeper 中保存的位置，包括 Worker，Driver 和 Application 以及Executors。standby 节点要从 zk 中，获得元数据信息，恢复集群运行状态，才能对外继续提供服务，作业提交资源申请等，在恢复前是不能接受请求的。
 
@@ -606,11 +694,6 @@ spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zo
 
 1. 在 Master 切换的过程中，所有的已经在运行的程序皆正常运行！ 因为 SparkApplication 在运行前就已经通过 Cluster Manager 获得了计算资源，所以在运行时 Job 本身的 调度和处理和 Master 是没有任何关系。
 2. 在 Master 的切换过程中唯一的影响是不能提交新的 Job：一方面不能够提交新的应用程序给集群， 因为只有 Active Master 才能接受新的程序的提交请求；另外一方面，已经运行的程序中也不能够因 Action 操作触发新的 Job 的提交请求。
-
-###  RDD 有哪些缺陷？
-
-1. 不支持细粒度的写和更新操作 ，Spark 写数据是粗粒度的，所谓粗粒度，就是批量写入数据，目的是为了提高效率。但是 Spark 读数据是细粒度的，也就是说可以一条条的读。
-2. 不支持增量迭代计算 ，如果对 Flink 熟悉，可以说下 Flink 支持增量迭代计算。
 
 ### 描述Yarn执行一个任务的过程？
 
@@ -622,7 +705,7 @@ spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zo
    程序的driver（ApplicationMaster）部分，driver（ApplicationMaster）启动时会首先向ResourceManager注册，说明由自己来负责当前程序的运行
 3. driver（ApplicationMaster）开始下载相关jar包等各种资源，基于下载的jar等信息决定向
    ResourceManager申请具体的资源内容
-4. ResouceManager接受到driver（ApplicationMaster）提出的申请后，会最大化的满足 资源分配请
+4. ResouceManager接受到driver（ApplicationMaster）提出的申请后，会最大化的满足资源分配请
    求，并发送资源的元数据信息给driver（ApplicationMaster）
 5. driver（ApplicationMaster）收到发过来的资源元数据信息后会根据元数据信息发指令给具体机器
    上的NodeManager，让其启动具体的container
@@ -650,7 +733,7 @@ spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zo
 2. Container由ApplicationMaster向ResourceManager申请的，由ResouceManager中的资源调度器
    异步分配给ApplicationMaster
 3. Container的运行是由ApplicationMaster向资源所在的NodeManager发起的，Container运行时需
-   提供内部执行的任务命令
+   提供内部执行的任务命令。
 
 ### 介绍parition和block有什么关联关系？
 
@@ -660,7 +743,8 @@ spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zo
    的。partion是指的spark在计算过程中，生成的数据在计算空间内最小单元，同一份数据（RDD）的
    partion大小不一，数量不定，是根据application里的算子和最初读入的数据分块数量决定
 3. block位于存储空间、partion位于计算空间，block的大小是固定的、partion大小是不固定的，是
-   从2个不同的角度去看数据
+   从2个不同的角度去看数据。
+4. partioion是一个逻辑上的概念，读取数据的时候，并不会真正的物理上对数据进行切分，而是逻辑上的切分，会将数据形成一个切分的规划文件，然后yarn根据合格切分的配置文件进行资源的申请。
 
 ### Spark应用程序的执行过程是什么？
 
@@ -670,6 +754,8 @@ spark 通过这个参数 spark.deploy.zookeeper.dir 指定 master 元数据在zo
    发送到资源管理器上
 3. SparkContext构建成DAG图，将DAG图分解成Stage，并把Taskset发送给Task Scheduler。Executor向SparkContext申请Task，Task Scheduler将Task发放给Executor运行同时SparkContext将应用程序代码发放给Executor
 4. Task在Executor上运行，运行完毕释放所有资源。
+
+> spark context是由driver负责创建的。
 
 ### 不需要排序的hash shuffle是否一定比需要排序的sort shuffle速度快？
 
@@ -684,187 +770,25 @@ Shuffle会比Hash shuffle快很多，因为数量大的有很多小文件，不�
 
 如果持久化操作比较多，可以提高spark.storage.memoryFraction参数，使得更多的持久化数据保存在内存中，提高数据的读取性能，如果shuffle的操作比较多，有很多的数据读写操作到JVM中，那么应该调小一点，节约出更多的内存给JVM，避免过多的JVM gc发生。在web ui中观察如果发现gc时间很长，可以设置spark.storage.memoryFraction更小一点。
 
-### Spark有哪两种算子？
-
-Transformation（转化）算子和Action（执行）算子。
-
-### Spark有哪些聚合类的算子,我们应该尽量避免什么类型的算子？
-
-在我们的开发过程中，能避免则尽可能避免使用reduceByKey、join、distinct、repartition等会进行
-shuffle的算子，尽量使用map类的非shuffle算子。这样的话，没有shuffle操作或者仅有较少shuffle操
-作的Spark作业，可以大大减少性能开销。
-
-### RDD创建方式？
-
-**从集合创建rdd**
-
-~~~ scala
-val rdd: RDD[Int] = sc.parallelize(Array(1, 2, 1 3, 4, 5, 6, 7, 8))
-~~~
-
-**从外部存储系统的数据集创建rdd**
-由外部存储系统的数据集创建RDD包括：本地的文件系统，还有所有Hadoop支持的数据集，比如
-HDFS、HBase等
-
-~~~ scala
-//读取文件。input为集群路径：hdfs://hadoop102:9000/input
-val lineWordRdd: RDD[String] = sc.textFile("input")
-~~~
-
-**从其它rdd创建**
-
-~~~ scala
-//创建一个RDD
-val rdd: RDD[Int] = sc.makeRDD(1 to 4,2)
-//调用map方法，每个元素乘以2
-val mapRdd: RDD[Int] = rdd.map(_ * 2)
-~~~
-
-### Spark并行度怎么设置比较合适？
-
-spark并行度，每个core承载2~4个partition,如，32个core，那么64~128之间的并行度，也就是设置
-64~128个partion，并行读和数据规模无关，只和内存使用量和cpu使用时间有关。
-
-### Spark如何处理不能被序列化的对象？
-
-将不能序列化的内容封装成object。
-
-### collect功能是什么，其底层是怎么实现的？
-
-driver通过collect把集群中各个节点的内容收集过来汇总成结果，collect返回结果是Array类型的，collect把各个节点上的数据抓过来，抓过来数据是Array型，collect对Array抓过来的结果进行合并，合并后Array中只有一个元素，是tuple类型（KV类型的）的。
-
-### map与flatMap的区别？
-
-- map：对RDD每个元素转换，文件中的每一行数据返回一个数组对象
-- flatMap：对RDD每个元素转换，然后再扁平化,将所有的对象合并为一个对象，文件中的所有行数据仅返回一个数组对象，会抛弃值为null的值
-
-### Spark on Mesos中，什么是的粗粒度分配，什么是细粒度分配，各自的优点和缺点是什么？
-
-- 粗粒度：启动时就分配好资源， 程序启动，后续具体使用就使用分配好的资源，不需要再分配资源；
-  - 好处：作业特别多时，资源复用率高，适合粗粒度；
-  - 不好：容易资源浪费，假如一个job有1000个task，完成了999个，还有一个没完成，那么使用粗粒度，999个资源就会闲置在那里，资源浪费。
-- 细粒度分配：用资源的时候分配，用完了就立即回收资源，启动会麻烦一点，启动一次分配一次，会比较麻烦
-
-### driver的功能是什么？
-
-一个Spark作业运行时包括一个Driver进程，也是作业的主进程，具有main函数，并且有SparkContext
-的实例，是程序的入口点。
-
-功能：负责向集群申请资源，向master注册信息，负责了作业的调度，负责作业的解析、生成Stage并
-调度Task到Executor上，包括DAGScheduler，TaskScheduler
-
-### Spark技术栈有哪些组件，每个组件都有什么功能，适合什么应用场景？
-
-可以画一个这样的技术栈图先，然后分别解释下每个组件的功能和场景
-
-- Spark core：是其它组件的基础，spark的内核，主要包含：有向循环图、RDD、Lingage、Cache、broadcast等，并封装了底层通讯框架，是Spark的基础。
-- Spark Streaming：是一个对实时数据流进行高通量、容错处理的流式处理系统，可以对多种数据
-  源（如Kafka、Flume、Twitter、Zero和TCP 套接字）进行类似Map、Reduce和Join等复杂操作，将流式计算分解成一系列短小的批处理作业。
-- Spark sql：Shark是SparkSQL的前身，Spark SQL的一个重要特点是其能够统一处理关系表和RDD，使得开发人员可以轻松地使用SQL命令进行外部查询，同时进行更复杂的数据分析
-- BlinkDB：是一个用于在海量数据上运行交互式 SQL 查询的大规模并行查询引擎，它允许用户通过
-  权衡数据精度来提升查询响应时间，其数据的精度被控制在允许的误差范围内。
-- MLBase：是Spark生态圈的一部分专注于机器学习，让机器学习的门槛更低，让一些可能并不了解
-  机器学习的用户也能方便地使用MLbase。MLBase分为四部分：MLlib、MLI、ML Optimizer和
-  MLRuntime。
-- GraphX：是Spark中用于图和图并行计算
-
-### Spark中Worker的主要工作是什么？
-
-**主要功能**
-
-管理当前节点内存，CPU的使用状况，接收master分配过来的资源指令，通过ExecutorRunner启动程
-序分配任务，worker就类似于包工头，管理分配新进程，做计算的服务，相当于process服务。
-
-**需要注意的点**
-
-1. worker不会汇报当前信息给master，worker心跳给master主要只有workid，它不会发送资源信
-   息以心跳的方式给mater，master分配的时候就知道work，只有出现故障的时候才会发送资源
-2. worker不会运行代码，具体运行的是Executor是可以运行具体appliaction写的业务逻辑代码，操作
-   代码的节点，它不会运行程序的代码的
-
-### Mapreduce和Spark的都是并行计算，那么他们有什么相同和区别？
-
-两者都是用mr模型来进行并行计算：
-
-1. hadoop的一个作业称为job，job里面分为map task和reduce task，每个task都是在自己的进程中
-   运行的，当task结束时，进程也会结束
-2. spark用户提交的任务成为application，一个application对应一个SparkContext，app中存在多个
-   job，每触发一次action操作就会产生一个job。这些job可以并行或串行执行，每个job中有多个stage，stage是shuffle过程中DAGSchaduler通过RDD之间的依赖关系划分job而来的，每个stage里面有多个task，组成taskset，有TaskSchaduler分发到各个executor中执行，executor的生命周期是和app一样的，即使没有job运行也是存在的，所以task可以快速启动读取内存进行计算
-3. hadoop的job只有map和reduce操作，表达能力比较欠缺而且在mr过程中会重复的读写hdfs，造
-   成大量的io操作，多个job需要自己管理关系
-4. spark的迭代计算都是在内存中进行的，API中提供了大量的RDD操作如join，groupby等，而且通
-   过DAG图可以实现良好的容错
-
-### RDD机制？
-
-### RDD机制理解吗？
-
-- rdd分布式弹性数据集，简单的理解成一种数据结构，是spark框架上的通用货币。所有算子都是基于rdd来执行的，不同的场景会有不同的rdd实现类，但是都可以进行互相转换。rdd执行过程中会形成dag图，然后形成lineage保证容错性等。从物理的角度来看rdd存储的是block和node之间的映射。
-- RDD是spark提供的核心抽象，全称为弹性分布式数据集。
-- RDD在逻辑上是一个hdfs文件，在抽象上是一种元素集合，包含了数据。它是被分区的，分为多个分区，每个分区分布在集群中的不同结点上，从而让RDD中的数据可以被并行操作（分布式数据集）
-- 比如有个RDD有90W数据，3个partition，则每个分区上有30W数据。RDD通常通过Hadoop上的文件，即HDFS或者HIVE表来创建，还可以通过应用程序中的集合来创建；RDD最重要的特性就是容错性，可以自动从节点失败中恢复过来。即如果某个结点上的RDD partition因为节点故障，导致数据丢失，那么RDD可以通过自己的数据来源重新计算该partition。这一切对使用者都是透明的。
-- RDD的数据默认存放在内存中，但是当内存资源不足时，spark会自动将RDD数据写入磁盘。比如某结点内存只能处理20W数据，那么这20W数据就会放入内存中计算，剩下10W放到磁盘中。RDD的弹性体现在于RDD上自动进行内存和磁盘之间权衡和切换的机制。
-
 ### 什么是RDD宽依赖和窄依赖？
 
 RDD和它依赖的parent RDD(s)的关系有两种不同的类型，即窄依赖（narrow dependency）和宽依赖
 （wide dependency）
 
-1. 窄依赖指的是每一个parent RDD的Partition最多被子RDD的一个Partition使用
+1. 窄依赖指的是每一个parent RDD的Partition最多被子RDD的一个Partition使用，
 
 ![1635402199161](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/142320-641489.png)
 
-2. 宽依赖指的是多个子RDD的Partition会依赖同一个parent RDD的Partition，简单来说就是广播
+2. 宽依赖指的是多个子RDD的Partition会依赖同一个parent RDD的Partition，简单来说就是广播。
 
 ![1635402242062](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/28/142403-782755.png)
 
 具有宽依赖的 transformations 包括：sort，reduceByKey，groupByKey，join，和调用rePartition函数的任何操作。
 
-### cache和pesist的区别？
-
-cache和persist都是用于将一个RDD进行缓存的，这样在之后使用的过程中就不需要重新计算了，可以
-大大节省程序运行时间
-
-1. cache只有一个默认的缓存级别MEMORY_ONLY ，cache调用了persist，而persist可以根据情况设
-   置其它的缓存级别
-2. executor执行的时候，默认60%做cache，40%做task操作，persist是最根本的函数，最底层的函数
-
-### RDD持久化原理？
-
-spark非常重要的一个功能特性就是可以将RDD持久化在内存中。
-
-调用cache()和persist()方法即可。cache()和persist()的区别在于，cache()是persist()的一种简化方式，cache()的底层就是调用persist()的无参版本persist(MEMORY_ONLY)，将数据持久化到内存中。
-
-如果需要从内存中清除缓存，可以使用unpersist()方法。RDD持久化是可以手动选择不同的策略的。在调用persist()时传入对应的StorageLevel即可。
-
 ### cache后面能不能接其他算子，它是不是action操作？
 
 cache可以接其他算子，但是接了算子之后，起不到缓存应有的效果，因为会重新触发cache，
 cache不是action操作
-
-### checkpoint检查点机制？
-
-**应用场景**：当spark应用程序特别复杂，从初始的RDD开始到最后整个应用程序完成有很多的步骤，而且整个应用运行时间特别长，这种情况下就比较适合使用checkpoint功能。
-
-**原因**：对于特别复杂的Spark应用，会出现某个反复使用的RDD，即使之前持久化过但由于节点的故障导致数据丢失了，没有容错机制，所以需要重新计算一次数据。
-
-Checkpoint首先会调用SparkContext的setCheckPointDIR()方法，设置一个容错的文件系统的目录，比如说HDFS；然后对RDD调用checkpoint()方法。之后在RDD所处的job运行结束之后，会启动一个单独的job，来将checkpoint过的RDD数据写入之前设置的文件系统，进行高可用、容错的类持久化操作。
-
-检查点机制是我们在spark streaming中用来保障容错性的主要机制，它可以使spark streaming阶段性的把应用数据存储到诸如HDFS等可靠存储系统中，以供恢复时使用。具体来说基于以下两个目的服务：
-
-- 控制发生失败时需要重算的状态数。Spark streaming可以通过转化图的谱系图来重算状态，检查点机制则可以控制需要在转化图中回溯多远。
-- 提供驱动器程序容错。如果流计算应用中的驱动器程序崩溃了，你可以重启驱动器程序并让驱动器程序从检查点恢复，这样spark streaming就可以读取之前运行的程序处理数据的进度，并从那里继续。
-
-### checkpoint和持久化机制的区别？
-
-最主要的区别在于持久化只是将数据保存在BlockManager中，但是RDD的lineage(血缘关系，依赖关系)是不变的。但是checkpoint执行完之后，rdd已经没有之前所谓的依赖rdd了，而只有一个强行为其设置的checkpointRDD，checkpoint之后rdd的lineage就改变了。
-
-持久化的数据丢失的可能性更大，因为节点的故障会导致磁盘、内存的数据丢失。但是checkpoint的数据通常是保存在高可用的文件系统中，比如HDFS中，所以数据丢失可能性比较低
-
-### 为什么要进行序列化？
-
-可以减少数据的体积，减少存储空间，高效存储和传输数据，不好的是使用的时候要反序列化，非常消
-耗CPU。
 
 ### Yarn中的container是由谁负责销毁的，在Hadoop Mapreduce中container可以复用么？
 
@@ -887,13 +811,6 @@ ApplicationMaster负责销毁，在Hadoop Mapreduce不可以复用，在spark on
 况。
 
 如果是在client模式下，那么driver是运行在客户端进程中。
-
-### 运行在yarn中Application有几种类型的container？
-
-1. 运行ApplicationMaster的Container：这是由ResourceManager（向内部的资源调度器）申请和启
-   动的，用户提交应用程序时，可指定唯一的ApplicationMaster所需的资源
-2. 运行各类任务的Container：这是由ApplicationMaster向ResourceManager申请的，并由
-   ApplicationMaster与NodeManager通信以启动之。
 
 ### Executor启动时，资源通过哪几个参数指定？
 
@@ -1040,10 +957,6 @@ spark默认情况下资源分配是粗粒度的，也就是说程序在提交时
 配好的资源，除非资源出现了故障才会重新分配。比如Spark shell启动，已提交，一注册，哪怕没有任
 务，worker都会分配资源给executor。
 
-### union操作是产生宽依赖还是窄依赖？
-
-产生窄依赖
-
 ### 窄依赖父RDD的partition和子RDD的parition是不是都是一对一的关系？
 
 不一定，除了一对一的窄依赖，还包含一对固定个数的窄依赖（就是对父RDD的依赖的Partition的数量
@@ -1054,11 +967,6 @@ spark默认情况下资源分配是粗粒度的，也就是说程序在提交时
 
 相当于spark中的map算子和reduceByKey算子，当然还是有点区别的,MR会自动进行排序的，spark要
 看你用的是什么partitioner。
-
-### 什么是shuffle，以及为什么需要shuffle？
-
-shuffle中文翻译为洗牌，需要shuffle的原因是：某种具有共同特征的数据汇聚到一个计算节点上进行
-计算。
 
 ### Spark中的HashShufle的有哪些不足？
 
@@ -1123,18 +1031,6 @@ shuffle中文翻译为洗牌，需要shuffle的原因是：某种具有共同特
 务还是端任务都可以获得资源，并且获得不错的响应时间，对于短任务，不会像FIFO那样等待较长时间
 了，通过参数spark.scheduler.mode 为FAIR指定。
 
-### Spark sql为什么比hive快呢？
-
-计算引擎不一样，一个是spark计算模型，一个是mapreudce计算模型
-
-### spark为什么比Mapreduce快？快在哪里呢？
-
-Spark更加快的主要原因有几点：
-
-1. 基于内存计算，减少低效的磁盘交互
-2. 高效的调度算法，基于DAG
-3. 容错机制Lingage，主要是DAG和Lianage，即使spark不使用内存技术，也大大快于mapreduce。
-
 ### RDD的数据结构是怎么样的？ 一个RDD对象，包含如下5个核心属性。
 
 1. 一个分区列表，每个分区里是RDD的部分数据（或称数据块）
@@ -1143,10 +1039,6 @@ Spark更加快的主要原因有几点：
 4. 分区器（可选），用于键/值类型的RDD，比如某个RDD是按散列来分区
 5. 计算各分区时优先的位置列表（可选），比如从HDFS上的文件生成RDD时，RDD分区的位置优先选择数据所在的节点，这样可以避免数据移动带来的开销
 
-### RDD算子里操作一个外部map，比如往里面put数据，然后算子外再遍历map，会有什么问题吗？
-
-频繁创建额外对象，容易oom
-
 ### 说说你对Hadoop生态的认识。
 
 hadoop生态主要分为三大类型
@@ -1154,10 +1046,6 @@ hadoop生态主要分为三大类型
 1. 分布式系统：HDFS，hbase
 2. 分布式计算引擎：Spark，MapReduce
 3. 周边工具：如zookeeper，pig，hive，oozie，sqoop，ranger，kafka等
-
-### hbase region多大会分区，spark读取hbase数据是如何划分partition的？
-
-region超过了hbase.hregion.max.filesize这个参数配置的大小就会自动裂分，默认值是1G。 默认情况下，hbase有多少个region，Spark读取时就会有多少个partition
 
 ### Spark streaming以及基本工作原理？
 

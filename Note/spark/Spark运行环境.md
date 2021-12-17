@@ -1,4 +1,4 @@
-  
+
 ## Spark运行环境
 <!-- TOC -->
 
@@ -830,7 +830,7 @@ Client模式和Cluster模式最最本质的区别是：Driver程序运行在哪�
 4. Executor进程启动后会向Driver反向注册，Executor全部注册完成后Driver开始执行main函数；
 5. 之后执行到Action算子时，触发一个Job，并根据宽依赖开始划分Stage，每个Stage生成对应的TaskSet，之后将Task分发到各个Executor上执行。
 
-#### Cluster模式
+##### Cluster模式
 
 在YARN Cluster模式下，Driver运行在NodeManager Contanier中，此时**Driver与AppMaster合为一体**，示意图如下：
 
