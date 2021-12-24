@@ -82,6 +82,10 @@ location '/warehouse/gmall/ads/ads_user_retention_day_rate/';
 
 留存率=留存数量/新增数量
 
+统计日期指的是计算日期，不重要，值是计算日期的前一天。
+
+在这里标识一个留存是用：设备新增日期和截至当前日期留存天数。
+
 表中的一行数据，表示一个留存。
 
 计算留存，我们必须明确是在那一天的几日留存，
@@ -197,3 +201,8 @@ location '/warehouse/gmall/ads/ads_continuity_uv_count';
 
 wk_dt:使用七天中的第一天的日期拼接第七天的日期。
 
+###### 查找连续的数据
+
+首先获取每一个用户7天内的活跃记录，一个人一天的登录记录只有一个，所以需要去重。
+
+![1640308302643](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/091143-587366.png)

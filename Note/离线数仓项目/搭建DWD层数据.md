@@ -41,7 +41,34 @@ get_json_object是hive中专门用来解析json对象的工具。
 
 ![20211217145428](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211217145428.png)
 
+> 启动日志里面的每一条数据代表一条启动信息。
+
 在这里所有表插入数据的时候，使用的式overwrite，为了就是保证幂等性，如果任务失败，重试写入数据的时候，不会发生数据的重复。
+
+~~~ sql
+drop table if exists dwd_start_log;
+CREATE EXTERNAL TABLE dwd_start_log(
+    `area_code` string COMMENT '地区编码',
+    `brand` string COMMENT '手机品牌', 
+    `channel` string COMMENT '渠道', 
+    `model` string COMMENT '手机型号', 
+    `mid_id` string COMMENT '设备id', 
+    `os` string COMMENT '操作系统', 
+    `user_id` string COMMENT '会员id', 
+    `version_code` string COMMENT 'app版本号', 
+    `entry` string COMMENT ' icon手机图标  notice 通知   install 安装后启动',
+    `loading_time` bigint COMMENT '启动加载时间',
+    `open_ad_id` string COMMENT '广告页ID ',
+    `open_ad_ms` bigint COMMENT '广告总共播放时间', 
+    `open_ad_skip_ms` bigint COMMENT '用户跳过广告时点', 
+    `ts` bigint COMMENT '时间'
+) COMMENT '启动日志表'
+PARTITIONED BY (dt string) -- 按照时间创建分区
+stored as parquet -- 采用parquet列式存储
+LOCATION '/warehouse/gmall/dwd/dwd_start_log' -- 指定在HDFS上存储位置
+TBLPROPERTIES('parquet.compression'='lzo') -- 采用LZO压缩
+;
+~~~
 
 ##### 页面日志表
 
@@ -55,6 +82,33 @@ get_json_object是hive中专门用来解析json对象的工具。
 ![20211217150203](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211217150203.png)
 
 页面日志中，用改包含common字段，page信息和ts时间戳字段信息。
+
+> 页面日志中的一条记录表示一个页面访问。
+
+~~~ sql
+drop table if exists dwd_page_log;
+CREATE EXTERNAL TABLE dwd_page_log(
+    `area_code` string COMMENT '地区编码',
+    `brand` string COMMENT '手机品牌', 
+    `channel` string COMMENT '渠道', 
+    `model` string COMMENT '手机型号', 
+    `mid_id` string COMMENT '设备id', 
+    `os` string COMMENT '操作系统', 
+    `user_id` string COMMENT '会员id', 
+    `version_code` string COMMENT 'app版本号', 
+    `during_time` bigint COMMENT '持续时间毫秒',
+    `page_item` string COMMENT '目标id ', 
+    `page_item_type` string COMMENT '目标类型', 
+    `last_page_id` string COMMENT '上页类型', 
+    `page_id` string COMMENT '页面ID ',
+    `source_type` string COMMENT '来源类型', 
+    `ts` bigint
+) COMMENT '页面日志表'
+PARTITIONED BY (dt string)
+stored as parquet
+LOCATION '/warehouse/gmall/dwd/dwd_page_log'
+TBLPROPERTIES('parquet.compression'='lzo');
+~~~
 
 ##### 动作日志表
 
@@ -155,6 +209,37 @@ and get_json_object(line,'$.actions') is not null;
 
 > 但是在这里不需要再自定义一个udtf函数，因为上面写的解析动作日志的udtf函数很通用，我们可以将曝光字符串数组传入自定义的udtf函数，然后返回一个解析好的数组，最后使用炸裂函数。
 
+> 曝光日志表中每行数据对应**一个曝光记录**
+
+~~~ sql
+drop table if exists dwd_display_log;
+CREATE EXTERNAL TABLE dwd_display_log(
+    `area_code` string COMMENT '地区编码',
+    `brand` string COMMENT '手机品牌', 
+    `channel` string COMMENT '渠道', 
+    `model` string COMMENT '手机型号', 
+    `mid_id` string COMMENT '设备id', 
+    `os` string COMMENT '操作系统', 
+    `user_id` string COMMENT '会员id', 
+    `version_code` string COMMENT 'app版本号', 
+    `during_time` bigint COMMENT 'app版本号',
+    `page_item` string COMMENT '目标id ', 
+    `page_item_type` string COMMENT '目标类型', 
+    `last_page_id` string COMMENT '上页类型', 
+    `page_id` string COMMENT '页面ID ',
+    `source_type` string COMMENT '来源类型', 
+    `ts` bigint COMMENT 'app版本号',
+    `display_type` string COMMENT '曝光类型',
+    `item` string COMMENT '曝光对象id ',
+    `item_type` string COMMENT 'app版本号', 
+    `order` bigint COMMENT '出现顺序'
+) COMMENT '曝光日志表'
+PARTITIONED BY (dt string)
+stored as parquet
+LOCATION '/warehouse/gmall/dwd/dwd_display_log'
+TBLPROPERTIES('parquet.compression'='lzo');
+~~~
+
 ##### 错误日志表
 
 错误日志解析思路：错误日志表中每行数据对应**一个错误记录**，为方便定位错误，一个错误记录应当包含与之对应的**公共信息、页面信息、曝光信息、动作信息、启动信息以及错误信息**。先将包含err字段的日志过滤出来，然后使用get_json_object函数解析所有字段。
@@ -177,6 +262,41 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 再向表中插入数据的时候，首先需要设置以下上面的参数。
 
+> 错误日志表中每行数据对应**一个错误记录**
+
+~~~sql
+drop table if exists dwd_error_log;
+CREATE EXTERNAL TABLE dwd_error_log(
+    `area_code` string COMMENT '地区编码',
+    `brand` string COMMENT '手机品牌', 
+    `channel` string COMMENT '渠道', 
+    `model` string COMMENT '手机型号', 
+    `mid_id` string COMMENT '设备id', 
+    `os` string COMMENT '操作系统', 
+    `user_id` string COMMENT '会员id', 
+    `version_code` string COMMENT 'app版本号', 
+    `page_item` string COMMENT '目标id ', 
+    `page_item_type` string COMMENT '目标类型', 
+    `last_page_id` string COMMENT '上页类型', 
+    `page_id` string COMMENT '页面ID ',
+    `source_type` string COMMENT '来源类型', 
+    `entry` string COMMENT ' icon手机图标  notice 通知 install 安装后启动',
+    `loading_time` string COMMENT '启动加载时间',
+    `open_ad_id` string COMMENT '广告页ID ',
+    `open_ad_ms` string COMMENT '广告总共播放时间', 
+    `open_ad_skip_ms` string COMMENT '用户跳过广告时点',
+    `actions` string COMMENT '动作',
+    `displays` string COMMENT '曝光',
+    `ts` string COMMENT '时间',
+    `error_code` string COMMENT '错误码',
+    `msg` string COMMENT '错误信息'
+) COMMENT '错误日志表'
+PARTITIONED BY (dt string)
+stored as parquet
+LOCATION '/warehouse/gmall/dwd/dwd_error_log'
+TBLPROPERTIES('parquet.compression'='lzo');
+~~~
+
 #### 业务数据的解析
 
 业务数据方面DWD层的搭建主要注意点在于维度建模，减少后续大量Join操作。
@@ -191,7 +311,7 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 再本项目中，事实表和维度表之间的关系：
 
-![20211217211858](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211217211858.png)
+![1640260074711](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/194755-592372.png)
 
 事实表和维度表是根据需要的业务，总结出来的。
 
@@ -199,9 +319,68 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 商品维度表主要是将商品表SKU表、商品一级分类、商品二级分类、商品三级分类、商品品牌表和商品SPU表联接为商品表。
 
+表字段来源：
+
+- sku表
+- 商品一级分类
+- 商品二级分类
+- 商品三级分类
+
+###### 创建表
+
+![1640260103210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/194824-324645.png)
+
+###### 数据导入
+
+表中的数据来自：
+
+1. ods_sku_info
+2. ods_base_trademark
+3. ods_spu_info
+4. ods_base_category2
+5. ods_base_category1
+6. ods_base_category3
+
 ##### 优惠券维度表（全量）
 
-再ods层，和优惠券有关的表是coupon_info表，所以再dwd层，优惠券维度表和ods层的表字段相同，只需要阿静ods层关于收回全表的数据稍作清洗然后导入优惠券维度表即可。
+再ods层，和优惠券有关的表是ods_coupon_info表，所以再dwd层，优惠券维度表和ods层的表字段相同，只需要阿静ods层关于收回全表的数据稍作清洗然后导入优惠券维度表即可。
+
+**字段来源**
+
+- ods_coupon_info
+
+###### 创建表
+
+~~~ java
+create external table dwd_dim_coupon_info(
+    `id` string COMMENT '购物券编号',
+    `coupon_name` string COMMENT '购物券名称',
+    `coupon_type` string COMMENT '购物券类型 1 现金券 2 折扣券 3 满减券 4 满件打折券',
+    `condition_amount` decimal(16,2) COMMENT '满额数',
+    `condition_num` bigint COMMENT '满件数',
+    `activity_id` string COMMENT '活动编号',
+    `benefit_amount` decimal(16,2) COMMENT '减金额',
+    `benefit_discount` decimal(16,2) COMMENT '折扣',
+    `create_time` string COMMENT '创建时间',
+    `range_type` string COMMENT '范围类型 1、商品 2、品类 3、品牌',
+    `spu_id` string COMMENT '商品id',
+    `tm_id` string COMMENT '品牌id',
+    `category3_id` string COMMENT '品类id',
+    `limit_num` bigint COMMENT '最多领用次数',
+    `operate_time`  string COMMENT '修改时间',
+    `expire_time`  string COMMENT '过期时间'
+) COMMENT '优惠券维度表'
+PARTITIONED BY (`dt` string)
+stored as parquet
+location '/warehouse/gmall/dwd/dwd_dim_coupon_info/'
+tblproperties ("parquet.compression"="lzo");
+~~~
+
+###### 数据导入
+
+- ods_coupon_info
+
+将ods_coupon_info表中的数据直接导入。此张表中即可。
 
 ##### 活动维度表（全量）
 
@@ -211,9 +390,63 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 > 在做事实表和维度表进行关联的时候，只能是一对一关系。
 
+**表中字段来源**
+
+- ods_activity_info
+
+###### 创建表
+
+~~~ java
+drop table if exists dwd_dim_activity_info;
+create external table dwd_dim_activity_info(
+    `id` string COMMENT '编号',
+    `activity_name` string  COMMENT '活动名称',
+    `activity_type` string  COMMENT '活动类型',
+    `start_time` string  COMMENT '开始时间',
+    `end_time` string  COMMENT '结束时间',
+    `create_time` string  COMMENT '创建时间'
+) COMMENT '活动信息表'
+PARTITIONED BY (`dt` string)
+stored as parquet
+location '/warehouse/gmall/dwd/dwd_dim_activity_info/'
+tblproperties ("parquet.compression"="lzo");
+~~~
+
+###### 导入数据
+
+**数据来源**
+
+- ods_activity_info
+
 ##### 地区维度表（特殊）
 
 地区维度表是一张特殊的表，因为变化很少，所以我们只需要加载一次即可。地区维度表中的数据字段来自ods_base_province和ods_base_region表，省份和省份中的地区。
+
+- ods_base_province
+- ods_base_region
+
+###### 创建表
+
+~~~ java
+CREATE EXTERNAL TABLE `dwd_dim_base_province` (
+    `id` string COMMENT 'id',
+    `province_name` string COMMENT '省市名称',
+    `area_code` string COMMENT '地区编码',
+    `iso_code` string COMMENT 'ISO编码',
+    `region_id` string COMMENT '地区id',
+    `region_name` string COMMENT '地区名称'
+) COMMENT '地区维度表'
+stored as parquet
+location '/warehouse/gmall/dwd/dwd_dim_base_province/'
+tblproperties ("parquet.compression"="lzo");
+~~~
+
+###### 导入数据
+
+**数据来源**
+
+- ods_base_province
+- ods_base_region
 
 ##### 时间维度表（特殊）
 
@@ -223,13 +456,41 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 ##### 支付事实表（事务性事实表）
 
-支付事实表一行数据所代表的含义：代表依次支付事件。
+支付事实表一行数据所代表的含义：代表一次支付事件。
 
 ![20211219125110](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219125110.png)
 
 支付事实表中的维度外键有：用户id,地区id，分区字段就代表时间id，度量值是payment_amount。
 
 支付事实表的主要数据来源是payment_info,所以主要字段页来自于支付事实表，主要数据来源是payment_info，payment_type也可以作为一个度量字段。，
+
+- ods_payment_info
+- ods_order_info
+
+###### 创建表
+
+~~~ java
+create external table dwd_fact_payment_info (
+    `id` string COMMENT 'id',
+    `out_trade_no` string COMMENT '对外业务编号',
+    `order_id` string COMMENT '订单编号',
+    `user_id` string COMMENT '用户编号',
+    `alipay_trade_no` string COMMENT '支付宝交易流水编号',
+    `payment_amount`    decimal(16,2) COMMENT '支付金额',
+    `subject`         string COMMENT '交易内容',
+    `payment_type` string COMMENT '支付类型',
+    `payment_time` string COMMENT '支付时间',
+    `province_id` string COMMENT '省份ID'
+) COMMENT '支付事实表表'
+PARTITIONED BY (`dt` string)
+stored as parquet
+location '/warehouse/gmall/dwd/dwd_fact_payment_info/'
+tblproperties ("parquet.compression"="lzo");
+~~~
+
+###### 导入数据
+
+**数据来源**
 
 - ods_payment_info
 - ods_order_info
@@ -252,6 +513,32 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 - ods_order_refund_info
 
+###### 创建表
+
+~~~ java
+create external table dwd_fact_order_refund_info(
+    `id` string COMMENT '编号',
+    `user_id` string COMMENT '用户ID',
+    `order_id` string COMMENT '订单ID',
+    `sku_id` string COMMENT '商品ID',
+    `refund_type` string COMMENT '退款类型',
+    `refund_num` bigint COMMENT '退款件数',
+    `refund_amount` decimal(16,2) COMMENT '退款金额',
+    `refund_reason_type` string COMMENT '退款原因类型',
+    `create_time` string COMMENT '退款时间'
+) COMMENT '退款事实表'
+PARTITIONED BY (`dt` string)
+stored as parquet
+location '/warehouse/gmall/dwd/dwd_fact_order_refund_info/'
+tblproperties ("parquet.compression"="lzo");
+~~~
+
+###### 数据导入
+
+主句主要来源
+
+- ods_order_refund_info
+
 ##### 评价事实表(事务性事实表)
 
 把ODS层ods_comment_info表数据导入到DWD层评价事实表，在导入过程中可以做适当的清洗。
@@ -263,6 +550,14 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 **度量值是好评的条数。**
 
 评价事实表中的数据和字段基本上来自于ods_comment_info表，所以可以直接将数据倒过来即可,我们只关心好评数，并不关心每天增加了多少条评论。
+
+- ods_comment_info
+
+###### 创建表
+
+![1640262967106](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/203608-323886.png)
+
+###### 导入数据
 
 - ods_comment_info
 
@@ -282,6 +577,15 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 - 优惠分摊：按照原价的比例进行分摊，比如说商品a,b,c原始价格20，30，50。然后满100元优惠20元，所以优惠20最终付费80元，那么分摊到每一个商品中，优惠的价格是4，6，10元，但是这里也会产生问题，会产生误差，比如说优惠10元，每一个商品分摊3.33元，但是最终分摊结果的总和相加没有10元，所以需要补偿这个误差，这里额做法是使用10减去分摊的金额，然后补充在某一个商品分摊的金额上，需要使用开创函数：
 
 ![20211219142823](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219142823.png)
+
+- ods_order_detail
+- ods_order_info
+
+###### 创建表
+
+![1640263312887](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204154-980605.png)
+
+###### 导入数据
 
 - ods_order_detail
 - ods_order_info
@@ -308,7 +612,19 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 度量值，一个用户的购物车中某一个商品一共有多少件，购物车中商品的总金额是多少（加入购物车商品的数量乘以单价）。
 
+###### 创建表
+
+![1640263557736](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204559-865867.png)
+
+###### 导入数据
+
+数据主要来源
+
+- ods_cart_info
+
 ##### 收藏事实表（周期型快照事实表，每日快照）
+
+![1640263725174](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204846-877189.png)
 
 收藏的标记，是否取消，会发生变化，做增量不合适。
 
@@ -317,6 +633,16 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 度量值，某个商品收藏的个数，通过累计行数确定。
 
 数据主要来源：
+
+- ods_favor_info
+
+###### 创建表
+
+![1640263697772](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204818-97038.png)
+
+###### 导入数据
+
+数据来源
 
 - ods_favor_info
 
@@ -351,6 +677,17 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 需要用到动态分区。
 
+###### 创建表
+
+![1640263776797](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204937-537190.png)
+
+###### 导入数据
+
+数据来源：
+
+- ods_coupon_use
+- dwd_fact_coupon_use
+
 ##### 订单事实表
 
 ![20211219190217](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219190217.png)
@@ -378,6 +715,16 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 就像上图中所示，最上边是老的数据，但是没有发生变化，中间的是关联上的，也就是老数据发生了变化，最下面的是新增数据，那么我们需要找到的就是中间的老数据并且发生变化的，所以关联的时候，我们使用full outer join。
 
 > 这里也需要使用动态分区。
+
+###### 创建表
+
+![1640263995770](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640263995770.png)
+
+###### 导入数据
+
+- ods_order_info
+- ods_order_status_log
+- ods_activity_order
 
 ##### 用户维度表（拉链表）
 
@@ -464,3 +811,11 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 **步骤四：把临时表覆盖给拉链表**
 
 先把查询的数据放到临时表中，然后整体再插入拉链表中。
+
+###### 创建表
+
+![1640264242908](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640264242908.png)
+
+###### 导入数据
+
+- ods_user_info
