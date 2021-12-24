@@ -1,6 +1,6 @@
-### 搭建DWD层数据
+## 搭建DWD层数据
 
-#### DWD层的任务
+### DWD层的任务
 
 1. 对用户行为数据解析。
 2. 对核心数据进行判空过滤。
@@ -21,19 +21,31 @@
 
 > 本项目中，对数据的解析式按照内容进行解析。
 
-#### 日志数据的解析
+### 日志数据的解析
 
 get_json_object是hive中专门用来解析json对象的工具。
 
-##### 启动日志表 
+> 说明：数据采用parquet存储方式，是可以支持切片的，不需要再对数据创建索引。如果单纯的text方式存储数据，需要采用支持切片的，lzo压缩方式并创建索引。
+
+#### 启动日志表 
 
 启动日志解析思路：启动日志表中每行数据对应**一个启动记录**，一个启动记录应该包含日志中的**公共信息和启动信息**。先将所有包含start字段的日志过滤出来，然后使用get_json_object函数解析每个字段。启动日志表中的数据来自于启动日志。
 
 > dwd,dws,dwt三层都是采用parquet列式存储格式，然后使用lzo进行数据的压缩。采用列式存储，对于数据的查询有好处，因为后面我们都是做聚合操作，需要对某一列做聚合操作，不需要查询其他的列，而列式存储刚好有利于对某一列进行查询。
 
-> parquet存储+lzo压缩式什么格式呢？文件的格式本质上还式parquet的格式，压缩指的是parquet内部每一个列压缩采用的格式。
+> parquet存储+lzo压缩式什么格式呢？
+>
+> 文件的格式本质上还式parquet的格式，压缩指的是parquet内部每一个列压缩采用的格式。
 
-**启动日志数据格式**
+> LZO支持切片，Snappy不支持切片。
+>
+> ORC和Parquet都是列式存储。
+>
+> ORC和Parquet 两种存储格式都是不能直接读取的，一般与压缩一起使用，可大大节省磁盘空间。
+>
+> 选择：**ORC文件支持Snappy压缩，但不支持lzo压缩，所以在实际生产中，使用Parquet存储 + lzo压缩的方式更为常见，这种情况下可以避免由于读取不可分割大文件引发的数据倾斜**。
+
+##### 启动日志数据格式
 
 - 公共字段
 - start启动字段
@@ -45,32 +57,15 @@ get_json_object是hive中专门用来解析json对象的工具。
 
 在这里所有表插入数据的时候，使用的式overwrite，为了就是保证幂等性，如果任务失败，重试写入数据的时候，不会发生数据的重复。
 
-~~~ sql
-drop table if exists dwd_start_log;
-CREATE EXTERNAL TABLE dwd_start_log(
-    `area_code` string COMMENT '地区编码',
-    `brand` string COMMENT '手机品牌', 
-    `channel` string COMMENT '渠道', 
-    `model` string COMMENT '手机型号', 
-    `mid_id` string COMMENT '设备id', 
-    `os` string COMMENT '操作系统', 
-    `user_id` string COMMENT '会员id', 
-    `version_code` string COMMENT 'app版本号', 
-    `entry` string COMMENT ' icon手机图标  notice 通知   install 安装后启动',
-    `loading_time` bigint COMMENT '启动加载时间',
-    `open_ad_id` string COMMENT '广告页ID ',
-    `open_ad_ms` bigint COMMENT '广告总共播放时间', 
-    `open_ad_skip_ms` bigint COMMENT '用户跳过广告时点', 
-    `ts` bigint COMMENT '时间'
-) COMMENT '启动日志表'
-PARTITIONED BY (dt string) -- 按照时间创建分区
-stored as parquet -- 采用parquet列式存储
-LOCATION '/warehouse/gmall/dwd/dwd_start_log' -- 指定在HDFS上存储位置
-TBLPROPERTIES('parquet.compression'='lzo') -- 采用LZO压缩
-;
-~~~
+##### 创建表
 
-##### 页面日志表
+![1640320528921](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/123605-719718.png)
+
+##### 导入数据
+
+数据来源与ods_log表。
+
+#### 页面日志表
 
 **页面日志解析思路：**页面日志表中每行数据对应**一个页面访问记录**，一个页面访问记录应该包含日志中的公共信息和页面信息。先将所有包含page字段的日志过滤出来，然后使用get_json_object函数解析每个字段。数据来自于页面埋点日志数据。
 
@@ -85,45 +80,28 @@ TBLPROPERTIES('parquet.compression'='lzo') -- 采用LZO压缩
 
 > 页面日志中的一条记录表示一个页面访问。
 
-~~~ sql
-drop table if exists dwd_page_log;
-CREATE EXTERNAL TABLE dwd_page_log(
-    `area_code` string COMMENT '地区编码',
-    `brand` string COMMENT '手机品牌', 
-    `channel` string COMMENT '渠道', 
-    `model` string COMMENT '手机型号', 
-    `mid_id` string COMMENT '设备id', 
-    `os` string COMMENT '操作系统', 
-    `user_id` string COMMENT '会员id', 
-    `version_code` string COMMENT 'app版本号', 
-    `during_time` bigint COMMENT '持续时间毫秒',
-    `page_item` string COMMENT '目标id ', 
-    `page_item_type` string COMMENT '目标类型', 
-    `last_page_id` string COMMENT '上页类型', 
-    `page_id` string COMMENT '页面ID ',
-    `source_type` string COMMENT '来源类型', 
-    `ts` bigint
-) COMMENT '页面日志表'
-PARTITIONED BY (dt string)
-stored as parquet
-LOCATION '/warehouse/gmall/dwd/dwd_page_log'
-TBLPROPERTIES('parquet.compression'='lzo');
-~~~
+##### 创建表
 
-##### 动作日志表
+![1640320885891](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/124127-28282.png)
 
-动作日志解析思路：动作日志表中每行数据对应用户的**一个动作记录**，一个动作记录应当包含公共信息、页面信息以及动作信息。先将包含action字段的日志过滤出来，然后通过UDTF函数，将action数组“炸开”（类似于explode函数的效果），然后使用get_json_object函数解析每个字段。
+##### 数据导入
+
+数据来源于ods_log表。
+
+#### 动作日志表
+
+动作日志解析思路：动作日志表中每行数据对应用户的**一个动作记录**，一个动作记录应当包含**公共信息、页面信息以及动作信息**。先将包含action字段的日志过滤出来，然后通过UDTF函数，将action数组“炸开”（类似于explode函数的效果），然后使用get_json_object函数解析每个字段。
 
 为什么这里需要使用自定义udtf函数，因为explode()函数接收的式一个数组或者map才可以炸裂，但是ods层存储的json以字符串形式存储，所以我们需要自定义udtf函数将字符串转换为json数组。
 
 - 公共字段
 - action动作字段是一个数组。
 
-**udtf函数设计思路**
+##### udtf函数设计思路
 
 ![20211217180316](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211217180316.png)
 
-**自定义udtf函数**
+##### 自定义udtf函数
 
 initialize():
 
@@ -149,7 +127,7 @@ forward():
 
 永久函数也有库的概念，如果在gmall库下面创建的函数，那么如果在其他数据库下面使用函数，需要使用gmall.进行引用。
 
-**在hive中创建函数的语法**
+##### 在hive中创建函数的语法
 
 下面创建的是永久函数，
 
@@ -163,6 +141,12 @@ create function explode_json_array as 'com.rzf.hive.udtf.ExplodeJSONArray' using
 **炸裂后虚表的结构**
 
 ![20211217175253](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211217175253.png)
+
+##### 创建表
+
+![1640321168624](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/124705-159083.png)
+
+##### 导入数据
 
 ```sql
 SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
@@ -195,7 +179,7 @@ and get_json_object(line,'$.actions') is not null;
 
 需要注意的是，上面自定义函数传入的是一个json数组，但是这个数组是以字符串的形式存在的，我们自定义udtf函数的目的就是将字符串的数组转换为数组的格式，然后再炸裂开，因为hive中的炸裂函数需要使用数组参数或者map参数。
 
-##### 曝光日志表
+#### 曝光日志表
 
 曝光日志解析思路：曝光日志表中每行数据对应**一个曝光记录**，一个曝光记录应当包含**公共信息、页面信息以及曝光信息**。先将包含display字段的日志过滤出来，然后通过UDTF函数，将display数组“炸开”（类似于explode函数的效果），然后使用get_json_object函数解析每个字段。
 
@@ -211,36 +195,11 @@ and get_json_object(line,'$.actions') is not null;
 
 > 曝光日志表中每行数据对应**一个曝光记录**
 
-~~~ sql
-drop table if exists dwd_display_log;
-CREATE EXTERNAL TABLE dwd_display_log(
-    `area_code` string COMMENT '地区编码',
-    `brand` string COMMENT '手机品牌', 
-    `channel` string COMMENT '渠道', 
-    `model` string COMMENT '手机型号', 
-    `mid_id` string COMMENT '设备id', 
-    `os` string COMMENT '操作系统', 
-    `user_id` string COMMENT '会员id', 
-    `version_code` string COMMENT 'app版本号', 
-    `during_time` bigint COMMENT 'app版本号',
-    `page_item` string COMMENT '目标id ', 
-    `page_item_type` string COMMENT '目标类型', 
-    `last_page_id` string COMMENT '上页类型', 
-    `page_id` string COMMENT '页面ID ',
-    `source_type` string COMMENT '来源类型', 
-    `ts` bigint COMMENT 'app版本号',
-    `display_type` string COMMENT '曝光类型',
-    `item` string COMMENT '曝光对象id ',
-    `item_type` string COMMENT 'app版本号', 
-    `order` bigint COMMENT '出现顺序'
-) COMMENT '曝光日志表'
-PARTITIONED BY (dt string)
-stored as parquet
-LOCATION '/warehouse/gmall/dwd/dwd_display_log'
-TBLPROPERTIES('parquet.compression'='lzo');
-~~~
+##### 创建表
 
-##### 错误日志表
+![1640321330152](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/124857-698073.png)
+
+#### 错误日志表
 
 错误日志解析思路：错误日志表中每行数据对应**一个错误记录**，为方便定位错误，一个错误记录应当包含与之对应的**公共信息、页面信息、曝光信息、动作信息、启动信息以及错误信息**。先将包含err字段的日志过滤出来，然后使用get_json_object函数解析所有字段。
 
@@ -264,48 +223,21 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 > 错误日志表中每行数据对应**一个错误记录**
 
-~~~sql
-drop table if exists dwd_error_log;
-CREATE EXTERNAL TABLE dwd_error_log(
-    `area_code` string COMMENT '地区编码',
-    `brand` string COMMENT '手机品牌', 
-    `channel` string COMMENT '渠道', 
-    `model` string COMMENT '手机型号', 
-    `mid_id` string COMMENT '设备id', 
-    `os` string COMMENT '操作系统', 
-    `user_id` string COMMENT '会员id', 
-    `version_code` string COMMENT 'app版本号', 
-    `page_item` string COMMENT '目标id ', 
-    `page_item_type` string COMMENT '目标类型', 
-    `last_page_id` string COMMENT '上页类型', 
-    `page_id` string COMMENT '页面ID ',
-    `source_type` string COMMENT '来源类型', 
-    `entry` string COMMENT ' icon手机图标  notice 通知 install 安装后启动',
-    `loading_time` string COMMENT '启动加载时间',
-    `open_ad_id` string COMMENT '广告页ID ',
-    `open_ad_ms` string COMMENT '广告总共播放时间', 
-    `open_ad_skip_ms` string COMMENT '用户跳过广告时点',
-    `actions` string COMMENT '动作',
-    `displays` string COMMENT '曝光',
-    `ts` string COMMENT '时间',
-    `error_code` string COMMENT '错误码',
-    `msg` string COMMENT '错误信息'
-) COMMENT '错误日志表'
-PARTITIONED BY (dt string)
-stored as parquet
-LOCATION '/warehouse/gmall/dwd/dwd_error_log'
-TBLPROPERTIES('parquet.compression'='lzo');
-~~~
+##### 创建表
 
-#### 业务数据的解析
+![1640321411231](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/125012-921669.png)
 
-业务数据方面DWD层的搭建主要注意点在于维度建模，减少后续大量Join操作。
+### 业务数据的解析
 
-> 一共有8张事实表，6张维度表。事务性事实表很简单，拿到新增的数据然后追加到表中即可。加购和收藏是周期性事实表，因为我们并不是很关心数据的增删操作，做起来相对简单，每日快照，累积性快照事实表，需要修改表中的数据，一条数据分多次写入表，等获取到新数据之后，还会修改数据，所以比较麻烦。
+业务数据方面DWD层的搭建主要注意点在于维度建模，减少后续大量Join操作，dwd层的数据式粒度最细的数据。
 
-维度表的特点，数据量不是很大并且数据稳定，所以一般都是**全量导入**，还有一些采用**增量及变化**导入，使用增量导入方式很少，因为本来数据就少，变化的不多，所以一般都是用全量，另外对于一些特殊的维度表，只需要导入一次即可。
+> 一共有8张事实表，6张维度表。
+>
+> 事务性事实表很简单，拿到新增的数据然后追加到表中即可。加购和收藏是周期性事实表，因为我们并不是很关心数据的增删操作，做起来相对简单，每日快照，累积性快照事实表，需要修改表中的数据，一条数据分多次写入表，等获取到新数据之后，还会修改数据，所以比较麻烦。
 
-如果采用新增及变化，那么就需要考虑数据仓库中的数据和数据库中的数据同步问题，所以需要将新增及变化数据和前一天的数据进行一个整和，需要使用拉链表，这种维度表一般对应的数据量会很大，不适合使用全量同步。
+- 维度表的特点，数据量不是很大并且数据稳定，所以一般都是**全量导入**，还有一些采用**增量及变化**导入，使用增量导入方式很少，因为本来数据就少，变化的不多，所以一般都是用全量，另外对于一些特殊的维度表，只需要导入一次即可。
+
+- 如果采用新增及变化，那么就需要考虑数据仓库中的数据和数据库中的数据同步问题，所以需要将新增及变化数据和前一天的数据进行一个整和，需要使用**拉链表**，这种维度表一般对应的数据量会很大，不适合使用全量同步，例如我们的用户表。
 
 业务数据方面DWD层的搭建主要注意点在于维度建模，减少后续大量Join操作。
 
@@ -313,9 +245,11 @@ TBLPROPERTIES('parquet.compression'='lzo');
 
 ![1640260074711](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/194755-592372.png)
 
-事实表和维度表是根据需要的业务，总结出来的。
+> 事实表和维度表是根据需要的业务，总结出来的，所以我们可以根据具体的业务线，总结出需要的业务然后形成事实表。
+>
+> 而维度表就是我们之后根据事实表进行分析的维度，说白了也就是group by的字段。
 
-##### 商品维度表（全量）
+#### 商品维度表（全量）
 
 商品维度表主要是将商品表SKU表、商品一级分类、商品二级分类、商品三级分类、商品品牌表和商品SPU表联接为商品表。
 
@@ -326,11 +260,11 @@ TBLPROPERTIES('parquet.compression'='lzo');
 - 商品二级分类
 - 商品三级分类
 
-###### 创建表
+##### 创建表
 
 ![1640260103210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/194824-324645.png)
 
-###### 数据导入
+##### 数据导入
 
 表中的数据来自：
 
@@ -341,48 +275,25 @@ TBLPROPERTIES('parquet.compression'='lzo');
 5. ods_base_category1
 6. ods_base_category3
 
-##### 优惠券维度表（全量）
+#### 优惠券维度表（全量）
 
-再ods层，和优惠券有关的表是ods_coupon_info表，所以再dwd层，优惠券维度表和ods层的表字段相同，只需要阿静ods层关于收回全表的数据稍作清洗然后导入优惠券维度表即可。
+再ods层，和优惠券有关的表是ods_coupon_info表，所以再dwd层，优惠券维度表和ods层的表字段相同，只需要将ods层关于优惠券表的数据稍作清洗然后导入优惠券维度表即可。
 
 **字段来源**
 
 - ods_coupon_info
 
-###### 创建表
+##### 创建表
 
-~~~ java
-create external table dwd_dim_coupon_info(
-    `id` string COMMENT '购物券编号',
-    `coupon_name` string COMMENT '购物券名称',
-    `coupon_type` string COMMENT '购物券类型 1 现金券 2 折扣券 3 满减券 4 满件打折券',
-    `condition_amount` decimal(16,2) COMMENT '满额数',
-    `condition_num` bigint COMMENT '满件数',
-    `activity_id` string COMMENT '活动编号',
-    `benefit_amount` decimal(16,2) COMMENT '减金额',
-    `benefit_discount` decimal(16,2) COMMENT '折扣',
-    `create_time` string COMMENT '创建时间',
-    `range_type` string COMMENT '范围类型 1、商品 2、品类 3、品牌',
-    `spu_id` string COMMENT '商品id',
-    `tm_id` string COMMENT '品牌id',
-    `category3_id` string COMMENT '品类id',
-    `limit_num` bigint COMMENT '最多领用次数',
-    `operate_time`  string COMMENT '修改时间',
-    `expire_time`  string COMMENT '过期时间'
-) COMMENT '优惠券维度表'
-PARTITIONED BY (`dt` string)
-stored as parquet
-location '/warehouse/gmall/dwd/dwd_dim_coupon_info/'
-tblproperties ("parquet.compression"="lzo");
-~~~
+![1640322558373](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/130919-795356.png)
 
-###### 数据导入
+##### 数据导入
 
 - ods_coupon_info
 
 将ods_coupon_info表中的数据直接导入。此张表中即可。
 
-##### 活动维度表（全量）
+#### 活动维度表（全量）
 
 与活动有关的表有activity_info,activity_rule,activity_sku表，正常情况下需要将这三张表的字段合并在一起组成我们的活动维度表，但是活动规则中，一个商品可能参与多种活动，比如满减活动，也就是一个活动有多个优惠级别，所以将activity_info和activity_rule表进行join的话，一个活动会有多行数据。所以之后再将事实表订单表和活动表关联的时候，关联的字段是actovity_id，所以再关联的时候，会找到多个一样的活动id，因为上面已经说了，一个活动id有多个优惠级别。正常情况下，一个订单只能参与一个活动id的某一个优惠级别。所以我们应该再业务系统中获取订单以及订单的优惠级别，然后再关联。这个时候，订单和活动维度表再关联的时候，关联的id就有两个，活动id和优惠级别。
 
@@ -394,67 +305,45 @@ tblproperties ("parquet.compression"="lzo");
 
 - ods_activity_info
 
-###### 创建表
+##### 创建表
 
-~~~ java
-drop table if exists dwd_dim_activity_info;
-create external table dwd_dim_activity_info(
-    `id` string COMMENT '编号',
-    `activity_name` string  COMMENT '活动名称',
-    `activity_type` string  COMMENT '活动类型',
-    `start_time` string  COMMENT '开始时间',
-    `end_time` string  COMMENT '结束时间',
-    `create_time` string  COMMENT '创建时间'
-) COMMENT '活动信息表'
-PARTITIONED BY (`dt` string)
-stored as parquet
-location '/warehouse/gmall/dwd/dwd_dim_activity_info/'
-tblproperties ("parquet.compression"="lzo");
-~~~
+![1640323282947](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/132124-13174.png)
 
-###### 导入数据
+##### 导入数据
 
 **数据来源**
 
 - ods_activity_info
 
-##### 地区维度表（特殊）
+#### 地区维度表（特殊）
 
 地区维度表是一张特殊的表，因为变化很少，所以我们只需要加载一次即可。地区维度表中的数据字段来自ods_base_province和ods_base_region表，省份和省份中的地区。
 
 - ods_base_province
 - ods_base_region
 
-###### 创建表
+##### 创建表
 
-~~~ java
-CREATE EXTERNAL TABLE `dwd_dim_base_province` (
-    `id` string COMMENT 'id',
-    `province_name` string COMMENT '省市名称',
-    `area_code` string COMMENT '地区编码',
-    `iso_code` string COMMENT 'ISO编码',
-    `region_id` string COMMENT '地区id',
-    `region_name` string COMMENT '地区名称'
-) COMMENT '地区维度表'
-stored as parquet
-location '/warehouse/gmall/dwd/dwd_dim_base_province/'
-tblproperties ("parquet.compression"="lzo");
-~~~
+![1640323438881](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/132359-239462.png)
 
-###### 导入数据
+##### 导入数据
 
 **数据来源**
 
 - ods_base_province
 - ods_base_region
 
-##### 时间维度表（特殊）
+#### 时间维度表（特殊）
 
 前面的所有的维度表都是从业务系统中导入过来的数据，但是时间维度表并不是从业务系统中倒过来的，业务系统中并没有这张表，这张表属于数据仓库中的表，因为业务系统中只需要保留最新数据，并不涉及历史数据，所以并不需要时间维度，而数据仓库中需要是因为保存有历史数据，需要时间维度去解释。
 
 时间维度表每一年只需要导入一次，所以并不会将导入数据语句写入到脚本中。之所以需要时间维度，就是我们需要根据时间去分析数据仓库中的数据。
 
-##### 支付事实表（事务性事实表）
+##### 创建表
+
+![1640323536257](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/132539-575614.png)
+
+#### 支付事实表（事务性事实表）
 
 支付事实表一行数据所代表的含义：代表一次支付事件。
 
@@ -467,28 +356,11 @@ tblproperties ("parquet.compression"="lzo");
 - ods_payment_info
 - ods_order_info
 
-###### 创建表
+##### 创建表
 
-~~~ java
-create external table dwd_fact_payment_info (
-    `id` string COMMENT 'id',
-    `out_trade_no` string COMMENT '对外业务编号',
-    `order_id` string COMMENT '订单编号',
-    `user_id` string COMMENT '用户编号',
-    `alipay_trade_no` string COMMENT '支付宝交易流水编号',
-    `payment_amount`    decimal(16,2) COMMENT '支付金额',
-    `subject`         string COMMENT '交易内容',
-    `payment_type` string COMMENT '支付类型',
-    `payment_time` string COMMENT '支付时间',
-    `province_id` string COMMENT '省份ID'
-) COMMENT '支付事实表表'
-PARTITIONED BY (`dt` string)
-stored as parquet
-location '/warehouse/gmall/dwd/dwd_fact_payment_info/'
-tblproperties ("parquet.compression"="lzo");
-~~~
+![1640323662907](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/132743-54142.png)
 
-###### 导入数据
+##### 导入数据
 
 **数据来源**
 
@@ -499,7 +371,7 @@ tblproperties ("parquet.compression"="lzo");
 
 但是province_id需要从ods_order_info表中去查询，所以需要使用到join。
 
-##### 退款事实表（事务性事实表）
+#### 退款事实表（事务性事实表）
 
 把ODS层ods_order_refund_info表数据导入到DWD层退款事实表，在导入过程中可以做适当的清洗。
 
@@ -513,33 +385,17 @@ tblproperties ("parquet.compression"="lzo");
 
 - ods_order_refund_info
 
-###### 创建表
+##### 创建表
 
-~~~ java
-create external table dwd_fact_order_refund_info(
-    `id` string COMMENT '编号',
-    `user_id` string COMMENT '用户ID',
-    `order_id` string COMMENT '订单ID',
-    `sku_id` string COMMENT '商品ID',
-    `refund_type` string COMMENT '退款类型',
-    `refund_num` bigint COMMENT '退款件数',
-    `refund_amount` decimal(16,2) COMMENT '退款金额',
-    `refund_reason_type` string COMMENT '退款原因类型',
-    `create_time` string COMMENT '退款时间'
-) COMMENT '退款事实表'
-PARTITIONED BY (`dt` string)
-stored as parquet
-location '/warehouse/gmall/dwd/dwd_fact_order_refund_info/'
-tblproperties ("parquet.compression"="lzo");
-~~~
+![1640323767472](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/132928-738316.png)
 
-###### 数据导入
+##### 数据导入
 
 主句主要来源
 
 - ods_order_refund_info
 
-##### 评价事实表(事务性事实表)
+#### 评价事实表(事务性事实表)
 
 把ODS层ods_comment_info表数据导入到DWD层评价事实表，在导入过程中可以做适当的清洗。
 
@@ -553,15 +409,15 @@ tblproperties ("parquet.compression"="lzo");
 
 - ods_comment_info
 
-###### 创建表
+##### 创建表
 
 ![1640262967106](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/203608-323886.png)
 
-###### 导入数据
+##### 导入数据
 
 - ods_comment_info
 
-##### 订单明细事实表（事务型事实表）
+#### 订单明细事实表（事务型事实表）
 
 ![20211219134804](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219134804.png)
 
@@ -581,16 +437,16 @@ tblproperties ("parquet.compression"="lzo");
 - ods_order_detail
 - ods_order_info
 
-###### 创建表
+##### 创建表
 
 ![1640263312887](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204154-980605.png)
 
-###### 导入数据
+##### 导入数据
 
 - ods_order_detail
 - ods_order_info
 
-##### 加购事实表（周期型快照事实表，每日快照）
+#### 加购事实表（周期型快照事实表，每日快照）
 
 每日全量表，因为我们关心的是购物车中的商品的件数，并不关系购物车中的商品每天新增或者减少。
 
@@ -612,17 +468,17 @@ tblproperties ("parquet.compression"="lzo");
 
 度量值，一个用户的购物车中某一个商品一共有多少件，购物车中商品的总金额是多少（加入购物车商品的数量乘以单价）。
 
-###### 创建表
+##### 创建表
 
 ![1640263557736](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204559-865867.png)
 
-###### 导入数据
+##### 导入数据
 
 数据主要来源
 
 - ods_cart_info
 
-##### 收藏事实表（周期型快照事实表，每日快照）
+#### 收藏事实表（周期型快照事实表，每日快照）
 
 ![1640263725174](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204846-877189.png)
 
@@ -636,17 +492,17 @@ tblproperties ("parquet.compression"="lzo");
 
 - ods_favor_info
 
-###### 创建表
+##### 创建表
 
 ![1640263697772](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204818-97038.png)
 
-###### 导入数据
+##### 导入数据
 
 数据来源
 
 - ods_favor_info
 
-##### 优惠券领用事实表（累积型快照事实表）
+#### 优惠券领用事实表（累积型快照事实表）
 
 ![20211219150224](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219150224.png)
 
@@ -677,18 +533,18 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 需要用到动态分区。
 
-###### 创建表
+##### 创建表
 
 ![1640263776797](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204937-537190.png)
 
-###### 导入数据
+##### 导入数据
 
 数据来源：
 
 - ods_coupon_use
 - dwd_fact_coupon_use
 
-##### 订单事实表
+#### 订单事实表
 
 ![20211219190217](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219190217.png)
 
@@ -716,21 +572,21 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 > 这里也需要使用动态分区。
 
-###### 创建表
+##### 创建表
 
-![1640263995770](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640263995770.png)
+![1640263995770](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/133203-327182.png)
 
-###### 导入数据
+##### 导入数据
 
 - ods_order_info
 - ods_order_status_log
 - ods_activity_order
 
-##### 用户维度表（拉链表）
+#### 用户维度表（拉链表）
 
 用户表中的数据每日既有可能新增，也有可能修改，但修改频率并不高，属于缓慢变化维度，此处采用拉链表存储用户维度数据。
 
-**什么是拉链表**
+##### **什么是拉链表**
 
 > 维度表的特点一般是数据量不是很大，并且数据相对的稳定，基于这样的特点，我们维度表一般都采用全量的同步法。那么再数仓里面这张表就叫做每日全量表。
 >
@@ -741,7 +597,7 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 ![20211219194347](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219194347.png)
 
-**为什么需要做拉链表**
+##### **为什么需要做拉链表**
 
 拉链表适合于：**数据会发生变化，但是大部分是不变的。（即：缓慢变化维）**
 
@@ -755,7 +611,7 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 全量表可以实现的功能，拉链表都可以实现，只是拉链表写起来比较麻烦。
 
-**如何使用拉链表**
+##### **如何使用拉链表**
 
 ![20211219201028](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211219201028.png)
 
@@ -765,7 +621,7 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 同样使用事实表也是获取全量最新数据和历史某一天的数据。
 
-**拉链表的制作过程**
+##### **拉链表的制作过程**
 
 1. 制作初始化导入，初始化起始时间。把mysql业务数据库中的数据一次性全部导入hive表中，做一次全量同步，结束时间都是9999，其实时间一般是根据实际情况指定一个时间。
 2. 后续mysql业务数据库中的数据会发生新增和变化，需要把mysql中新增和变化的数据导入Mysql数据仓库中，通过crerate_time和operator_time两个字段获取新增和变化的数据。
@@ -812,10 +668,10 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 先把查询的数据放到临时表中，然后整体再插入拉链表中。
 
-###### 创建表
+##### 创建表
 
-![1640264242908](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640264242908.png)
+![1640264242908](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/133231-130733.png)
 
-###### 导入数据
+##### 导入数据
 
 - ods_user_info
