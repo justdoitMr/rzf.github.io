@@ -275,6 +275,63 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 5. ods_base_category1
 6. ods_base_category3
 
+![1640325144375](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/135225-79581.png)
+
+**代码实现**
+
+~~~sql
+-- 加载数据,在这里获取数据的时候，应该让每一张表的最新的分区之间去join操作，尽量不要全表join操作，应该先过滤操作
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_dim_sku_info partition(dt='2020-06-22')
+select
+    sku.id,
+    sku.spu_id,
+    sku.price,
+    sku.sku_name,
+    sku.sku_desc,
+    sku.weight,
+    sku.tm_id,
+    ob.tm_name,
+    sku.category3_id,
+    c2.id category2_id,
+    c1.id category1_id,
+    c3.name category3_name,
+    c2.name category2_name,
+    c1.name category1_name,
+    spu.spu_name,
+    sku.create_time
+from
+(
+    -- 查询商品详情中的表
+    select * from ods_sku_info where dt='2020-06-22'
+)sku
+join
+(
+    -- 查询品牌表中的数据
+    select * from ods_base_trademark where dt='2020-06-22'
+)ob on sku.tm_id=ob.tm_id
+join
+(
+    -- 查询spu商品表中的数据
+    select * from ods_spu_info where dt='2020-06-22'
+)spu on spu.id = sku.spu_id
+join
+(
+    -- 查询第三级分类中的数据
+    select * from ods_base_category3 where dt='2020-06-22'
+)c3 on sku.category3_id=c3.id
+join
+(
+    -- 查询第二级分类中的数据
+    select * from ods_base_category2 where dt='2020-06-22'
+)c2 on c3.category2_id=c2.id
+join
+(
+    --查询一级分类中的数据
+    select * from ods_base_category1 where dt='2020-06-22'
+)c1 on c2.category1_id=c1.id;
+~~~
+
 #### 优惠券维度表（全量）
 
 再ods层，和优惠券有关的表是ods_coupon_info表，所以再dwd层，优惠券维度表和ods层的表字段相同，只需要将ods层关于优惠券表的数据稍作清洗然后导入优惠券维度表即可。
@@ -292,6 +349,31 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 - ods_coupon_info
 
 将ods_coupon_info表中的数据直接导入。此张表中即可。
+
+~~~sql
+-- 加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_dim_coupon_info partition(dt='2020-06-22')
+select
+    id,
+    coupon_name,
+    coupon_type,
+    condition_amount,
+    condition_num,
+    activity_id,
+    benefit_amount,
+    benefit_discount,
+    create_time,
+    range_type,
+    spu_id,
+    tm_id,
+    category3_id,
+    limit_num,
+    operate_time,
+    expire_time
+from ods_coupon_info
+where dt='2020-06-22';
+~~~
 
 #### 活动维度表（全量）
 
@@ -315,6 +397,21 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 - ods_activity_info
 
+~~~ sql
+--加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_dim_activity_info partition(dt='2020-06-22')
+select
+    id,
+    activity_name,
+    activity_type,
+    start_time,
+    end_time,
+    create_time
+from ods_activity_info
+where dt='2020-06-22';
+~~~
+
 #### 地区维度表（特殊）
 
 地区维度表是一张特殊的表，因为变化很少，所以我们只需要加载一次即可。地区维度表中的数据字段来自ods_base_province和ods_base_region表，省份和省份中的地区。
@@ -328,10 +425,36 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 ##### 导入数据
 
+![1640325445854](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/135727-862511.png)
+
 **数据来源**
 
 - ods_base_province
 - ods_base_region
+
+~~~sql
+-- 加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_dim_base_province
+select
+    bp.id,
+    bp.name,
+    bp.area_code,
+    bp.iso_code,
+    bp.region_id,
+    br.region_name
+from
+(
+    select * from ods_base_province
+) bp
+join
+(
+    select * from ods_base_region
+) br
+on bp.region_id = br.id;
+~~~
+
+地区表是一张特殊表，表中的数据加载一次即可。
 
 #### 时间维度表（特殊）
 
@@ -362,6 +485,8 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 ##### 导入数据
 
+![1640325592328](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/135953-23325.png)
+
 **数据来源**
 
 - ods_payment_info
@@ -370,6 +495,32 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 **度量值是支付金额**
 
 但是province_id需要从ods_order_info表中去查询，所以需要使用到join。
+
+~~~sql
+-- 加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_payment_info partition(dt='2020-06-22')
+select
+    pi.id,
+    pi.out_trade_no,
+    pi.order_id,
+    pi.user_id,
+    pi.alipay_trade_no,
+    pi.total_amount,
+    pi.subject,
+    pi.payment_type,
+    pi.payment_time,
+    oi.province_id
+from
+(
+    select * from ods_payment_info where dt='2020-06-22'
+)pi
+join
+(
+    select id, province_id from ods_order_info where dt='2020-06-22'
+)oi
+on pi.order_id = oi.id;
+~~~
 
 #### 退款事实表（事务性事实表）
 
@@ -395,6 +546,24 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 - ods_order_refund_info
 
+~~~ sql
+-- 导入数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_order_refund_info partition(dt='2020-06-22')
+select
+    id,
+    user_id,
+    order_id,
+    sku_id,
+    refund_type,
+    refund_num,
+    refund_amount,
+    refund_reason_type,
+    create_time
+from ods_order_refund_info
+where dt='2020-06-22';
+~~~
+
 #### 评价事实表(事务性事实表)
 
 把ODS层ods_comment_info表数据导入到DWD层评价事实表，在导入过程中可以做适当的清洗。
@@ -416,6 +585,22 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 ##### 导入数据
 
 - ods_comment_info
+
+~~~ sql
+-- 加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_comment_info partition(dt='2020-06-22')
+select
+    id,
+    user_id,
+    sku_id,
+    spu_id,
+    order_id,
+    appraise,
+    create_time
+from ods_comment_info
+where dt='2020-06-22';
+~~~
 
 #### 订单明细事实表（事务型事实表）
 
@@ -445,6 +630,63 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 - ods_order_detail
 - ods_order_info
+
+~~~ sql
+-- 加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_order_detail partition(dt='2020-06-22')
+select
+    id,
+    order_id,
+    user_id,
+    sku_id,
+    sku_name,
+    order_price,
+    sku_num,
+    create_time,
+    province_id,
+    source_type,
+    source_id,
+    original_amount_d,
+    if(rn=1,final_total_amount -(sum_div_final_amount - final_amount_d),final_amount_d),
+    if(rn=1,feight_fee - (sum_div_feight_fee - feight_fee_d),feight_fee_d),
+    if(rn=1,benefit_reduce_amount - (sum_div_benefit_reduce_amount -benefit_reduce_amount_d), benefit_reduce_amount_d)
+from
+(
+    select
+        od.id,
+        od.order_id,
+        od.user_id,
+        od.sku_id,
+        od.sku_name,
+        od.order_price,
+        od.sku_num,
+        od.create_time,
+        oi.province_id,
+        od.source_type,
+        od.source_id,
+        round(od.order_price*od.sku_num,2) original_amount_d,
+        round(od.order_price*od.sku_num/oi.original_total_amount*oi.final_total_amount,2) final_amount_d,
+        round(od.order_price*od.sku_num/oi.original_total_amount*oi.feight_fee,2) feight_fee_d,
+        round(od.order_price*od.sku_num/oi.original_total_amount*oi.benefit_reduce_amount,2) benefit_reduce_amount_d,
+        row_number() over(partition by od.order_id order by od.id desc) rn,--开窗
+        oi.final_total_amount,
+        oi.feight_fee,
+        oi.benefit_reduce_amount,--分摊优惠之和
+        sum(round(od.order_price*od.sku_num/oi.original_total_amount*oi.final_total_amount,2)) over(partition by od.order_id) sum_div_final_amount,
+        sum(round(od.order_price*od.sku_num/oi.original_total_amount*oi.feight_fee,2)) over(partition by od.order_id) sum_div_feight_fee,
+        sum(round(od.order_price*od.sku_num/oi.original_total_amount*oi.benefit_reduce_amount,2)) over(partition by od.order_id) sum_div_benefit_reduce_amount
+    from
+    (
+        select * from ods_order_detail where dt='2020-06-22'
+    ) od
+    join
+    (
+        select * from ods_order_info where dt='2020-06-22'
+    ) oi
+    on od.order_id=oi.id
+)t1;
+~~~
 
 #### 加购事实表（周期型快照事实表，每日快照）
 
@@ -478,6 +720,27 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 
 - ods_cart_info
 
+~~~sql
+-- 加载数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_cart_info partition(dt='2020-06-14')
+select
+    id,
+    user_id,
+    sku_id,
+    cart_price,
+    sku_num,
+    sku_name,
+    create_time,
+    operate_time,
+    is_ordered,
+    order_time,
+    source_type,
+    source_id
+from ods_cart_info
+where dt='2020-06-22';
+~~~
+
 #### 收藏事实表（周期型快照事实表，每日快照）
 
 ![1640263725174](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/23/204846-877189.png)
@@ -501,6 +764,21 @@ SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
 数据来源
 
 - ods_favor_info
+
+~~~sql
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_favor_info partition(dt='2020-06-14')
+select
+    id,
+    user_id,
+    sku_id,
+    spu_id,
+    is_cancel,
+    create_time,
+    cancel_time
+from ods_favor_info
+where dt='2020-06-14';
+~~~
 
 #### 优惠券领用事实表（累积型快照事实表）
 
@@ -539,10 +817,65 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 ##### 导入数据
 
+![1640326269841](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/141120-474934.png)
+
 数据来源：
 
 - ods_coupon_use
 - dwd_fact_coupon_use
+
+~~~sql
+
+-- 加载数据
+set hive.exec.dynamic.partition.mode=nonstrict;
+set hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_coupon_use partition(dt)
+select
+    if(new.id is null,old.id,new.id),
+    if(new.coupon_id is null,old.coupon_id,new.coupon_id),
+    if(new.user_id is null,old.user_id,new.user_id),
+    if(new.order_id is null,old.order_id,new.order_id),
+    if(new.coupon_status is null,old.coupon_status,new.coupon_status),
+    if(new.get_time is null,old.get_time,new.get_time),
+    if(new.using_time is null,old.using_time,new.using_time),
+    if(new.used_time is null,old.used_time,new.used_time),
+    date_format(if(new.get_time is null,old.get_time,new.get_time),'yyyy-MM-dd')
+from
+(
+    select
+        id,
+        coupon_id,
+        user_id,
+        order_id,
+        coupon_status,
+        get_time,
+        using_time,
+        used_time
+    from dwd_fact_coupon_use
+    where dt in
+    (
+        select
+            date_format(get_time,'yyyy-MM-dd')
+        from ods_coupon_use
+        where dt='2020-06-22'
+    )
+)old
+full outer join
+(
+    select
+        id,
+        coupon_id,
+        user_id,
+        order_id,
+        coupon_status,
+        get_time,
+        using_time,
+        used_time
+    from ods_coupon_use
+    where dt='2020-06-22'
+)new
+on old.id=new.id;
+~~~
 
 #### 订单事实表
 
@@ -578,9 +911,100 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 
 ##### 导入数据
 
+![1640326319568](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/141209-163303.png)
+
 - ods_order_info
 - ods_order_status_log
 - ods_activity_order
+
+~~~sql
+-- 加载数据
+set hive.exec.dynamic.partition.mode=nonstrict;
+set hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_fact_order_info partition(dt)
+select
+    if(new.id is null,old.id,new.id),
+    if(new.order_status is null,old.order_status,new.order_status),
+    if(new.user_id is null,old.user_id,new.user_id),
+    if(new.out_trade_no is null,old.out_trade_no,new.out_trade_no),
+    if(new.tms['1001'] is null,old.create_time,new.tms['1001']),--1001对应未支付状态
+    if(new.tms['1002'] is null,old.payment_time,new.tms['1002']),
+    if(new.tms['1003'] is null,old.cancel_time,new.tms['1003']),
+    if(new.tms['1004'] is null,old.finish_time,new.tms['1004']),
+    if(new.tms['1005'] is null,old.refund_time,new.tms['1005']),
+    if(new.tms['1006'] is null,old.refund_finish_time,new.tms['1006']),
+    if(new.province_id is null,old.province_id,new.province_id),
+    if(new.activity_id is null,old.activity_id,new.activity_id),
+    if(new.original_total_amount is null,old.original_total_amount,new.original_total_amount),
+    if(new.benefit_reduce_amount is null,old.benefit_reduce_amount,new.benefit_reduce_amount),
+    if(new.feight_fee is null,old.feight_fee,new.feight_fee),
+    if(new.final_total_amount is null,old.final_total_amount,new.final_total_amount),
+    date_format(if(new.tms['1001'] is null,old.create_time,new.tms['1001']),'yyyy-MM-dd')
+from
+(
+    select
+        id,
+        order_status,
+        user_id,
+        out_trade_no,
+        create_time,
+        payment_time,
+        cancel_time,
+        finish_time,
+        refund_time,
+        refund_finish_time,
+        province_id,
+        activity_id,
+        original_total_amount,
+        benefit_reduce_amount,
+        feight_fee,
+        final_total_amount
+    from dwd_fact_order_info
+    where dt
+    in
+    (
+        select
+          date_format(create_time,'yyyy-MM-dd')
+        from ods_order_info
+        where dt='2020-06-22'
+    )
+)old
+full outer join
+(
+    select
+        info.id,
+        info.order_status,
+        info.user_id,
+        info.out_trade_no,
+        info.province_id,
+        act.activity_id,
+        log.tms,
+        info.original_total_amount,
+        info.benefit_reduce_amount,
+        info.feight_fee,
+        info.final_total_amount
+    from
+    (
+        select
+            order_id,
+            str_to_map(concat_ws(',',collect_set(concat(order_status,'=',operate_time))),',','=') tms
+        from ods_order_status_log
+        where dt='2020-06-22'
+        group by order_id
+    )log
+    join
+    (
+        select * from ods_order_info where dt='2020-06-14'
+    )info
+    on log.order_id=info.id
+    left join
+    (
+        select * from ods_activity_order where dt='2020-06-14'
+    )act
+    on log.order_id=act.order_id
+)new
+on old.id=new.id;
+~~~
 
 #### 用户维度表（拉链表）
 
@@ -675,3 +1099,98 @@ hive中也可以支持修改或者删除操作，只不过只有分桶表支持�
 ##### 导入数据
 
 - ods_user_info
+
+~~~sql
+-- 第一步：初始化拉链表
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_dim_user_info_his
+select
+    id,
+    name,
+    birthday,
+    gender,
+    email,
+    user_level,
+    create_time,
+    operate_time,
+    '2021-06-22',
+    '9999-99-99'
+from ods_user_info oi
+where oi.dt='2021-06-22';
+
+-- 制作当日临时数据（包括新增和修改数据）每日执行
+-- 2021-06-23
+--old_user_info
+-- 先合并变动信息，再追加新增信息，插入到临时表中
+--2021-06-23
+
+
+--建立临时拉链表
+drop table if exists dwd_dim_user_info_his_tmp;
+create external table dwd_dim_user_info_his_tmp(
+    `id` string COMMENT '用户id',
+    `name` string COMMENT '姓名',
+    `birthday` string COMMENT '生日',
+    `gender` string COMMENT '性别',
+    `email` string COMMENT '邮箱',
+    `user_level` string COMMENT '用户等级',
+    `create_time` string COMMENT '创建时间',
+    `operate_time` string COMMENT '操作时间',
+    `start_date`  string COMMENT '有效开始日期',
+    `end_date`  string COMMENT '有效结束日期'
+) COMMENT '订单拉链临时表'
+stored as parquet
+location '/warehouse/gmall/dwd/dwd_dim_user_info_his_tmp/'
+tblproperties ("parquet.compression"="lzo");
+
+-- 导入数据
+SET hive.input.format=org.apache.hadoop.hive.ql.io.HiveInputFormat;
+insert overwrite table dwd_dim_user_info_his_tmp
+select * from
+(
+    select
+        id,
+        name,
+        birthday,
+        gender,
+        email,
+        user_level,
+        create_time,
+        operate_time,
+        '2020-06-23' start_date,
+        '9999-99-99' end_date
+    from ods_user_info where dt='2020-06-23'
+
+    union all
+    select
+        uh.id,
+        uh.name,
+        uh.birthday,
+        uh.gender,
+        uh.email,
+        uh.user_level,
+        uh.create_time,
+        uh.operate_time,
+        uh.start_date,
+        if(ui.id is not null  and uh.end_date='9999-99-99', date_add(ui.dt,-1), uh.end_date) end_date
+    from dwd_dim_user_info_his uh left join
+    (
+        select
+            *
+        from ods_user_info
+        where dt='2020-06-23'
+    ) ui on uh.id=ui.id
+)his
+order by his.id, start_date;
+
+-- 导入数据
+insert overwrite table dwd_dim_user_info_his select * from dwd_dim_user_info_his_tmp;
+
+
+
+-- 日期转换为时间戳
+select unix_timestamp('2021-06-22','yyyy-MM-dd');
+-- 将时间戳转换为字符串
+select from_unixtime(1624320000,'yyyy-MM-dd');
+~~~
+
