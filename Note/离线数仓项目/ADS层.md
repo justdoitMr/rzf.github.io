@@ -355,26 +355,156 @@ group by login_date_first --按照三天的日期对数据进行分组
 
 dwt_uv_topic中有一个累计活跃天数字段，如果字段为1，标识指在安装当天启动过，之后再也没有登陆过。还需要保证登录时间在7天之前
 
+###### 创建表
+
+![1640415263829](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/145425-800275.png)
+
+###### 装载数据
+
+思路很简单，首次登录时间==末次登录时间即可，说明仅仅在安装当天登录了一次。
+
+~~~sql
+select
+    '2021-06-17',
+    count(*)
+from
+    dwt_uv_topic
+where login_date_first =login_date_last -- 安装时间等于启动时间，这个值为1 ，但是还需要保证在7天之前
+and login_date_first<=date_add('2021-06-14',-7);
+~~~
+
 ##### 本周回流用户
 
 需求定义：
 
 本周回流用户：上周未活跃，本周活跃的设备，且不是本周新增设备
 
-```sql
-drop table if exists ads_back_count;
-create external table ads_back_count( 
-    `dt` string COMMENT '统计日期',
-    `wk_dt` string COMMENT '统计日期所在周',
-    `wastage_count` bigint COMMENT '回流设备数'
-) COMMENT '本周回流用户数'
-row format delimited fields terminated by '\t'
-location '/warehouse/gmall/ads/ads_back_count';
-```
+###### 创建表
+
+![1640415443444](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640415443444.png)
+
+###### 装载数据
 
 应该是以周为计算单位，因为本周过完后，才可以统计回流了几个用户。但是本项目中为了统一，也是按照天计算。
 
-本周回流用户肯定出自于本周活跃用户，然后从种去掉本周新增用户和上周活跃用户，剩余的数据就是本周回流用户。
+**本周回流用户肯定出自于本周活跃用户**，然后从种去掉本周新增用户和上周活跃用户，剩余的数据就是本周回流用户。
+
+> 总体思路：先求出本周活跃用户，除掉本周新增用户，除掉上周活跃用户。
+
+**首先获取本周活跃用户**
+
+~~~sql
+select
+	mid_id
+from dws_uv_detail_daycount
+where dt>=data_add(next_day('2020-06-14','monday'),-7)
+and dt<=data_add(next_day('2020-06-14','monday'),-1)
+and login_count>0 --可能存在有的用户在前一天11：59登录，但是在第二天12:00后使用
+group by mid_id
+~~~
+
+**获取本周新增用户**
+
+~~~sql
+select
+	mid_id
+from dwt_uv_topic
+where login_date_first>=data_add(next_day('2020-06-14','monday'),-7)
+and login_date_first<=data_add(next_day('2020-06-14','monday'),-1)
+~~~
+
+下面一条sql效果和上面两个子查询的join结果一样，先查询本周活跃用户，然后去掉本周新增用户
+
+也可以使用一条sql搞定，从dwt层求出当周的活跃，通过最后登录时间求出，最后还需要减去上周活跃过的用户
+
+~~~sql
+select
+	mid_id
+from dwt_uv_topic
+where login_date_last>=data_add(next_day('2020-06-14','monday'),-7)
+and login_date_last<=data_add(next_day('2020-06-14','monday'),-1)--还需要过滤掉本周新增的数据
+and login_date_first < data_add(next_day('2020-06-14','monday'),-7)
+~~~
+
+**计算上周活跃用户**
+
+~~~sql
+select
+	mid_id
+from dws_uv_detail_daycount
+where dt>=data_add(next_day('2020-06-14','monday'),-7-7)
+and dt<=data_add(next_day('2020-06-14','monday'),-1-7)
+and login_count>0
+group by mid_id
+~~~
+
+将上面的sql和上周活跃用户的数据进行left join操作，最终结果是老用户并且上周没有活跃，中间的是老用户并且上周活跃，最下面的是新增用户(实际就是将本周活跃用户 left join 上周活跃用户)
+
+也可以使用not in 语法
+
+~~~sql
+-- 合并操作
+
+(
+	select
+		mid_id
+	from dwt_uv_topic
+	where login_date_last>=data_add(next_day('2020-06-14','monday'),-7)
+	and login_date_last<=data_add(next_day('2020-06-14','monday'),-1)--还需要过滤掉本周新增的数据
+	and login_date_first < data_add(next_day('2020-06-14','monday'),-7)
+)current_wk
+left join
+(
+	select
+		mid_id
+
+	from dws_uv_detail_daycount
+	where dt>=data_add(next_day('2020-06-14','monday'),-7-7)
+	and dt<=data_add(next_day('2020-06-14','monday'),-1-7)
+	and login_count>0
+	group by mid_id
+)last_wk
+on current_wk.mid_id = last_wk.mid_id
+~~~
+
+**完整sql**
+
+~~~sql
+-- 从子查询种去选择数据
+
+select
+	'2020-06-14',
+	concat(date_add(next_day('2021-06-22','monday'),-7),'_',date_add(next_day('2021-06-22','monday'),-1)),
+	count(*)
+from
+(
+	(
+		select
+			mid_id
+		from dwt_uv_topic
+		where login_date_last>=data_add(next_day('2020-06-14','monday'),-7)
+		and login_date_last<=data_add(next_day('2020-06-14','monday'),-1)--还需要过滤掉本周新增的数据
+		and login_date_first < data_add(next_day('2020-06-14','monday'),-7)
+	)current_wk
+	left join
+	(
+		select
+			mid_id
+
+		from dws_uv_detail_daycount
+		where dt>=data_add(next_day('2020-06-14','monday'),-7-7)
+		and dt<=data_add(next_day('2020-06-14','monday'),-1-7)
+		and login_count>0
+		group by mid_id
+	)last_wk
+	on current_wk.mid_id = last_wk.mid_id
+)
+where last_wk.mid_id is null;
+
+-- 在这个需求中，减法操作使用not in实现也可以使用left join方法实现
+~~~
+
+> 减法操作使用not in实现也可以使用left join方法实现
 
 
 
@@ -384,20 +514,35 @@ location '/warehouse/gmall/ads/ads_back_count';
 
 流失用户：最近7天未活跃的设备，也就是最后一次活跃时间在7天前。
 
+###### 创建表
 
+![1640416226996](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/151036-558085.png)
+
+###### 数据装载
+
+~~~sql
+select
+     '2020-06-25',
+     count(*)
+from 
+(
+    select 
+        mid_id
+    from dwt_uv_topic
+    where login_date_last<=date_add('2020-06-25',-7)
+    group by mid_id
+)t1;
+~~~
 
 ##### 最近连续三周活跃用户数
 
-```sql
-drop table if exists ads_continuity_wk_count;
-create external table ads_continuity_wk_count( 
-    `dt` string COMMENT '统计日期,一般用结束周周日日期,如果每天计算一次,可用当天日期',
-    `wk_dt` string COMMENT '持续时间',
-    `continuity_count` bigint COMMENT '活跃用户数'
-) COMMENT '最近连续三周活跃用户数'
-row format delimited fields terminated by '\t'
-location '/warehouse/gmall/ads/ads_continuity_wk_count';
-```
+###### 创建表
+
+![1640416388326](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/151310-28148.png)
+
+本质上是找三个周内都活跃的用户：
+
+**第一种思路**
 
 **找共有的部分，最简单的就是将子查询进行内连接，返回的结果就是多个子查询的公共部分。**
 
@@ -409,20 +554,149 @@ location '/warehouse/gmall/ads/ads_continuity_wk_count';
 
 为什么可以这样做？
 
-因为我们在分别求这三周种活跃用户的时候，分别按照设备的mid进行分组操作了，每一个设备id如果活跃了就只有一条数据，也就是说一组种一个设备id只能出现一次。然后我们进行union alla操作，然后再次分组，如果一组种个数是3，那么说明连续三周都活跃。这样做不会涉及多个表join操作，效率高。
+因为我们在分别求这三周种活跃用户的时候，分别按照设备的mid进行分组操作了，每一个设备id如果活跃了就只有一条数据，也就是说一组种一个设备id只能出现一次，已经进行去重操作。然后我们进行union all操作，然后再次分组，如果一组种个数是3，那么说明连续三周都活跃。这样做不会涉及多个表join操作，效率高。
+
+###### 数据装载
+
+首先查找本周的活跃用户，在dws层数据，每一个设备的行为占据一行，已经对数据进行去重，是按照天的单位去重。
+
+但是我们在这里考虑的是一周，所以还需要考虑周去重问题,group by 为什么可以去重，group by之后，一组只能有一行数据，相当于去重
+distinct在hive中不经常用，因为distinct是全局去重，所有数据分发到一个reduce中，效率低，而group by可以将一组数据发送到一个reduce中
+
+###### 思路一
+
+**本周活跃用户**
+
+~~~sql
+select
+	mid_id
+from dws_uv_detail_daycount
+where dt>=data_add(next_day('2020-06-14','monday'),-7)
+and dt<=data_add(next_day('2020-06-14','monday'),-1)
+and login_count>0 --可能存在有的用户在前一天11：59登录，但是在第二天12:00后使用
+group by mid_id
+~~~
+
+**上周活跃用户**
+
+~~~sql
+select
+	mid_id
+from dws_uv_detail_daycount
+where dt>=data_add(next_day('2020-06-14','monday'),-7-7)
+and dt<=data_add(next_day('2020-06-14','monday'),-1-7)
+and login_count>0
+group by mid_id
+~~~
+
+**上上周活跃用户**
+
+~~~sql
+select
+	mid_id
+from dws_uv_detail_daycount
+where dt>=data_add(next_day('2020-06-14','monday'),-7-7-7)
+and dt<=data_add(next_day('2020-06-14','monday'),-1-7-7)
+and login_count>0
+group by mid_id
+~~~
+
+**使用内连接找共有部分**
+
+~~~sql
+select
+       '2021-06-22',
+       concat(date_add(next_day('2021-06-22','monday'),-7-7-7),'_',date_add(next_day('2021-06-22','monday'),-1)),
+       count(*)
+from
+(
+    select
+        mid_id
+    from dws_uv_detail_daycount
+    where dt>=date_add(next_day('2021-06-22','monday'),-7)
+    and dt<=date_add(next_day('2021-06-22','monday'),-1)
+    and login_count>0
+    group by mid_id
+)t1
+join
+(
+-- 上周的数据
+    select
+        mid_id
+    from dws_uv_detail_daycount
+    where dt>=date_add(next_day('2021-06-22','monday'),-7-7)
+    and dt<=date_add(next_day('2021-06-22','monday'),-1-7)
+    and login_count>0
+    group by mid_id
+)t2
+on t1.mid_id=t2.mid_id
+(
+    -- 上上周数据
+    select
+        mid_id
+    from dws_uv_detail_daycount
+    where dt>=date_add(next_day('2021-06-22','monday'),-7-7-7)
+    and dt<=date_add(next_day('2021-06-22','monday'),-1-7-7)
+    and login_count>0
+    group by mid_id
+)t3
+on t1.mid_id=t3.mid_id
+~~~
+
+上面这种方法效率不高，因为每一个子查询数据量都不是很小，并且join很多
+
+###### 思路二
+
+将三周的数据不进行join操作，而是进行union all操作，然后再按照设备id进行分组操作，统计每组中数据的条数。
+
+~~~sql
+-- 第二种思路，使用union all
+insert into table ads_continuity_wk_count
+select
+    '2020-06-25',
+    concat(date_add(next_day('2020-06-25','MO'),-7*3),'_',date_add(next_day('2020-06-25','MO'),-1)),
+    count(*)
+from
+(
+    select
+        mid_id
+    from
+    (
+        select
+            mid_id
+        from dws_uv_detail_daycount
+        where dt>=date_add(next_day('2020-06-25','monday'),-7)
+        and dt<=date_add(next_day('2020-06-25','monday'),-1)
+        group by mid_id
+
+        union all
+
+        select
+            mid_id
+        from dws_uv_detail_daycount
+        where dt>=date_add(next_day('2020-06-25','monday'),-7*2)
+        and dt<=date_add(next_day('2020-06-25','monday'),-7-1)
+        group by mid_id
+
+        union all
+
+        select
+            mid_id
+        from dws_uv_detail_daycount
+        where dt>=date_add(next_day('2020-06-25','monday'),-7*3)
+        and dt<=date_add(next_day('2020-06-25','monday'),-7*2-1)
+        group by mid_id
+    )t1
+    group by mid_id
+    having count(*)=3
+)t2;
+~~~
 
 ##### 最近七天内连续三天活跃用户数
 
-```sql
-drop table if exists ads_continuity_uv_count;
-create external table ads_continuity_uv_count( 
-    `dt` string COMMENT '统计日期',
-    `wk_dt` string COMMENT '最近7天日期',
-    `continuity_count` bigint
-) COMMENT '最近七天内连续三天活跃用户数'
-row format delimited fields terminated by '\t'
-location '/warehouse/gmall/ads/ads_continuity_uv_count';
-```
+###### 创建表
+
+![1640416914303](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/152259-59395.png)
 
 wk_dt:使用七天中的第一天的日期拼接第七天的日期。
 
@@ -432,13 +706,129 @@ wk_dt:使用七天中的第一天的日期拼接第七天的日期。
 
 ![1640308302643](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/091143-587366.png)
 
+**第一种思路**
+
 找连续三天的，可以先找到中间一行数据，然后和前一条数据和后一条数据相比，也可以找到每一个日期下边的两个日期进行比较，因为我们的日期是经过排序的，并且经过去重的，如果第一个日期和第三个日期相差2，那么就一定是连续的。
 
 ![1640308780768](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/091942-243745.png)
 
-**文档思路**
+**第二种思路**
 
 ![1640310103843](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/094145-112550.png)
+
+###### 数据装载
+
+###### 方案一
+
+**首先找到所有人最近七天内的登录记录**
+
+~~~ sql
+--1、 首先找到所有人最近七天内的登录记录
+
+--2、判断死否是连续三天，使用开窗函数lead获取某一行的下边某几行某几个字段的值
+
+select
+	count(*)
+from
+(
+	select
+		mid_id,
+	from
+	(
+		select
+			mid_id,
+			datediff(lead2,dt) diff
+
+		from
+		(
+			select
+				mid_id,
+				dt,
+				lead(dt,2,'1970-01-01')over(partition by mid_id order by dt) lead2 -- 分组开窗
+			from dws_uv_detail_daycount
+			where dt>=data_add('2020-06-14',-6)
+			and dt<=data_add('2020-06-14',-1)
+			and login_count>0
+		)t1
+	)t2
+	where diff =2
+	group by mid_id -- 去重操作
+)t3
+
+-- 查询最近七天登录的用户
+select
+    count(*)
+from
+(
+    select
+        mid_id
+    from
+    (
+        select
+            mid_id,
+            datediff(dt,lead2) diff
+        from
+        (
+            select
+                mid_id,
+                dt,
+                lead(dt,2,'1970-01-01') over(partition by mid_id order by dt)lead2
+            from dws_uv_detail_daycount
+            where dt>=date_add('2021-06-22',-6)
+            and dt<='2021-06-22'
+            and login_count>0
+        )t1
+    )t2
+    where diff=2
+    group by mid_id
+)t3;
+~~~
+
+###### 方案二
+
+开窗-=-》排序--》dt-rank-->根据相减的结果的差值是否相同，插值相同的并且有3行，说明是连续登录
+
+~~~sql
+-- 思路二
+insert into table ads_continuity_uv_count
+select
+    '2020-06-22',
+    concat(date_add('2020-06-22',-6),'_','2020-06-22'),
+    count(*)
+from
+(
+    select mid_id
+    from
+    (
+        select mid_id
+        from
+        (
+            select
+                mid_id,
+                date_sub(dt,rank) date_dif -- dt-rank的结果
+            from
+            (
+                select
+                    mid_id,
+                    dt,
+                    rank() over(partition by mid_id order by dt) rank
+                from dws_uv_detail_daycount
+                where dt>=date_add('2020-06-22',-6) and dt<='2020-06-22'
+            )t1
+        )t2
+        group by mid_id,date_dif
+        having count(*)>=3 --分组计算个数
+    )t3 
+    group by mid_id --按照mid进行分组
+)t4;
+
+~~~
+
+
+
+
+
+
 
 #### 会员主题
 
