@@ -824,12 +824,6 @@ from
 
 ~~~
 
-
-
-
-
-
-
 #### 会员主题
 
 ##### 会员信息
@@ -839,7 +833,7 @@ from
 ![1640310556506](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/24/094917-677400.png)
 
 - 活跃会员数：指的是当天活跃的用户
-- 新增会员指的是新增用户
+- 新增会员：指的是新增用户
 - 新增消费会员：统计的当天，如果用户是第一次支付，那么就算新增消费会员。
 - 总付费会员数：统计总的付过费的用户一共有多少。
 - 总会员数：统计到目前为止一共有多少个用户。
@@ -847,11 +841,32 @@ from
 - 会员付费率：总付费会员数/总会员数
 - 会员新鲜度：当日的新增/当日的活跃
 
+###### 装载数据
 
+- 求新增会员和活跃会员都是从dwt层计算
+- 活跃人数最后登录时间等于今天
+- 当天新增会员：首次登录时间等于今天
+- 新增消费会员数：首次支付时间等于今天即可
+- 总付费会员，求一共付费的用户有多少人
+
+~~~ sql
+insert into table ads_user_topic
+select
+    '2020-06-22',
+    sum(if(login_date_last='2020-06-22',1,0)),--当天活跃人数
+    sum(if(login_date_first='2020-06-22',1,0)),--当天新增人数
+    sum(if(payment_date_first='2020-06-22',1,0)),-- 当天消费会员，首次支付时间等于今天即可
+    sum(if(payment_count>0,1,0)),--总付费会员
+    count(*),--总会员数
+    sum(if(login_date_last='2020-06-22',1,0))/count(*),
+    sum(if(payment_count>0,1,0))/count(*),
+    sum(if(login_date_first='2020-06-22',1,0))/sum(if(login_date_last='2020-06-22',1,0))
+from dwt_user_topic;
+~~~
 
 ##### 漏斗分析
 
-统计“浏览首页->浏览商品详情页->加入购物车->下单->支付”的转化率
+统计：“浏览首页->浏览商品详情页->加入购物车->下单->支付”的转化率
 
 思路：统计各个行为的人数，然后计算比值。
 
@@ -870,6 +885,116 @@ from
 - 当天下单人数：去订单事实表中计算，记录了当天所有的订单
 - 当天支付人数：去支付事实表中，获取当天分区数据，然后按照用户id分组去重统计人数
   - 上面三个字段也可以从dws_user_action_daycount计算，根据cart_count,order_count,payment_count计算，如果大于0，说明今天进行了加购物车，下订单和支付操作。本项目中从dws层计算，因为dws层数据相对较小，然后从一张表中读取一次数据既可以计算，性能好。
+
+###### 数据装载
+
+**首先计算浏览首页的人数**
+
+~~~sql
+select
+	count(*)
+from
+(
+	select
+		mid_id
+	from dwd_page_log
+	where dt='2020-06-14'
+	and page_id='home'
+	group by mid_id -- 对用户进行去重
+)t1
+~~~
+
+**计算浏览了商品详情页的人数**
+
+~~~sql
+select
+	count(*)
+from
+(
+	select
+		mid_id
+	from dwd_page_log
+	where dt='2020-06-14'
+	and page_id='good_detail'
+	group by mid_id -- 对用户进行去重
+)t1
+~~~
+
+**合并两个子查询**
+
+~~~sql
+select
+	sum(if(page_id='home',1,0),
+	sum(if(page_id='good_detail',1,0))
+from
+(
+	select
+		mid_id,
+		page_id
+	from dwd_page_log
+	where dt in('home','good_detail')
+	group by mid_id,page_id
+)t2
+~~~
+
+**计算加购物车，订单数和支付数量**
+
+~~~sql
+select
+	sum(if(cart_count>0,1,0)),
+	sum(if(order_count>0,1,0)),
+	sum(if(payment_count>0,1,0))
+from dws_user_action_daycount
+where dt='2020-06-14'
+~~~
+
+**完整sql**
+
+~~~sql
+with
+tmp_uv as
+(
+    select
+        '2020-06-14' dt,
+        sum(if(array_contains(pages,'home'),1,0)) home_count,
+        sum(if(array_contains(pages,'good_detail'),1,0)) good_detail_count
+    from
+    (
+        select
+            mid_id,
+            collect_set(page_id) pages
+        from dwd_page_log
+        where dt='2020-06-14'
+        and page_id in ('home','good_detail')
+        group by mid_id
+    )tmp
+),
+tmp_cop as
+(
+    select
+        '2020-06-14' dt,
+        sum(if(cart_count>0,1,0)) cart_count,
+        sum(if(order_count>0,1,0)) order_count,
+        sum(if(payment_count>0,1,0)) payment_count
+    from dws_user_action_daycount
+    where dt='2020-06-14'
+)
+insert into table ads_user_action_convert_day
+select
+    tmp_uv.dt,
+    tmp_uv.home_count,
+    tmp_uv.good_detail_count,
+    tmp_uv.good_detail_count/tmp_uv.home_count*100,
+    tmp_cop.cart_count,
+    tmp_cop.cart_count/tmp_uv.good_detail_count*100,
+    tmp_cop.order_count,
+    tmp_cop.order_count/tmp_cop.cart_count*100,
+    tmp_cop.payment_count,
+    tmp_cop.payment_count/tmp_cop.order_count*100
+from tmp_uv
+join tmp_cop
+on tmp_uv.dt=tmp_cop.dt;
+~~~
 
 #### 商品主题
 
