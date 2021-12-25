@@ -600,5 +600,353 @@ from
 where rk <=10;--去排名前十
 ~~~
 
+#### 营销主题（用户+商品+购买行为）
+
+##### 下单数目统计
+
+需求分析：统计每日下单数，下单金额及下单用户数。
+
+###### 创建表
+
+![1640398576178](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/101617-652874.png)
+
+- 下单笔数：当天所有人下单次数之和
+- 单日下单金额：统计当天下单金额的总和，GMV.
+- 单日下单用户数：统计当日有多少用户下单
+
+> gmv指的是一段时间内的成交总额，用于电商行业，一般包括拍下的未支付的订单金额。
+
+###### 装载数据
+
+~~~ sql
+-- 三个字段都可以从dwd层的订单事实表中去计算，但是dwd层是最明细的数据，需要对订单进行去重操作
+-- 也可以去dws层的用户主题表中计算，一行数据标识一个用户当天的各种行为，对每一个人的下单笔数和下单金额相加，就是总的下单金额和下单笔数
+-- 在这里从dws层计算数据，相当于已经做过当天的汇总数据
 
 
+-- 装载数据
+
+select
+    '2021-06-22',
+    sum(order_count),
+    sum(order_amount),
+    sum(if(order_count>0,1,0))
+from dws_user_action_daycount
+where dt='2021-06-22';
+~~~
+
+##### 支付信息统计
+
+每日支付金额、支付人数、支付商品数、支付笔数以及下单到支付的平均时长（取自DWD）
+
+###### 创建表
+
+![1640398979981](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/102305-882956.png)
+
+单日支付商品数，在这里统计一共有多少sku被支付。
+
+单日支付人数：统计当天一共有多少个人支付了。
+
+下单到支付的平均时长：首先获取下单时间，然后获取支付时间，最后取品均值即可。
+
+###### 装载数据
+
+**计算单日支付笔数，支付金额，支付人数**
+
+~~~sql
+-- 还是从dws层的用户行为表中统计，只需要累加即可
+-- 装载数据
+select
+    '2021-06-22' dt,
+    sum(payment_count),
+    sum(payment_amount),
+    sum(if(payment_count>0,1,0))
+from dws_user_action_daycount
+where dt='2021-06-22';
+~~~
+
+**计算单日支付商品数有，根据sku**
+
+~~~sql
+-- 查询被支付的商品数，也就是一共有多少个sku被支付
+-- 在这里也可以使用sum if，但是我们使用where，因为可以过滤，减少很大一部分数据
+select
+    '2021-06-22' dt,
+    count(*)
+from dws_sku_action_daycount
+where dt='2021-02-22'
+and payment_count>0;
+~~~
+
+**计算订单时间和支付时间**
+
+在dwd_fact_order_info中有订单的创建时间和支付时间，但是有的订单可能创建了，但是最终并没有被支付，所以需要过滤掉没有被支付的订单。
+
+~~~sql
+select
+    '2021-06-22' dt,
+    avg(unix_timestamp(payment_time)-unix_timestamp(create_time))/60
+from dwd_fact_order_info
+where dt='2021-06-22'
+and payment_time is not null;
+~~~
+
+**最终sql**
+
+~~~sql
+--最终sql
+select
+    tmp_payment.dt,
+    tmp_payment.payment_count,
+    tmp_payment.payment_amount,
+    tmp_payment.payment_user_count,
+    tmp_skucount.payment_sku_count,
+    tmp_time.payment_avg_time
+from
+(
+    select
+        '2020-06-14' dt,
+        sum(payment_count) payment_count,
+        sum(payment_amount) payment_amount,
+        sum(if(payment_count>0,1,0)) payment_user_count
+    from dws_user_action_daycount
+    where dt='2020-06-14'
+)tmp_payment
+join
+(
+    select
+        '2020-06-14' dt,
+        sum(if(payment_count>0,1,0)) payment_sku_count
+    from dws_sku_action_daycount
+    where dt='2020-06-14'
+)tmp_skucount on tmp_payment.dt=tmp_skucount.dt
+join
+(
+    select
+        '2020-06-14' dt,
+        sum(unix_timestamp(payment_time)-unix_timestamp(create_time))/count(*)/60 payment_avg_time
+    from dwd_fact_order_info
+    where dt='2020-06-14'
+    and payment_time is not null
+)tmp_time on tmp_payment.dt=tmp_time.dt;
+~~~
+
+##### 品牌复购率
+
+重复购买就是复购，通常统计一段时间内的复购率。可能以周，月，季度为单位。
+
+> 计算方法：**购买过该品牌的人数（下单次数>=1）/重复购买过该品牌的人数(下单次数>=2)**单词复购率
+>
+> 购买过该品牌的人数（下单次数>=2）/重复购买过该品牌的人数(下单次数>=3)多次复购率
+
+###### 创建表
+
+在这里统计的是一个自然月，而不是最近30天。
+
+![1640399025605](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/102346-825664.png)
+
+统计每个category1品类下的每一个tm_id下的单次复购率和多次复购率。
+
+![1640404886289](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/120128-911742.png)
+
+我们需要计算的，是购买品牌A次数大于等于1的人数，购买品牌B次数大于等于2的有多少人。因为有多个品牌，所以我们需要求多个品牌。
+
+###### 装载数据
+
+dwd_order_detail层的用户订单表中有用户和sku之间的关系，用户没有和品牌有直接的关系，所以我们需要将dwd_order_detail表和品牌表进行join操作。
+
+1. 计算每一个用户购买过的sku
+
+~~~ sql
+select
+	user_id,
+	sku_id
+from dwd_fact_order_detail
+where data_format(dt,'yyyy-MM')=data_format('2020-06-14','yyyy-MM')
+~~~
+
+2. 获取品牌id,品牌名字，categoryid和一级种类名
+
+~~~sql
+select
+	id,
+	tm_id,
+	category1_id,
+	category1_name
+from dwd_dim_sku_info
+where dt='2020-06-14'
+~~~
+
+一行数据代表一个用户购买的商品，后面还有商品品牌和种类。
+我们要统计每一个用户购买某一个品牌的次数，所以我们直接按照userid+品牌id进行分组即可
+
+每一个用户购买每一个以及品牌下面一个品牌商品的次数
+
+3. 因为需要第一个sql的结果，所以使用left join
+
+~~~sql
+select
+	user_id,
+	tm_id,
+	category1_id,
+	category1_name
+	count(*)--统计购买次数
+from 
+(
+	select
+		user_id,
+		sku_id
+	from dwd_fact_order_detail
+	where data_format(dt,'yyyy-MM')=data_format('2020-06-14','yyyy-MM')
+)od
+left join
+(
+	select
+		id,
+		tm_id,
+		category1_id,
+		category1_name
+	from dwd_dim_sku_info
+	where dt='2020-06-14'
+)sku
+on od.sku_id=sku.sku_id
+group by user_id,tm_id,category1_id,category1_name
+~~~
+
+**完整sql**
+
+~~~sql
+select
+	 tm_id,
+    category1_id,
+    category1_name,
+    sum(if(order_count>=1,1,0)) buycount,
+    sum(if(order_count>=2,1,0)) buyTwiceLast,
+    sum(if(order_count>=2,1,0))/sum( if(order_count>=1,1,0)) buyTwiceLastRatio,
+    sum(if(order_count>=3,1,0))  buy3timeLast  ,
+    sum(if(order_count>=3,1,0))/sum( if(order_count>=1,1,0)) buy3timeLastRatio ,
+    date_format('2020-06-14' ,'yyyy-MM') stat_mn,
+    '2020-06-14' stat_date
+
+from 
+(
+	select
+		user_id,
+		tm_id,
+		category1_id,
+		category1_name
+		count(*)  order_count--统计购买次数
+	from 
+	(
+		select
+			user_id,
+			sku_id
+		from dwd_fact_order_detail
+		where data_format(dt,'yyyy-MM')=data_format('2020-06-14','yyyy-MM')
+	)od
+	left join
+	(
+		select
+			id,
+			tm_id,
+			category1_id,
+			category1_name
+		from dwd_dim_sku_info
+		where dt='2020-06-14'
+	)sku
+	on od.sku_id=sku.sku_id
+	group by user_id,tm_id,category1_id,category1_name
+)t1
+group by tm_id,category1_id,category1_name -- 相同品牌，相同品类的分到一组
+
+
+with
+tmp_order as
+(
+    select
+        user_id,
+        order_stats_struct.sku_id sku_id,
+        order_stats_struct.order_count order_count
+    from dws_user_action_daycount lateral view explode(order_detail_stats) tmp as order_stats_struct
+    where date_format(dt,'yyyy-MM')=date_format('2020-06-14','yyyy-MM')--过滤出一整个月的数据
+),
+tmp_sku as
+(
+    select
+        id,
+        tm_id,
+        category1_id,
+        category1_name
+    from dwd_dim_sku_info
+    where dt='2020-06-14'
+)
+~~~
+
+上面的思路中，最开始是去dwd_fact_order_detail最明细的数据，并且是一个月的数据，数据量比较的大，在dws_user_action_daycount中有订单的详细信息，是以数组的形式存在的，表示每一个user购买过的sku信息。也就是从这一张表中可以获取一个user购买过的sku信息。数据计算量小。
+
+我们最终想要得到的结果是每一个user购买过某一个品牌的次数，我们先可以间接的获取每一个user购买过的每一个sku的次数，然后在和商品维度表进行join操作，然后在按照品牌分组，数据量相对较小。
+
+**完整sql**
+
+~~~sql
+
+with
+tmp_order as
+(
+    select
+        user_id,
+        order_stats_struct.sku_id sku_id,
+        order_stats_struct.order_count order_count
+    from dws_user_action_daycount lateral view explode(order_detail_stats) tmp as order_stats_struct -- 首先把结构体数组炸裂开
+    where date_format(dt,'yyyy-MM')=date_format('2020-06-14','yyyy-MM')--过滤出一整个月的数据
+),
+tmp_sku as
+(
+-- 商品维度表
+    select
+        id,
+        tm_id,
+        category1_id,
+        category1_name
+    from dwd_dim_sku_info
+    where dt='2020-06-14'
+)
+
+
+-- 装载数据
+
+insert into table ads_sale_tm_category1_stat_mn
+select
+    tm_id,
+    category1_id,
+    category1_name,
+    sum(if(order_count>=1,1,0)) buycount,
+    sum(if(order_count>=2,1,0)) buyTwiceLast,
+    sum(if(order_count>=2,1,0))/sum( if(order_count>=1,1,0)) buyTwiceLastRatio,
+    sum(if(order_count>=3,1,0))  buy3timeLast  ,
+    sum(if(order_count>=3,1,0))/sum( if(order_count>=1,1,0)) buy3timeLastRatio ,
+    date_format('2020-06-14' ,'yyyy-MM') stat_mn,
+    '2020-06-14' stat_date
+from
+(
+    select
+        tmp_order.user_id,
+        tmp_sku.category1_id,
+        tmp_sku.category1_name,
+        tmp_sku.tm_id,
+        sum(order_count) order_count
+    from tmp_order
+    join tmp_sku
+    on tmp_order.sku_id=tmp_sku.id
+    group by tmp_order.user_id,tmp_sku.category1_id,tmp_sku.category1_name,tmp_sku.tm_id
+)tmp
+group by tm_id, category1_id, category1_name;
+~~~
+
+#### 地区主题
+
+##### 地区主题信息
+
+###### 创建表
+
+![1640399065390](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/102426-684635.png)
