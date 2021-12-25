@@ -996,6 +996,29 @@ join tmp_cop
 on tmp_uv.dt=tmp_cop.dt;
 ~~~
 
+###### 第二种写法
+
+~~~sql
+select
+    mid_id,
+    page_struct.page_id
+from dws_uv_detail_daycount lateral view explode(page_stats) tmp as page_struct --page_struct是炸出来的那一列的列明
+where dt='2021-06-22';
+
+-- 替换子查询
+select
+    sum(if(page_id='home',1,0)),
+    sum(if(page_id='good_detail',1,0))
+from
+(
+    select
+        mid_id,
+        page_struct.page_id
+    from dws_uv_detail_daycount lateral view explode(page_stats) tmp as page_struct --page_struct是炸出来的那一列的列明
+    where dt='2021-06-22'
+)t1;
+~~~
+
 #### 商品主题
 
 ##### 商品个数信息
@@ -1098,7 +1121,7 @@ from
 
 ##### 商品销量排名
 
-创建表
+###### 创建表
 
 ![1640395995313](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/093316-997264.png)
 
@@ -1136,9 +1159,22 @@ limit 10;
 
 ![1640396358312](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640396358312.png)
 
+###### 装载数据
 
-
-
+~~~sql
+-- 装载数据
+insert into table ads_product_favor_topN
+select
+    '2020-06-22' dt,
+    sku_id,
+    favor_count
+from
+    dws_sku_action_daycount
+where
+    dt='2020-06-22'
+order by favor_count desc
+limit 10;
+~~~
 
 ##### 商品加入购物车排名
 
@@ -1148,9 +1184,22 @@ limit 10;
 
 ![1640396395133](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640396395133.png)
 
+###### 装载数据
 
-
-
+~~~sql
+-- 装载数据
+insert into table ads_product_cart_topN
+select
+    '2020-06-22' dt,
+    sku_id,
+    cart_count
+from
+    dws_sku_action_daycount
+where
+    dt='2020-06-22'
+order by cart_count desc
+limit 10;
+~~~
 
 ##### 商品退款率排名（最近30天）
 
@@ -1181,6 +1230,8 @@ limit 10;
 也是按照差评率排序，然后求top 10。
 
 差评率：差评数/总评价次数
+
+###### 创建表
 
 ![1640396554363](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/094235-74114.png)
 
