@@ -1799,14 +1799,14 @@ ps -ef | grep redis-
 
 **持久化过程保存什么**
 
-- 将当前**数据状态**进行保存，快照形式，存储数据结果，存储格式简单，关注点在数据
-- 将数据的**操作过程**进行保存，日志形式，存储操作过程，存储格式复杂，关注点在数据的操作过程
+- 将当前**数据状态**进行保存，快照形式，存储数据结果，存储格式简单，关注点在**数据**
+- 将数据的**操作过程**进行保存，日志形式，存储操作过程，存储格式复杂，关注点在数据的**操作过程**
 
 ![1619323113827](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/25/115835-54169.png)
 
 在redis中，既有快照形式的数据结果存储，也就中间过程的步骤存储。
 
-### RDB持久化
+### RDB持久化(数据状态持久化)
 
 #### RDB启动方式
 
@@ -1824,7 +1824,7 @@ ps -ef | grep redis-
 save
 ~~~
 
-作用：执行save命令会在data目录下生成一个rdb结尾的文件，文件中存储的是当前数据库的快照信息。
+作用：执行save命令会在data目录下生成一个rdb结尾的文件，文件中存储的是**当前数据库的快照信息**。
 
 **save相关指令的配置**
 
@@ -1838,7 +1838,7 @@ save
   - 说明：设置存储至本地数据库时是否压缩数据，默认为 yes，采用 LZF 压缩 
   - 经验：通常默认为开启状态，如果设置为no，可以节省 CPU 运行时间，但会使存储的文件变大（巨大）
 - rdbchecksum yes 
-  - 说明：设置是否进行RDB文件格式校验，该校验过程在写文件和读文件过程均进行 
+  - 说明：设置是否进行RDB文件格式校验，**该校验过程在写文件和读文件过程均进行** 
   - 经验：通常默认为开启状态，如果设置为no，可以节约读写性过程约10%时间消耗，但是存储一定的数据损坏风险
 
 **修改配置文件**
@@ -1861,7 +1861,7 @@ rdbchecksum yes
 
 #### 数据恢复
 
-现在退出redis客户端并且杀死redis服务器进程，现在重新启动服务，并且连接客户端，查询数据发现已经全部恢复，redis是在启动服务的时候，重新从持久化文件中加载数据。
+现在退出redis客户端并且杀死redis服务器进程，现在重新启动服务，并且连接客户端，查询数据发现已经全部恢复，**redis是在启动服务的时候，重新从持久化文件中加载数据。**
 
 #### save指令的工作原理
 
@@ -1887,22 +1887,22 @@ bgsave
 
 作用：手动启动后台保存操作，但不是立即执行
 
-![1619325155397](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619325155397.png)
+![1619325155397](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/181432-262723.png)
 
 save指令是如果调用，那么就会立即执行持久化操作，但是bgsave的话会在后台使用folk命令创建一个子进程，子进程负责持久化数据。两个指令保存的文件都是同一个文件。
 
 **工作原理**
 
-![1619326806599](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619326806599.png)
+![1619326806599](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/181433-76821.png)
 
-注意： bgsave命令是针对save阻塞问题做的优化。Redis内部所有涉及到RDB操作都采用bgsave的方式，save命令可以放弃使用。
+> 注意： bgsave命令是**针对save阻塞问题做的优化**。Redis内部所有涉及到RDB操作都采用bgsave的方式，save命令可以放弃使用。
 
 **bgsave指令相关配置**
 
 - dbfilename dump.rdb
-- dir
+- dir：持久化文件存储路径
 - rdbcompression yes
-- rdbchecksum yes
+- rdbchecksum yes：是否进行文件校验
 - stop-writes-on-bgsave-error yes 
   - 说明：后台存储过程中如果出现错误现象，是否停止保存操作 
   - 经验：通常默认为开启状态
@@ -1942,11 +1942,11 @@ save 300 10
 save 60 10000
 ~~~
 
-也就是说在指定的时间内如果有change课key发生变化，那么在后台就会执行bgsave指令进行持久化操作。
+也就是说在指定的时间内如果有change个key发生变化，那么在后台就会执行bgsave指令进行持久化操作。
 
 **save配置**
 
-![1619397751356](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619397751356.png)
+![1619397751356](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/181550-404471.png)
 
 > save配置要根据实际业务情况进行设置，频度过高或过低都会出现性能问题，结果可能是灾难性的
 > save配置中对于second与changes设置通常具有互补对应关系，尽量不要设置成包含性关系
@@ -1977,13 +1977,13 @@ shutdown save
 **RDB优点**
 
 - RDB是一个紧凑压缩的二进制文件，存储效率较高
-- RDB内部存储的是redis在某个时间点的数据快照，非常适合用于数据备份，全量复制等场景
+- RDB内部存储的是redis在**某个时间点**的数据快照，非常适合用于数据备份，全量复制等场景
 - RDB恢复数据的速度要比AOF快很多
 - 应用：服务器中每X小时执行bgsave备份，并将RDB文件拷贝到远程机器中，用于灾难恢复。
 
 **RDB缺点**
 
-- RDB方式无论是执行指令还是利用配置，无法做到实时持久化，具有较大的可能性丢失数据
+- RDB方式无论是执行指令还是利用配置，无法做到**实时**持久化，具有较大的可能性丢失数据
 - bgsave指令每次运行要执行fork操作创建子进程，要牺牲掉一些性能
 - Redis的众多版本中未进行RDB文件格式的版本统一，有可能出现各版本服务之间数据格式无法兼容现象
 
@@ -1992,10 +1992,10 @@ shutdown save
 #### RDB存在的缺点
 
 - 存储数据量较大，效率较低
-- 基于快照思想，每次读写都是全部数据，当数据量巨大时，效率非常低
-- 大数据量下的IO性能较低
+- 基于**快照思想，每次读写都是全部数据**，当数据量巨大时，效率非常低
+- 大数据量下的**IO性能**较低
 - 基于fork创建子进程，内存产生额外消耗
-- 宕机带来的数据丢失风险，是基于某一个时间点存储的数据，所以没有实时性，会丢失最新的数据。
+- 宕机带来的数据丢失风险，是基于**某一个时间点**存储的数据，所以没有实时性，会丢失最新的数据。
 
 **解决方案**
 
@@ -2005,14 +2005,14 @@ shutdown save
 
 #### AOF概念
 
-- AOF(append only file)持久化：以独立日志的方式记录每次写命令，重启时再重新执行AOF文件中命令达到恢复数据的目的。与RDB相比可以简单描述为改记录数据为记录数据产生的过程
+- AOF(append only file)持久化：**以独立日志的方式记录每次写命令**，重启时再重新执行AOF文件中命令达到恢复数据的目的。与RDB相比可以简单描述为改记录数据为记录数据产生的过程。
 - AOF的主要作用是解决了数据持久化的**实时性**，目前已经是Redis持久化的主流方式
 
 #### AOF写数据过程
 
 ![1619398763365](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/26/085928-145728.png)
 
-aof首先将从客户端接收的指令存储在缓存区中，然后等待时机同步到aof文件中，同步的时机分为下面三种情况。
+aof首先将从客户端接收的指令存储在缓存区中，**然后等待时机同步到aof文件中，同步的时机分为下面三种情况。**
 
 #### AOF写数据三种策略(appendfsync)
 
@@ -2063,13 +2063,13 @@ dir
 
 #### AOF重写
 
-![1619399893082](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619399893082.png)
+![1619399893082](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/181940-75468.png)
 
-上面出现的问题是如果对一个数每次都增加1，增加3次最终值是3，但是aof文件中记录了三次累加操作，并且每次都是增加1，这样记录的话很占资源，所以采用的次略是合并这三条指令，直接把最终的值变为3，这样的功能在redis中叫做重写操作。
+上面出现的问题是如果对一个数每次都增加1，增加3次最终值是3，但是aof文件中记录了三次累加操作，并且每次都是增加1，这样记录的话很占资源，所以采用的次略是合并这三条指令，直接把最终的值变为3，这样的功能在redis中叫做**重写操作**。
 
 **aof重写**
 
-随着命令不断写入AOF，文件会越来越大，为了解决这个问题，Redis引入了AOF重写机制压缩文件体积。AOF文件重写是将Redis进程内的数据转化为写命令同步到新AOF文件的过程。简单说就是将对同一个数据的若干个条命令执行结果转化成最终结果数据对应的指令进行记录。
+随着命令不断写入AOF，文件会越来越大，为了解决这个问题，**Redis引入了AOF重写机制压缩文件体积**。AOF文件重写是将Redis进程内的数据转化为写命令同步到新AOF文件的过程。**简单说就是将对同一个数据的若干个条命令执行结果转化成最终结果数据对应的指令进行记录。**
 
 **AOF重写作用**
 
@@ -2096,7 +2096,7 @@ dir
 bgrewriteaof
 ~~~
 
-![1619400586336](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619400586336.png)
+![1619400586336](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182503-851398.png)
 
 **自动重写**
 
@@ -2116,7 +2116,7 @@ aof_base_size
 
 自动重写触发条件
 
-![1619401022779](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619401022779.png)
+![1619401022779](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182619-868441.png)
 
 在客户端输入info命令可以查看到默认值的大小
 
@@ -2124,7 +2124,7 @@ aof_base_size
 
 **aof工作流程**
 
-![1619401551356](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619401551356.png)
+![1619401551356](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182629-400902.png)
 
 如果 是always,那么每一次客户端发送过来的指令，主进程执行命令，同时启动folk子进程，然后子进程把指令写入到aof文件中，
 
@@ -2136,7 +2136,7 @@ aof_base_size
 
 基于everysec开启重写的功能，在子进程把指令写入缓存区时候，还会有一个重写缓存区域，专门用来执行重写操作。
 
-![1619401899997](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619401899997.png)
+![1619401899997](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182658-414704.png)
 
 如果执行了bgrewriteaof指令之后，首先会基于bgrewriteaof的主进程创建一个子进程，然后给出提示信息，然后重写新的aof文件，重写数据的来源是aof重写缓存区中的数据，然后重写完成后就会把重写的文件替换原来的重写后的aof文件，而基于bgrewriteaof指令产生的重写aof文件是一个临时文件。
 
@@ -2148,7 +2148,7 @@ AOF缓冲区同步文件策略，由参数appendfsync控制
 
 ### RDB与AOF的区别
 
-![1619402880464](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619402880464.png)
+![1619402880464](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182701-549082.png)
 
 **两两者如何选择**
 
@@ -2202,9 +2202,9 @@ AOF缓冲区同步文件策略，由参数appendfsync控制
 
 Redis执行指令过程中，多条连续执行的指令被干扰，打断，插队
 
-redis事务就是一个命令执行的队列，将一系列预定义命令包装成一个整体（一个队列）。当执行时，一次性按照添加顺序依次执行，中间不会被打断或者干扰。
+redis事务就是一个**命令执行的队列**，将一系列预定义命令包装成一个整体（一个队列）。当执行时，一次性按照添加顺序依次执行，中间不会被打断或者干扰。
 
-一个队列中，一次性、顺序性、排他性的执行一系列命令
+**一个队列中，一次性、顺序性、排他性的执行一系列命令**
 
 ### 事务的基本操作
 
@@ -2264,7 +2264,7 @@ discard
 
 > 注意：已经执行完毕的命令对应的数据不会自动回滚，需要程序员自己在代码中实现回滚。
 
-### 石手动进行事务回滚
+### 手动进行事务回滚
 
 记录操作过程中被影响的数据之前的状态
 
@@ -2344,7 +2344,7 @@ Redis是一种内存级数据库，所有数据均存放在内存中，内存中
 
 ### 删除数据的策略-内部实现
 
-![1619489286669](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619489286669.png)
+![1619489286669](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182920-265061.png)
 
 可以看到，左边的四个指令都可以给redis数据添加时效，也就是设定时效的时间，而在redis的内部，是以hash结构，也就是键值对的形式进行存储的，键存储的是键的地址，而值存储的是键的时效时间，以后就根据时效时间判断某一个键是否时效。
 
@@ -2385,7 +2385,7 @@ Redis是一种内存级数据库，所有数据均存放在内存中，内存中
 
 
 
-![1619490838956](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619490838956.png)
+![1619490838956](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182925-157314.png)
 
 redis中有一块expires存储空间，里面存储的是过期的存储地址和时间，[0]表示第0个数据库。
 
@@ -2613,7 +2613,7 @@ bitcount key [start end]
 
 - HyperLogLog 是用来做基数统计的，运用了LogLog的算法
 
-![1619957985726](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619957985726.png)
+![1619957985726](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182940-461449.png)
 
 **HyperLogLog类型的基本操作**
 
@@ -2720,13 +2720,13 @@ geohash key member [member ...]
 
 **互联网“三高”架构**
 
-- 高并发：搭建的环境必须可以支持大量的用户同时访问我们的服务。
-- 高性能：性能要求要好。
+- 高并发：**搭建的环境必须可以支持大量的用户同时访问我们的服务。**
+- 高性能：**性能要求要好。**
 - 高可用
 
 ![1619500427287](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202104/27/131348-803494.png)
 
-高可用，服务器宕机的时间占据总得时间比例越低越好。
+**高可用，服务器宕机的时间占据总得时间比例越低越好。**
 
 #### 单机redis的风险与问题
 
@@ -2741,18 +2741,16 @@ geohash key member [member ...]
   - 结论：放弃使用redis
 
 - 结论：
-  - 为了避免单点Redis服务器故障，准备多台服务器，互相连通。将数据复制多个副本保存在不同的服
-    务器上，连接在一起，并保证数据是同步的。即使有其中一台服务器宕机，其他服务器依然可以继续
-    提供服务，实现Redis的高可用，同时实现数据冗余备份。
+  - 为了避免单点Redis服务器故障，准备多台服务器，互相连通。将数据复制多个副本保存在不同的服务器上，连接在一起，并保证数据是同步的。即使有其中一台服务器宕机，其他服务器依然可以继续提供服务，实现Redis的高可用，同时实现数据冗余备份。
 
 #### 多台服务器连接方案
 
-![1619500937605](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619500937605.png)
+![1619500937605](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/182948-469461.png)
 
 - 提供数据方：master 主服务器，主节点，主库 主客户端
 - 接收数据方：slave 从服务器，从节点，从库 从客户端
-- 需要解决的问题： 数据同步
-- 核心工作： master的数据复制到slave中
+- 需要解决的问题： **数据同步**
+- 核心工作： **master的数据复制到slave中**
 
 主从复制即将master中的数据即时、有效的复制到slave中
 
@@ -2770,11 +2768,11 @@ geohash key member [member ...]
 
 #### 高可用集群
 
-![1619501276215](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619501276215.png)
+![1619501276215](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183110-25208.png)
 
 **好处**
 
-- 读写分离：master写、slave读，提高服务器的读写负载能力，也就是负载均衡。
+- 读写分离：**master写、slave读，提高服务器的读写负载能力，也就是负载均衡。**
 - 负载均衡：基于主从结构，配合读写分离，由slave分担master负载，并根据需求的变化，改变slave的数量，通过多个从节点分担数据读取负载，大大提高Redis服务器并发量与数据吞吐量
 - 故障恢复：当master出现问题时，由slave提供服务，实现快速的故障恢复
 - 数据冗余：实现数据热备份，是持久化之外的一种数据冗余方式
@@ -2784,7 +2782,7 @@ geohash key member [member ...]
 
 #### 总述
 
-![1619501594867](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619501594867.png)
+![1619501594867](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183157-348278.png)
 
 主从复制过程大体可以分为3个阶段
 
@@ -2830,7 +2828,7 @@ y也可以把链接的master节点之间添加到配置文件中。
 slaveof <masterip> <masterport>
 ~~~
 
-![1619506945989](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619506945989.png)
+![1619506945989](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183245-933252.png)
 
 在配置文件中配置链接的master信息
 
@@ -3032,7 +3030,7 @@ slave数量少于2个，或者所有slave的延迟都大于等于10秒时，强�
 
 **主从复制完整工作流程**
 
-![1619671737003](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619671737003.png)
+![1619671737003](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183259-942243.png)
 
 1. 首先由slave节点发送replconf ack offset命令给master,然后master判断offset是否在缓冲区中，然后进行命令传播阶段的工作。
 2. 如果一次传播完成，那么slave还会接着重新开始发送replconf ack offset指令，这里要和数据同步阶段使用的指令区分开，数据同步阶段使用的是psync2进行数据的同步。
@@ -3142,7 +3140,7 @@ slave-serve-stale-data yes|no
 
 ### 哨兵简介
 
-![1619677202376](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619677202376.png)
+![1619677202376](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183305-945527.png)
 
 - 什么是哨兵？
 
@@ -3272,7 +3270,7 @@ sentinel failover-timeout mymaster 180000 在同步的时候，多长时间同�
 
 如果哨兵给master发送命令，没有接收到master的返回信息，当多次发送都没有信息返回的时候，那么sentinel就会给master标记为sdown状态，并且会把master挂掉的信息在内网中同步给其他的哨兵，然后其他的哨兵也去向master发送命令查看是否挂掉，如果master没有信息返回，那么每一个哨兵都会把master挂的消息发送到内网之中，同步其他哨兵节点保存的信息。最后所有节点都认为master已经挂掉，那么master出的信息就修改为odown状态。也即是说一个哨兵标记完成为sdown（主观下线），所有哨兵标记完为odown。但是实际上是如果一半哨兵标记完就认为是odown（客观下线）。一旦master被标记为客观下线，那么就开启下一个阶段，清理队伍。
 
-![1619923829691](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619923829691.png)
+![1619923829691](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183317-881709.png)
 
 在多个sentinel之间也会选出一个主的sentinel，选择规则也是半数机制。然后选出的sentinel会在slave中选出一个备选的slave作为master节点。
 
@@ -3301,11 +3299,11 @@ sentinel选择master的原则如下：
 
 **更换master**101
 
-![1619928680890](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619928680890.png)
+![1640428419702](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183340-356303.png)
 
 如果把挂掉的master节点重新启动，那么他就变成为slave节点。
 
-![1619928755102](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619928755102.png)
+![1640428442459](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183403-532891.png)
 
 ### 小结
 
@@ -3345,7 +3343,7 @@ redis会把前面的所有节点的内容重新进行优化，从每一台节点
 
 各个集群的节点中都会存储其他节点中保存的数据的位置，如果客户端需要进行查询操作：
 
-![1619930015306](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1619930015306.png)
+![1619930015306](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/183417-264501.png)
 
 客户端首先发出key的查询命令，然后经过计算去某台节点中查询，如果命中直接返回，如果没有命中，那么直接返回数据存储的具体位置，然后下一次客户端直接去数据存储的节点中查询数据。所以说最多两次就可以查询到数据。
 
