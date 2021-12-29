@@ -27,6 +27,10 @@ MySQL 主从复制是指数据可以从一个MySQL数据库服务器主节点复
 
 ### 主从复制原理
 
+> 1. 每个slave只有一个master
+> 2. 每个slave只能有一个唯一的服务器ID
+> 3. 每个master可以有多个salve
+
 1. master服务器将数据的改变记录二进制binlog日志，当master上的数据发生改变时，则将其改变写入二进制日志中； 
 
 2. slave服务器会在一定时间间隔内对master二进制日志进行探测其是否发生改变，如果发生改变，则开始一个I/OThread请求master二进制事件

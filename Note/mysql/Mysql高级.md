@@ -1926,3 +1926,390 @@ name在这里是vchar类型。
 在选择组合索引的时候，尽量选择可以能够包含当前query中的where字句中更多字段的索引
 
 尽可能通过分析统计信息和调整query的写法来达到选择合适索引的目的
+
+### 查询截取分析
+
+面试时候，说使用过explain关键字。
+
+**生产中调优的步骤**
+
+![1640765787951](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/161629-335667.png)
+
+#### 子查询优化
+
+用in 还是 exists
+
+> 永远小表驱动大表。
+>
+> 如果B表数据集小于A表数据，我们使用In
+>
+> 如果B表数据大于A表数据集，我们使用exists。
+
+![1640766370476](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/162813-40808.png)
+
+![1640766494637](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/162814-731174.png)
+
+![1640766760459](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/163241-145291.png)
+
+##### order by关键字优化
+
+ORDER BY子句，尽量使用Index方式排序,避免使用FileSort方式排序
+
+**建表**
+
+![1640766888711](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/163504-273942.png)
+
+![1640767107069](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/163827-415794.png)
+
+因为建立了索引，所以第一条sql使用到了age索引，是覆盖索引，没有产生filesort.
+
+第二个sql也使用到索引，因为建立索引使用的是age,birth，所以在查询的时候，排序的时候，都用到了索引。
+
+第三条sql使用到了filesort。
+
+第四条sql排序字段和索引字段顺序不同，所以产生fiLe sort。
+
+> 索引着重于排序和查找功能。但是在第三条sql中，建立好索引为age和birth，但是排序的时候，顺序没有按照建立索引的顺序来，所以失效。
+
+MySQL支持二种方式的排序，FileSort和Index，Index效率高.它指MySQL扫描索引本身完成排序。FileSort方式效率较低。
+
+ORDER BY满足两情况，会使用Index方式排序:
+
+- 语句使用索引最左前列
+- 使用Where子句与Order BY子句条件列组合满足索引最左前列
+- where子句中如果出现索引的范围查询(即explain中出现range)会导致order by 索引失效。
+
+尽可能在索引列上完成排序操作，遵照索引建的最佳左前缀
+
+![1640767713105](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/164833-980416.png)
+
+如果不在索引列上，filesort有两种算法：mysql就要启动**双路排序和单路排序**
+
+##### 双路排序
+
+MySQL 4.1之前是使用双路排序,字面意思就是两次扫描磁盘，最终得到数据，读取行指针和orderby列，对他们进行排序，然后扫描已经排序好的列表，按照列表中的值重新从列表中读取对应的数据输出
+
+多路排序需要借助 磁盘来进行排序。所以 取数据，排好了取数据。两次 io操作。比较慢，单路排序 ，将排好的数据存在内存中，省去了一次 io 操作，所以比较快，但是需要内存空间足够。
+
+从磁盘取排序字段，在buffer进行排序，再从磁盘取其他字段。
+
+取一批数据，要对磁盘进行了两次扫描，众所周知，I\O是很耗时的，所以在mysql4.1之后，出现了第二种改进的算法，就是单路排序。
+
+##### 单路排序
+
+从磁盘读取查询需要的所有列，按照order by列在buffer对它们进行排序，然后扫描排序后的列表进行输出，
+
+它的效率更快一些，避免了第二次读取数据。并且把随机IO变成了顺序IO,但是它会使用更多的空间，
+因为它把每一行都保存在内存中了。
+
+什么情况下单路排序性能不好？
+
+在sort_buffer中，方法B比方法A要多占用很多空间，因为方法B是把所有字段都取出, 所以有可能取出的数据的总大小超出了sort_buffer的容量，导致每次只能取sort_buffer容量大小的数据，进行排序（创建tmp文件，多路合并），排完再取取sort_buffer容量大小，再排……从而多次I/O。
+
+本来想省一次I/O操作，反而导致了大量的I/O操作，反而得不偿失。
+
+##### 使用单路排序优化策略
+
+增大sort_buffer_size参数的设置：用于单路排序的内存大小
+
+增大max_length_for_sort_data参数的设置：单次排序字段大小。(单次排序请求)
+
+去掉select 后面不需要的字段：select 后的多了，排序的时候也会带着一起，很占内存，所以去掉没有用的
+
+提高Order By的速度
+
+1. Order by时select * 是一个大忌只Query需要的字段， 这点非常重要。在这里的影响是：
+   1.1 当Query的字段大小总和小于max_length_for_sort_data 而且排序字段不是 TEXT|BLOB 类型时，会用改进后的算法——单路排序， 否则用老算法——多路排序。
+     1.2 两种算法的数据都有可能超出sort_buffer的容量，所以如果使用select *更容易昂缓冲区满，超出之后，会创建tmp文件进行合并排序，导致多次I/O，但是用单路排序算法的风险会更大一些,所以要提高sort_buffer_size。
+2. 尝试提高 sort_buffer_size
+   不管用哪种算法，提高这个参数都会提高效率，当然，要根据系统的能力去提高，因为这个参数是针对每个进程的
+3. 尝试提高 max_length_for_sort_data
+   提高这个参数， 会增加用改进算法的概率。但是如果设的太高，数据总容量超出sort_buffer_size的概率就增大，明显症状是高的磁盘I/O活动和低的处理器使用率. 
+
+**小结**
+
+![1640775106705](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/185252-238071.png)
+
+##### 分页查询的优化---limit
+
+实践证明： ①、order by 后的字段（XXX）有索引 ②、sql 中有 limit 时，
+    当 select id 或 XXX字段索引包含字段时 ，显示 using index
+    当 select 后的字段含有 bouder by 字段索引不包含的字段时，将显示 using filesort
+
+##### GROUP BY关键字优化
+
+group by实质是先排序后进行分组，遵照索引建的最佳左前缀
+
+当无法使用索引列，增大max_length_for_sort_data参数的设置+增大sort_buffer_size参数的设置
+
+where高于having，能写在where限定的条件就不要去having限定了。
+
+其他的和order by规则类似。
+
+##### 去重优化
+
+尽量不要使用 distinct 关键字去重：优化
+
+![1640775577323](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/185938-830451.png)
+
+### 慢查询日志
+
+MySQL的慢查询日志是MySQL提供的一种日志记录，它用来记录在MySQL中响应时间超过阀值的语句，具体指运行时间超过long_query_time值的SQL，则会被记录到慢查询日志中。
+
+具体指运行时间超过long_query_time值的SQL，则会被记录到慢查询日志中。long_query_time的默认值为10，意思是运行10秒以上的语句。
+
+由他来查看哪些SQL超出了我们的最大忍耐时间值，比如一条sql执行超过5秒钟，我们就算慢SQL，希望能收集超过5秒的sql，结合之前explain进行全面分析。
+
+#### **查看是否开启及如何开启**
+
+默认情况下：
+
+```sql
+SHOW VARIABLES LIKE '%slow_query_log%';
+```
+
+默认情况下slow_query_log的值为OFF，表示慢查询日志是禁用的，可以通过设置slow_query_log的值来开启
+
+SHOW VARIABLES LIKE '%slow_query_log%';
+
+![1640775766160](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/190247-935697.png)
+
+#### 开启
+
+```sql
+set global slow_query_log=1;
+--在本次会话中开启，可以在配置文件中修改
+```
+
+使用set global slow_query_log=1开启了慢查询日志只对当前数据库生效，
+如果MySQL重启后则会失效。
+
+那么开启了慢查询日志后，什么样的SQL才会记录到慢查询日志里面呢？
+
+![1640776136506](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/190856-721707.png)
+
+查看当前多少秒算慢
+
+```sql
+SHOW VARIABLES LIKE 'long_query_time%';
+```
+
+设置慢的阙值时间:
+
+为什么设置后看不出变化？
+
+1. 需要重新连接或新开一个会话才能看到修改值。 SHOW VARIABLES LIKE 'long_query_time%';
+2. 或者通过set session long_query_time=1来改变当前session变量;
+
+记录慢SQL并后续分析
+
+查询当前系统中有多少条慢查询记录
+
+![1640776498847](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/191517-159301.png)
+
+通过分析日志，我们直到有那些sql执行的缓慢。
+
+**配置永久生效**
+
+```sql
+【mysqld】下配置：
+
+slow_query_log=1;
+slow_query_log_file=/var/lib/mysql/atguigu-slow.log
+long_query_time=3;
+log_output=FILE
+```
+
+#### 日志分析工具
+
+日志分析工具mysqldumpslow
+
+在生产环境中，如果要手工分析日志，查找、分析SQL，显然是个体力活，MySQL提供了日志分析工具mysqldumpslow
+
+查看mysqldumpslow的帮助信息
+
+![1640776679257](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/191813-933537.png)
+
+**常用参考**
+
+```sql
+得到返回记录集最多的10个SQL
+mysqldumpslow -s r -t 10 /var/lib/mysql/atguigu-slow.log
+ 
+得到访问次数最多的10个SQL
+mysqldumpslow -s c -t 10 /var/lib/mysql/atguigu-slow.log
+ 
+得到按照时间排序的前10条里面含有左连接的查询语句
+mysqldumpslow -s t -t 10 -g "left join" /var/lib/mysql/atguigu-slow.log
+ 
+另外建议在使用这些命令时结合 | 和more 使用 ，否则有可能出现爆屏情况
+mysqldumpslow -s r -t 10 /var/lib/mysql/atguigu-slow.log | more
+```
+
+### Show Profile
+
+工作中如何优化sql:
+
+- 开启慢查询日志，抓取执行缓慢的sqlyuju 。
+
+- 采用explain进行分析。
+
+- 使用show profile进行分析。
+- 调整硬件参数，内存资源。
+
+#### 是什么
+
+是什么：是mysql提供可以用来分析当前会话中语句执行的资源消耗情况。可以用于SQL的调优的测量
+
+默认情况下，参数处于关闭状态，并保存最近15次的运行结果
+
+#### 分析步骤
+
+1. 是否支持，看看当前的mysql版本是否支持
+
+```sql
+Show  variables like 'profiling';
+默认是关闭，使用前需要开启
+```
+
+2. 开启功能，默认是关闭，使用前需要开启
+
+```sql
+show variables like 'profiling';
+ 
+set profiling=1;
+```
+
+3. 执行sql
+
+```sql
+select * from emp group by id%10 limit 150000;
+select * from emp group by id%20  order by 5
+```
+
+4. 查看执行结果
+
+![1640777339549](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/192920-624034.png)
+
+5. 诊断SQL，show profile cpu,block io for query  n  (n为上一步前面的问题SQL数字号码);
+
+![1640777385690](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/192946-948506.png)
+
+**参数说明**
+
+![1640777407498](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/193008-704392.png)
+
+**日常开发需要注意的结论**
+
+1. converting HEAP to MyISAM 查询结果太大，内存都不够用了往磁盘上搬了。
+2. Creating tmp table 创建临时表
+   1. 拷贝数据到临时表
+   2. 用完在删除数据
+3. Copying to tmp table on disk 把内存中临时表复制到磁盘，危险！！！
+4. locked
+
+### Mysql锁
+
+#### 锁的分类
+
+从对数据操作的类型（读\写）分
+
+- 读锁(共享锁)：针对同一份数据，多个读操作可以同时进行而不会互相影响。
+- 写锁（排它锁）：当前写操作没有完成前，它会阻断其他写锁和读锁。
+
+从对数据操作的粒度分
+
+- 表锁
+- 行锁
+
+#### 表锁(偏读)
+
+**特点**
+
+偏向MyISAM存储引擎，开销小，加锁快；无死锁；锁定粒度大，发生锁冲突的概率最高,并发度最低。
+
+**结论**
+
+**MyISAM在执行查询语句（SELECT）前，会自动给涉及的所有表加读锁，在执行增删改操作前，会自动给涉及的表加写锁。** 
+
+MySQL的表级锁有两种模式：
+
+- 表共享读锁（Table Read Lock）
+- 表独占写锁（Table Write Lock）
+
+![1640779334154](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/200214-787250.png)
+
+结论：
+
+结合上表，所以对MyISAM表进行操作，会有以下情况： 
+
+1. 对MyISAM表的读操作（加读锁），不会阻塞其他进程对同一表的读请求，但会阻塞对同一表的写请求。只有当读锁释放后，才会执行其它进程的写操作。 
+2. 对MyISAM表的写操作（加写锁），会阻塞其他进程对同一表的读和写操作，只有当写锁释放后，才会执行其它进程的读写操作。
+
+>  简而言之，就是读锁会阻塞写，但是不会堵塞读。而写锁则会把读和写都堵塞
+
+#### 行锁(偏写)
+
+**特点**
+
+偏向InnoDB存储引擎，开销大，加锁慢；**会出现死锁**；锁定粒度最小，发生锁冲突的概率最低,并发度也最高。
+
+InnoDB与MyISAM的最大不同有两点：一是支持事务（TRANSACTION）；二是采用了行级锁
+
+**Select也可以加锁**
+
+读锁
+
+共享锁(Share Lock)
+
+共享锁又称读锁，是读取操作创建的锁。其他用户可以并发读取数据，但任何事务都不能对数据进行修改（获取数据上的排他锁），直到已释放所有共享锁。
+
+如果事务T对数据A加上共享锁后，则其他事务只能对A再加共享锁，不能加排他锁。获准共享锁的事务只能读数据，不能修改数据。
+
+用法
+SELECT ... LOCK IN SHARE MODE;
+
+在查询语句后面增加 LOCK IN SHARE MODE ，Mysql会对查询结果中的每行都加共享锁，当没有其他线程对查询结果集中的任何一行使用排他锁时，可以成功申请共享锁，否则会被阻塞。其他线程也可以读取使用了共享锁的表（行？），而且这些线程读取的是同一个版本的数据。
+
+写锁
+
+排他锁（eXclusive Lock）
+
+共享锁又称写锁，如果事务T对数据A加上排他锁后，则其他事务不能再对A加任任何类型的封锁。获准排他锁的事务既能读数据，又能修改数据。
+
+用法
+
+SELECT ... FOR UPDATE;
+
+ 在查询语句后面增加 FOR UPDATE ，Mysql会对查询结果中的每行都加排他锁，当没有其他线程对查询结果集中的任何一行使用排他锁时，可以成功申请排他锁，否则会被阻塞。
+
+**无索引，行锁升级为表锁**
+
+![1640779993907](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/201315-584017.png)
+
+**间歇锁**
+
+![1640779757302](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/200918-512761.png)
+
+【什么是间隙锁】
+当我们用范围条件而不是相等条件检索数据，并请求共享或排他锁时，InnoDB会给符合条件的已有数据记录的索引项加锁；对于键值在条件范围内但并不存在的记录，叫做“间隙（GAP)”，InnoDB也会对这个“间隙”加锁，这种锁机制就是所谓的间隙锁（GAP Lock）。
+
+【危害】
+因为Query执行过程中通过过范围查找的话，他会锁定整个范围内所有的索引键值，即使这个键值并不存在。
+
+间隙锁有一个比较致命的弱点，就是当锁定一个范围键值之后，即使某些不存在的键值也会被无辜的锁定，而造成在锁定的时候无法插入锁定键值范围内的任何数据。在某些场景下这可能会对性能造成很大的危害
+
+**小结**
+
+ Innodb存储引擎由于实现了行级锁定，虽然在锁定机制的实现方面所带来的性能损耗可能比表级锁定会要更高一些，但是在整体并发处理能力方面要远远优于MyISAM的表级锁定的。当系统并发量较高的时候，Innodb的整体性能和MyISAM相比就会有比较明显的优势了。
+
+  但是，Innodb的行级锁定同样也有其脆弱的一面，当我们使用不当的时候，可能会让Innodb的整体性能表现不仅不能比MyISAM高，甚至可能会更差。
+
+#### 优化建议
+
+1. 尽可能让所有数据检索都通过索引来完成，避免无索引行锁升级为表锁。
+2. 尽可能较少检索条件，避免间隙锁
+3. 尽量控制事务大小，减少锁定资源量和时间长度
+4. 锁住某行后，尽量不要去调别的行或表，赶紧处理被锁住的行然后释放掉锁。
+5. 涉及相同表的事务，对于调用表的顺序尽量保持一致。
+6. 在业务环境允许的情况下,尽可能低级别事务隔离
