@@ -428,15 +428,11 @@ Mysql拥有分层的架构，上层是服务器层的服务和查询的执行引
 
 持久性：一旦事务提交并且执行成功，他所做的修改就会永久的保存在数据库中。即使系统崩溃，修改的数据也不会丢失。
 
-
-
 #### 锁粒度
 
 表锁：表锁是Mysql数据库中最基本的锁策略，并且是开销最小的策略。读锁之间不会相互阻塞，而是共享的，也就是说读锁之间可以并发执行，读锁是共享的，但是读锁和写锁是相互互斥的，具有排他性，写锁比读锁有更高的优先级。
 
 行级锁：行级锁可以最大程度上的支持并发处理，innodb存储引擎实现了行级锁，行级锁只是在存储引擎的层面进行实现的。
-
-
 
 ## 索引优化分析
 
@@ -469,13 +465,13 @@ join 原理。用  A 表的每一条数据 扫描 B表的所有数据。所以�
 
 通常我们程序员理解的sql执行顺序
 
-![1612057833921](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612057833921.png)
+![1612057833921](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/135321-946786.png)
 
 **mysql优化器理解的执行顺序**
 
 随着Mysql版本的更新换代，其优化器也在不断的升级，优化器会分析不同执行顺序产生的性能消耗不同而动态调整执行顺序。
 
-![1612057870908](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612057870908.png)
+![1612057870908](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/135325-516749.png)
 
 **小结**
 
@@ -1215,13 +1211,13 @@ id如果相同，可以认为是一组，从上往下顺序执行；在所有组
 
 **值**
 
-![1612164443910](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612164443910.png)
+![1612164443910](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/135808-705266.png)
 
 **查询的类型，主要是用于区别普通查询、联合查询、子查询等的复杂查询**
 
 **SIMPLE**： 简单的 select 查询,查询中不包含子查询或者UNION
 
-![1612164574317](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612164574317.png)
+![1612164574317](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/135820-680621.png)
 
 **PRIMARY**：查询中若包含任何复杂的子部分，**最外层查询则被标记为Primary**，也就是最后加载的那张表的查询
 
@@ -1292,7 +1288,7 @@ all的意思就是说检索的结果全表扫描。
 - 表示通过索引一次就找到了,const用于比较primary key或者unique索引。因为只匹配一行数据，所以很快。
 - 如将主键置于where列表中，MySQL就能将该查询转换为一个常量，也就是某一列的值是唯一的，那么就是const。
 
-![1612166398694](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612166398694.png)
+![1612166398694](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/140016-905839.png)
 
 这里可以看到,子查询中id=1已经写死了，只有一条记录，所以type=const，延伸表是system，因为子查询查询的结果是一张只有一条记录的表。所以是system。
 
@@ -1319,7 +1315,7 @@ t1表是驱动表，所以需要全表扫描，但是t2表中只有一条记录�
 一般就是在你的where语句中出现了between、<、>、in等的查询
 这种范围扫描索引扫描比全表扫描要好，因为它只需要开始于索引的某一点，而结束语另一点，不用扫描全部索引。
 
-![1612167536836](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612167536836.png)
+![1612167536836](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/140027-413395.png)
 
 **index**
 
@@ -1376,7 +1372,7 @@ Full Table Scan，将遍历全表以找到匹配的行
 
 查询中若使用了覆盖索引（覆盖索引就是待查询的字段和建立索引的字段相互吻合了），则该索引和查询的select字段重叠
 
-![1612168816799](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612168816799.png)
+![1612168816799](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/140119-763431.png)
 
 ![1612168370200](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202102/01/163251-760005.png)
 
@@ -1388,13 +1384,13 @@ Full Table Scan，将遍历全表以找到匹配的行
 
 **计算方法**
 
-![1612169237076](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612169237076.png)
+![1612169237076](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/140127-765798.png)
 
 总结一下：char(30) utf8 --> key_len = 30*3 +1  表示 utf8 格式需要  *3 (跟数据类型有关)   
 允许为 NULL  +1  ，不允许 +0
 动态类型 +2  (动态类型包括 : varchar , detail text() 截取字符窜)
 
-![1612169282145](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612169282145.png)
+![1612169282145](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/140129-330799.png)
 
 key_len字段能够帮你检查是否充分的利用上了索引
 
@@ -1427,7 +1423,7 @@ rows列显示MySQL认为它执行查询时必须检查的行数。越少越好
 
 建立索引之后，排序的时候，最好是按照索引的顺序进行排序。
 
-![1613454513718](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1613454513718.png)
+![1613454513718](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/140144-25523.png)
 
 第一种查询操作，排序没有用到全部的索引，也就是col2，所以mysql会在外部重新建立索引进行排序操作，所以在extra中会出现using filesort字段，但是第二种排序直接使用了索引的全部字段，mysql也就没有产生外部文件的索引，所以查询效率很高。
 
@@ -1885,6 +1881,48 @@ is not null 也无法使用索引,但是is null是可以使用索引的
 
 ##### like使用
 
-like以通配符开头('%abc...')mysql索引失效会变成全表扫描的操作
+like以通配符开头('%abc...')mysql索引失效会变成全表扫描的操作.
 
-218
+一般情况下将%放在字符串的右边进行匹配。
+
+![1640763313781](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/154128-861390.png)
+
+那么如果工作中，字符串两端都需要使用%怎么办？
+
+这里推荐使用覆盖索引解决。
+
+如果不建立索引，使用%aa%进行匹配的话，几乎会全表扫描：
+
+![1640763860515](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/154421-148415.png)
+
+我们可以建立一个覆盖索引，在需要查询的字段上面建立索引，这个索引的字段和我们需要查询的字段，个数最好一致，这样就可以使用%进行两边匹配，既可以避免全表扫描，还可以使用索引。
+
+##### 字符串不加单引号索引失效
+
+![1640764696206](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640764696206.png)
+
+name在这里是vchar类型。
+
+![1640764847262](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1640764847262.png)
+
+如果不添加引号，那么在mysql底层会自动进行隐式转换，相当于做了计算。
+
+##### 少用or,用它来连接时会索引失效
+
+![1640764992566](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/160315-33421.png) 
+
+理论上可以查询结果，但是没有使用索引。
+
+##### 小结
+
+![1640765154098](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/29/160556-561450.png)
+
+#### 一般性建议
+
+对于单键索引，尽量选择针对当前query过滤性更好的索引
+
+在选择组合索引的时候，当前Query中过滤性最好的字段在索引字段顺序中，位置越靠前越好。(避免索引过滤性好的索引失效)
+
+在选择组合索引的时候，尽量选择可以能够包含当前query中的where字句中更多字段的索引
+
+尽可能通过分析统计信息和调整query的写法来达到选择合适索引的目的
