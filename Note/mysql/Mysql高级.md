@@ -405,11 +405,17 @@ mysql> show table status like 't1';
 
 #### Mysql存储引擎
 
-InnoDB是Mysql默认的**事务性**存储引擎，他被用来设计处理大量的短期事务，短期事务中大部分情况是正常提交的，很少被回滚，InnoDB的数据存储在表空间中，表空间是InnoDB管理的一个黑盒子，由一系列的文件组成，在后续的版本中，Mysql将每一个表的数据和索引存储在单独的文件中，InnoDB默认是采用聚簇索引的，聚簇索引对主键的查询有很高的性能，InnoDB存储引擎对索引文件没有使用压缩的方式存储，而是按照原来的数据格式进行存储，大但是MyISAM存储引擎对索引数据使用前缀压缩技术使得索引文件更小。
+InnoDB是Mysql默认的**事务性**存储引擎:
+1. 他被用来设计处理大量的短期事务，短期事务中大部分情况是正常提交的，很少被回滚
+2. InnoDB的数据存储在表空间中，表空间是InnoDB管理的一个黑盒子，由一系列的文件组成，在后续的版本中，Mysql将每一个表的数据和索引存储在单独的文件中
+3. InnoDB默认是采用聚簇索引的，聚簇索引对主键的查询有很高的性能
+4. InnoDB存储引擎对索引文件没有使用压缩的方式存储，而是按照原来的数据格式进行存储，但是MyISAM存储引擎对索引数据使用前缀压缩技术使得索引文件更小。
 
-MyISAM存储引擎**不支持事务和行级锁**，MyISAM存储引擎会将数据和索引存储在两个单独的文件中，数据文件和索引文件，InnoDB存储引擎是根据主键的引用被索引的行，但是MyISAM是通过数据的物理位置引用被索引的行。
+MyISAM存储引擎**不支持事务和行级锁**:
+1. MyISAM存储引擎会将数据和索引存储在两个单独的文件中，数据文件和索引文件，
+2. InnoDB存储引擎是根据主键的引用被索引的行，但是MyISAM是通过数据的物理位置引用被索引的行。
 
-1. 看你的mysql现在已提供什么存储引擎:
+看你的mysql现在已提供什么存储引擎:
 
 ~~~ java
 mysql> show engines;
@@ -484,7 +490,7 @@ Mysql拥有分层的架构，上层是服务器层的服务和查询的执行引
 
 能不能拆，条件过滤尽量少
 
-2. **关联了太多的表，太多join **
+2. **关联了太多的表，太多join**
 
 join 原理。用  A 表的每一条数据 扫描 B表的所有数据。所以尽量先过滤。
 
@@ -530,12 +536,15 @@ sql执行顺序图
 select <select_list> from TableA A inner join TableB B on A.key=B.key;
 
 select <select_list> from TableA A left join TableB B on A.key=B.key;
+
 select <select_list> from TableA A right join TableB B on A.key=B.key;
 
 select <select_list> from TableA A left join TableB B on A.key=B.key where B.key is null;
+
 select <select_list> from TableA A right join TableB B on A.key=B.key where A.key is null;
 
 select <select_list> from TableA A full outer Join TableB B on A.key=B.key;
+
 select <select_list> from TableA A full outer Join TableB B on A.key=B.key where A.key is null or B.key is null;
 /*什么叫共有，什么叫独有？
 共有：满足 a.deptid = b.id 的叫共有
@@ -640,7 +649,6 @@ mysql> select * from t_emp inner join t_dept on t_emp.deptId=t_dept.id;
 +----+--------------+------+--------+----+----------+-----------+
 -- 可以给表添加别名，例如a,b，
 select * from t_emp a inner join t_dept b on a.deptId = b.id;
-
 ~~~
 
 2. A、B两表共有+A的独有
@@ -755,8 +763,8 @@ mysql> select * FROM t_emp A LEFT JOIN t_dept B ON A.deptId = B.id WHERE B.`id` 
 #### 什么是索引
 
 - MySQL官方对索引的定义为：索引（Index）是帮助MySQL高效获取数据的数据结构。可以得到索引的本质：**索引是数据结构**。是存储引擎用于快速查找到记录的一种数据结构。
-- 在Mysql数据库中，索引的实现是在引擎层而不是服务层，
-- 你可以简单理解为“排好序的快速查找数据结构”。
+- 在Mysql数据库中，**索引的实现是在引擎层而不是服务层**.
+- 你可以简单理解为“**排好序的快速查找数据结构**”。
   - 在数据之外，数据库系统还维护着满足特定查找算法的数据结构，这些数据结构以某种方式引用（指向）数据，
   - 这样就可以在这些数据结构上实现高级查找算法。这种数据结构，就是索引。下图就是一种可能的索引方式示例：
 
@@ -767,13 +775,15 @@ mysql> select * FROM t_emp A LEFT JOIN t_dept B ON A.deptId = B.id WHERE B.`id` 
 - 数据本身之外，数据库还维护着一个满足特定查找算法的数据结构，这些数据结构以某种方式指向数据，这样就可以在这些数据结构的基础上实现高级查找算法，这种数据结构就是索引。
 
 > 二叉树弊端之一：二叉树很可能会发生两边不平衡的情况。
-> B-TREE: (B:balance)  会自动根据两边的情况自动调节，使两端无限趋近于平衡状态。可以使性能最稳定。(myisam使用的方式)
-> B-TREE弊端：(插入/修改操作多时，B-TREE会不断调整平衡，消耗性能)从侧面说明了索引不是越多越好。
-> B+TREE:Innodb 所使用的索引
+> B-TREE: (B:balance)  会自动根据两边的情况自动调节，使两端无限趋近于平衡状态。可以使性能最稳定。
+
 
 - 一般来说索引本身也很大，不可能全部存储在内存中，因此索引往往以索引文件的形式存储的**磁盘上**
-- 我们平常所说的索引，如果没有特别指明，都是指B树(多路搜索树，并不一定是二叉的)结构组织的索引。其中聚集索引，次要索引，覆盖索引，复合索引，前缀索引，唯一索引默认都是使用**B+树索引**，统称索引。当然，除了B+树这种类型的索引之外，还有哈稀索引(hash index)等。
+- 我们平常所说的索引，如果没有特别指明，都是指B+树(多路搜索树，并不一定是二叉的)结构组织的索引。其中聚集索引，次要索引，覆盖索引，复合索引，前缀索引，唯一索引默认都是使用**B+树索引**，统称索引。当然，除了B+树这种类型的索引之外，还有哈稀索引(hash index)等。
 - **索引有排序和查找数据两大功能**，解决where后面的字段查找速度问题和order by排序的时候如何查找的快的问题。
+
+> 为什么说索引有排序和查找两大功能，这是根据索引底层的数据结构来说的，底层的B+树本身就是一颗多路搜索树，而树中间节点中的值，是相对有序的。
+
 
 #### 索引的优势
 
@@ -782,7 +792,7 @@ mysql> select * FROM t_emp A LEFT JOIN t_dept B ON A.deptId = B.id WHERE B.`id` 
 
 #### 索引的劣势
 
-- 实际上索引也是一张表，该表保存了主键与索引字段，并指向实体表的记录，所以索引列也是要占用空间的
+- 实际上索引也是一张表，该表保存了**主键与索引字段**，并指向实体表的记录，所以索引列也是要占用空间的。
 - 虽然索引大大提高了查询速度，同时却会降低更新表的速度，如对表进行INSERT、UPDATE和DELETE。
   因为更新表时，MySQL不仅要保存数据，还要保存一下索引文件每次更新添加了索引列的字段，都会调整因为更新所带来的键值变化后的索引信息
 - **索引只是提高效率的一个因素，如果你的MySQL有大数据量的表，就需要花时间研究建立最优秀的索引，或优化查询语句**
@@ -796,15 +806,16 @@ mysql> select * FROM t_emp A LEFT JOIN t_dept B ON A.deptId = B.id WHERE B.`id` 
 - 索引建立成哪种索引类型？
   - 根据数据引擎类型自动选择的索引类型
   - 除开 innodb 引擎主键默认为聚簇索引 外。 innodb 的索引都采用的 B+TREE
-  - myisam 则都采用的 B-TREE索引
+  - myisam 也都采用的 B+TREE索引
 
-- 一般多值索引优于单值索引，一张表建立的索引最多不要超过5个
+- 一般多值索引优于单值索引，一张表建立的索引最多不要超过5个。
 
 ~~~ sql
 --随表一起建索引：
 CREATE TABLE customer (
 id INT(10) UNSIGNED  AUTO_INCREMENT ,
-customer_no VARCHAR(200),customer_name VARCHAR(200),
+customer_no VARCHAR(200),
+customer_name VARCHAR(200),
 PRIMARY KEY(id),
 KEY (customer_name)  
 );
@@ -814,7 +825,6 @@ CREATE  INDEX idx_customer_name ON customer(customer_name);
  
 --删除索引：
 DROP INDEX idx_customer_name ;
-
 ~~~
 
 **唯一索引**
