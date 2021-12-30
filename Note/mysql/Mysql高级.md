@@ -25,8 +25,9 @@
     - [索引的劣势](#索引的劣势)
     - [索引的分类](#索引的分类)
     - [Mysql索引结构](#mysql索引结构)
-      - [**BTree索引**](#btree索引)
-      - [B+Tree索引](#btree索引-1)
+      - [**B+Tree索引**](#btree索引)
+      - [MyISAM索引实现](#myisam索引实现)
+      - [Innodb索引原理](#innodb索引原理)
       - [聚簇索引与非聚簇索引](#聚簇索引与非聚簇索引)
       - [full-text全文索引](#full-text全文索引)
       - [Hash索引](#hash索引)
@@ -810,6 +811,8 @@ mysql> select * FROM t_emp A LEFT JOIN t_dept B ON A.deptId = B.id WHERE B.`id` 
 
 - 一般多值索引优于单值索引，一张表建立的索引最多不要超过5个。
 
+**单值索引或者主键索引**
+
 ~~~ sql
 --随表一起建索引：
 CREATE TABLE customer (
@@ -834,7 +837,8 @@ DROP INDEX idx_customer_name ;
 ~~~ sql
 --随表一起建索引：
 CREATE TABLE customer (
-	id INT(10) UNSIGNED  AUTO_INCREMENT ,customer_no VARCHAR(200),
+	id INT(10) UNSIGNED  AUTO_INCREMENT ,
+  customer_no VARCHAR(200),
   customer_name VARCHAR(200),
   PRIMARY KEY(id),
   KEY (customer_name),
@@ -855,7 +859,8 @@ DROP INDEX idx_customer_no on customer ;
 - 在数据库操作期间，复合索引比单值索引所需要的开销更小(对于相同的多个列建索引)
 - 当表的行数远大于索引列的数目时可以使用复合索引
 - 复合索引与单值索引有什么区别？
-  - 复合索引：create index idx_no_name on emp(no,name);  // no 与  name 有同一个索引 idx_no_name
+  - 复合索引：create index idx_no_name on emp(no,name); 
+  -  // no 与  name 有同一个索引 idx_no_name
   - 单值索引：create index idx_no on emp(no);
                      create index idx_name on emp(name);
 
@@ -937,12 +942,11 @@ ALTER TABLE tbl_name ADD UNIQUE index_name (column_list): --这条语句创建�
 ALTER TABLE tbl_name ADD INDEX index_name (column_list): --添加普通索引，索引值可出现多次。
  
 ALTER TABLE tbl_name ADD FULLTEXT index_name (column_list):--该语句指定了索引为 FULLTEXT ，用于全文索引。
-
 ~~~
 
 查看索引
 
-![1612099758240](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612099758240.png)
+![1612099758240](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/30/133209-189216.png)
 
 - non_unique: 是否是唯一索引  1：是   0：不是
 - seq_in_index:列在索引中的序列。针对符合索引(一个索引对应多个列)。针对同一个复合索引 按照创建复合索引时的顺序进行排序
@@ -956,11 +960,9 @@ ALTER TABLE tbl_name ADD FULLTEXT index_name (column_list):--该语句指定了�
 
 #### Mysql索引结构
 
-##### **BTree索引**
+大多数Mysql的存储引擎都支持B+Tree这种索引结构，MyISAM索引通过数据的物理位置引用被索引的行，InnoDB则是根据主键引用被索引的行。
 
-大多数Mysql的存储引擎都支持BTree这种索引结构，MyISAM索引通过数据的物理位置引用被索引的行，InnoDB则是根据主键引用被索引的行。
-
-Myisam普通索引
+##### **B+Tree索引**
 
 ![1612100529804](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/31/214211-778947.png)
 
@@ -981,9 +983,9 @@ Myisam普通索引
 
 同一问题可用不同算法解决，而一个算法的质量优劣将影响到算法乃至程序的效率。算法分析的目的在于选择合适算法和改进算法。
 
-![1612100659289](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612100659289.png)
+![1612100659289](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/30/133340-729596.png)
 
-![1612100674340](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612100674340.png)
+![1640842438388](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/30/133359-791458.png)
 
 - N  logN 分别表示数据与查询次数之间的关系。
 - 常数  1*c 表示查询最快的方式。查询次数不随数据的增加而增加*
@@ -991,26 +993,46 @@ Myisam普通索引
 - *数 logN 表示查询次数与数据数量成对数关系。 介于常数与 N 之间。*
 - *n*logN 表示使用的复合方法。
 
-##### B+Tree索引
+##### MyISAM索引实现
 
-innodb的普通索引
+MyISAM引擎使用B+Tree作为索引结构，叶节点的data域存放的是数据记录的地址。下图是MyISAM索引的原理图：
 
-**原理**
+![20211230133646](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211230133646.png)
 
-![1612101021623](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202101/31/215023-189706.png)
+这里设表一共有三列，假设我们以Col1为主键，则图是一个MyISAM表的主索引（Primary key）示意。可以看出MyISAM的索引文件仅仅保存数据记录的地址。在MyISAM中，**主索引和辅助索引（Secondary key）在结构上没有任何区别，只是主索引要求key是唯一的，而辅助索引的key可以重复**。如果我们在Col2上建立一个辅助索引，则此索引的结构如下图所示：
 
-- B+TREE 第二级的 数据并不能直接取出来，只作索引使用。在内存有限的情况下，查询效率高于 B-TREE
-- B-TREE 第二级可以直接取出来，树形结构比较重，在内存无限大的时候有优势。
+![20211230133824](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211230133824.png)
+
+同样也是一颗B+Tree，data域保存数据记录的地址。因此，MyISAM中索引检索的算法为首先按照B+Tree搜索算法搜索索引，如果指定的Key存在，则取出其data域的值，然后以data域的值为地址，读取相应数据记录。
+
+MyISAM的索引方式也叫做“非聚集”的，之所以这么称呼是为了与InnoDB的聚集索引区分。
+
+##### Innodb索引原理
+
+虽然InnoDB也使用B+Tree作为索引结构，但具体实现方式却与MyISAM截然不同。
+
+第一个重大区别是**InnoDB的数据文件本身就是索引文件**。从上文知道，MyISAM索引文件和数据文件是分离的，索引文件仅保存数据记录的地址。而在InnoDB中，表数据文件本身就是按B+Tree组织的一个索引结构，这棵树的叶节点data域保存了完整的数据记录。这个索引的key是数据表的主键，因此InnoDB表数据文件本身就是主索引。
+
+![20211230133958](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211230133958.png)
+
+图是InnoDB主索引（同时也是数据文件）的示意图，可以看到叶节点包含了完整的数据记录。这种索引叫做聚集索引。因为InnoDB的数据文件本身要按主键聚集，所以InnoDB要求表必须有主键（MyISAM可以没有），如果没有显式指定，则MySQL系统会自动选择一个可以唯一标识数据记录的列作为主键，如果不存在这种列，则MySQL自动为InnoDB表生成一个隐含字段作为主键，这个字段长度为6个字节，类型为长整形。
+
+第二个与MyISAM索引的不同是InnoDB的辅助索引data域存储相应记录主键的值而不是地址。换句话说，InnoDB的所有辅助索引都引用主键作为data域。例如，图11为定义在Col3上的一个辅助索引：
+
+![20211230134109](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211230134109.png)
+
+这里以英文字符的ASCII码作为比较准则。聚集索引这种实现方式使得按主键的搜索十分高效，但是辅助索引搜索需要检索两遍索引：首先检索辅助索引获得主键，然后用主键到主索引中检索获得记录。
+
+了解不同存储引擎的索引实现方式对于正确使用和优化索引都非常有帮助，例如知道了InnoDB的索引实现后，就很容易明白为什么不建议使用过长的字段作为主键，因为所有辅助索引都引用主索引，过长的主索引会令辅助索引变得过大。再例如，用非单调的字段作为主键在InnoDB中不是个好主意，因为InnoDB数据文件本身是一颗B+Tree，非单调的主键会造成在插入新记录时数据文件为了维持B+Tree的特性而频繁的分裂调整，十分低效，而使用自增字段作为主键则是一个很好的选择。
 
 **B树和B+树的区别**
 
 B+Tree与B-Tree 的区别：结论在内存有限的情况下，B+TREE 永远比 B-TREE好。无限内存则后者方便
 
-1. B-树的关键字和记录是放在一起的，叶子节点可以看作外部节点，不包含任何信息；B+树叶子节点中只有关键字和指向下一个节点的索引，记录只放在叶子节点中。(一次查询可能进行两次i/o操作)
-
+1. B树的关键字和记录是放在一起的，叶子节点可以看作外部节点，不包含任何信息；B+树叶子节点中只有关键字和指向下一个节点的索引，记录只放在叶子节点中。(一次查询可能进行两次i/o操作)，这也决定了两种树的高度不同，同一量级的数据，B+树种非叶子节点只存储索引，所以可以存储更多的数据，但是对于B树，节点不仅要存储索引，还要存储数据，所以B树建立欸都树更高。
 2. 在B-树中，越靠近根节点的记录查找时间越快，只要找到关键字即可确定记录的存在；而B+树中每个记录的查找时间基本是一样的，都需要从根节点走到叶子节点，而且在叶子节点中还要再比较关键字。从这个角度看B-树的性能好像要比B+树好，而在实际应用中却是B+树的性能要好些。因为B+树的非叶子节点不存放实际的数据，这样每个节点可容纳的元素个数比B-树多，树高比B-树小，这样带来的好处是减少磁盘访问次数。尽管B+树找到一个记录所需的比较次数要比B-树多，但是一次磁盘访问的时间相当于成百上千次内存比较的时间，因此实际中B+树的性能可能还会好些，而且B+树的叶子节点使用指针连接在一起，方便顺序遍历（例如查看一个目录下的所有文件，一个表中的所有记录等），这也是很多数据库和文件系统使用B+树的缘故。 
-   　
-   思考：为什么说B+树比B-树更适合实际应用中操作系统的文件索引和数据库索引？ 
+
+思考：为什么说B+树比B-树更适合实际应用中操作系统的文件索引和数据库索引？ 
 
    - B+树的磁盘读写代价更低 
      B+树的内部结点并没有指向关键字具体信息的指针。因此其内部结点相对B 树更小。如果把所有同一内部结点的关键字存放在同一盘块中，那么盘块所能容纳的关键字数量也越多。一次性读入内存中的需要查找的关键字也就越多。相对来说IO读写次数也就降低了。 
@@ -1021,13 +1043,13 @@ B+Tree与B-Tree 的区别：结论在内存有限的情况下，B+TREE 永远比
 
 - 聚簇索引并不是一种单独的索引类型，而是一种数据存储方式。
 
-- 术语‘聚簇’表示数据行和相邻的键值进错的存储在一起。
+- 术语‘聚簇’表示数据行和相邻的键值存储在一起。
 
 - innodb存储引擎使用的是聚簇索引
 
-- 如下图，左侧的索引就是聚簇索引，因为数据行在磁盘的排列和索引排序保持一致。
+- 如下图，**左侧的索引就是聚簇索引，因为数据行在磁盘的排列和索引排序保持一致。**
 
-   ![1612101303481](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1612101303481.png)
+   ![1612101303481](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/30/133405-344183.png)
 
 **聚簇索引的好处：**
 
@@ -1036,12 +1058,13 @@ B+Tree与B-Tree 的区别：结论在内存有限的情况下，B+TREE 永远比
 - 数据访问的更快聚簇索引将索引和数据保存在同一颗树中。
 - 使用覆盖索引扫描的查询可以直接使用叶节点中的主键值
 
+> 最重要的一点，讲索引和数据保存在一起，也就是如果你找到索引的话，那么等于说数据也找到了，因为两者是存储在一起的，但是非聚簇索引就不一样了，找到所以是获取到了数据的存放地址，还需要拿到这个地址去找数据。
+
 **缺点**
 
 - 聚簇索引最大限度的提高了io密集型应用的性能，但是如果数据全部存放在内存中，那么访问顺序就没有那么重要了，聚簇索引失去优势
 - 插入数据严重依赖于插入顺序，如果是按照主键顺序插入，速度会很快，但是如果不是按照主键的顺序插入，有损失性能，因为INNODB引擎使用主键将数据聚集，也就是根据主键建立索引。
 - 更新聚簇索引的代价很高，因为强制innodb将每一个被更新的行移动到新的位置
-- 
 
 **聚簇索引的限制：**
 
@@ -1049,7 +1072,11 @@ B+Tree与B-Tree 的区别：结论在内存有限的情况下，B+TREE 永远比
 - 由于数据物理存储排序方式只能有一种，所以每个Mysql的表只能有一个聚簇索引。一般情况下就是该表的主键。
 - 为了充分利用聚簇索引的聚簇的特性，所以innodb表的主键列尽量选用有序的顺序id，而不建议用无序的id，比如uuid这种。（参考聚簇索引的好处。）
 
-这里说明了主键索引为何采用自增的方式：1、业务需求，有序。2、能使用到聚簇索引
+这里说明了主键索引为何采用自增的方式：
+
+1、业务需求，有序。
+
+2、能使用到聚簇索引
 
 ##### full-text全文索引
 
@@ -1083,7 +1110,7 @@ SELECT * FROM article WHERE MATCH(title,content) AGAINST (‘查询字符串’)
 ##### Hash索引
 
 - Hash索引只有Memory（并且是唯一哈希索引）, NDB两种引擎支持，Memory引擎默认支持Hash索引，如果多个hash值相同，出现哈希碰撞，那么索引以链表方式存储。
-- NoSql采用此中索引结构。
+- NoSql采用此索引结构。
 
 **补充内容**
 
