@@ -269,13 +269,13 @@ SourceFile: "TestClassCode.java"
 
 ![1608204252917](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/jvm/202012/17/192413-726560.png)
 
-![1608204203227](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1608204203227.png)
+![1643183053095](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/26/154414-91540.png)
 
 > 加载成功后在内存中就会有一个大的`class`类型对象
 
 ### 类加载器（class loader）
 
-![1608204329239](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1608204329239.png)
+![1608204329239](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/26/154325-428185.png)
 
 1. `class file`存储于本地磁盘上面，可以理解为设计师画在纸上的模板，而最终这个模板在执行的时候要加载到`jvm`当中，根据这个模板实例化`n`多个一模一样的实例。
 2. `class file`加载到`jvm`当中，`b`被称为`DNA`元素的模板，存储在**方法区**。
