@@ -1155,16 +1155,16 @@ static final class Cell {
 
 **缓存与内存的速度比较**
 
-![1620375800745](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620375800745.png)
+![1620375800745](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/26/131922-845021.png)
 
-![1620375816073](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620375816073.png)
+![1620375816073](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/26/131928-485422.png)
 
 因为 CPU 与 内存的速度差异很大，需要靠预读数据至缓存来提升效率。
 而缓存以缓存行为单位，每个缓存行对应着一块内存，一般是 64 byte（8 个 long）
 缓存的加入会造成数据副本的产生，即同一份数据会缓存在不同核心的缓存行中
 CPU 要保证数据的一致性，如果某个 CPU 核心更改了数据，其它 CPU 核心对应的整个缓存行必须失效
 
-![1620375846889](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1620375846889.png)
+![1620375846889](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/26/131933-450234.png)
 
 ![1620375860808](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202105/07/162424-513670.png)
 

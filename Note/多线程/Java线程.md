@@ -485,7 +485,7 @@ public class TestStack {
 
 3. 现在`test02()`方法也被压入栈帧当中。
 
-![1608084445126](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/thread/202012/16/100726-333007.png)
+![1643157000600](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/26/083001-969245.png)
 
 3. 当我们的``test02()`方法执行完毕之后，那么在栈中，`test02()`对应的栈帧也就出栈了，内存被释放。`test01()`方法在调用`test02()`方法时候，会记录一下调用地址，当`test02()`方法执行完毕之后，会返回结果到调用处重新接着`test01()`方法继续执行。
 
