@@ -65,7 +65,7 @@
 6. [垃圾回收算法概述](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95%E6%A6%82%E8%BF%B0.md)
 7. [垃圾回收器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E5%99%A8.md)
 8. [String-Table原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-String-Table%E5%8E%9F%E7%90%86.md)
-9. [JVM面试题目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE%E6%80%BB%E7%BB%93.md)
+9. [JVM面试题目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/jvm/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 
 #### 设计模式
 

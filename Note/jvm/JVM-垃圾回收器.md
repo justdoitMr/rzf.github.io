@@ -247,9 +247,9 @@ jinfo -flag UseParallelOldGC 进程id
 
 **Serial** **回收器：串行回收，针对于新生代的垃圾回收。**
 
-`Serial`:年轻代垃圾收集，复制算法
+`Serial`:年轻代垃圾收集，**复制算法**
 
-`Serial old` :老年代垃圾收集，标记压缩算法，是`Client`模式下默认的老年代的垃圾回收器
+`Serial old` :老年代垃圾收集，**标记压缩算法**，是`Client`模式下默认的老年代的垃圾回收器
 
 都是串行方式收集。
 
@@ -279,9 +279,9 @@ jinfo -flag UseParallelOldGC 进程id
 
 ### ParNew 回收器（并行回收）
 
-`ParNew`：年轻代垃圾回收，复制算法。`ParNew` 是很多`JVM`运行在`Server`模式下新生代的默认垃圾收集器。因为新生代垃圾回收比较频繁。
+`ParNew`：年轻代垃圾回收，**复制算法**。`ParNew` 是很多`JVM`运行在`Server`模式下新生代的默认垃圾收集器。因为新生代垃圾回收比较频繁。
 
-采用并行回收方式。
+采用**并行回收**方式。
 
 #### 特点
 
@@ -312,11 +312,11 @@ jinfo -flag UseParallelOldGC 进程id
 
 ### Parallel回收器（吞吐量优先）
 
-`Parallel Scavenge`：年轻代回收，采用复制算法，吞吐量优先
+`Parallel Scavenge`：年轻代回收，采用**复制算法，吞吐量优先**
 
-`Parallel Old`：老年代垃圾回收器，采用标记压缩算法
+`Parallel Old`：老年代垃圾回收器，采用**标记压缩算法**
 
-都是基于并行回收的垃圾收集器
+都是基于**并行回收**的垃圾收集器
 
 #### Parallel Scavenge **回收器：吞吐量优先**
 
@@ -358,7 +358,7 @@ jinfo -flag UseParallelOldGC 进程id
 
 ### CMS回收器（低延迟/低暂停时间回收器）
 
-`CMS`：采用标记清除算法，老年代垃圾回收
+`CMS`：采用**标记清除算法**，老年代垃圾回收
 
 #### cms回收器
 

@@ -344,7 +344,7 @@ public class EdenSurvivorTest {
 
 ### 图解对象分配过程(一般情况)
 
-![1607691742080](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1607691742080.png)
+![1607691742080](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202201/27/081153-978539.png)
 
 1. 我们创建的对象，一般都是存放在`Eden`区的，**当我们`Eden`区满了后，就会触发`GC`操作**，一般被称为 `YGC / Minor GC`操作
 2. 当我们进行一次垃圾收集后，红色的对象将会被回收，而绿色的独享还被占用着，存放在`S0(Survivor From)`区。同时我们给每个对象设置了一个年龄计数器，经过一次回收后还存在的对象，将其年龄加 1。
