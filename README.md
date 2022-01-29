@@ -67,6 +67,12 @@
 8. [String-Table原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/JVM-String-Table%E5%8E%9F%E7%90%86.md)
 9. [JVM面试题目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/jvm/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 
+#### Mysql
+
+1. [Mysql基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E5%9F%BA%E7%A1%80.md)
+2. [Mysql高级](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E9%AB%98%E7%BA%A7.md)
+3. [Mysql主从复制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8E%9F%E7%90%86.md)
+
 #### 设计模式
 
 1. [详解设计模式](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F.md)
