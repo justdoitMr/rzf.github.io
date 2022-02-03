@@ -1130,7 +1130,7 @@ set hive.auto.convert.join = true; --默认为true
 set hive.mapjoin.smalltable.filesize=25123456;
 ```
 
-![1632829096770](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1632829096770.png)
+![1643853762591](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/03/100244-654537.png)
 
 首先是Task A，它是一个Local Task（在客户端本地执行的Task），负责扫描小表b的数据，将其转换成一个HashTable的数据结构，并写入本地的文件中，之后将该文件加载到DistributeCache中。         
 
