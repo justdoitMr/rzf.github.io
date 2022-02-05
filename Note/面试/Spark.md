@@ -364,11 +364,11 @@ makeRDD 方法底层调用了 parallelize 方法：
 RDD 的算子分为两类:
 
 1. Transformation转换操作:**返回一个新的 RDD**
-2. Action动作操作:**返回值不是 RDD(无返回值或返回其他的)**
+2. Action动作操作:**返回值不是 RDD(无返回值或返回其他的)**，会触发一个新的job进行执行。
 
 > ❣️ 注意:
 > 1、RDD 不实际存储真正要计算的数据，而是记录了数据的位置在哪里，数据的转换关系(调用了什么方法，传入什么函数)。
-> 2、RDD 中的所有转换都是惰性求值/延迟执行的，也就是说并不会直接计算。只有当发生一个要求返回结果给 Driver 的 Action 动作时，这些转换才会真正运行。
+> 2、RDD 中的所有转换都是**惰性求值/延迟执行**的，也就是说并不会直接计算。只有当发生一个要求返回结果给 Driver 的 Action 动作时，这些转换才会真正运行。
 > 3、之所以使用惰性求值/延迟执行，是因为这样可以在 Action 时对 RDD 操作形成 DAG 有向无环图进行 Stage 的划分和并行优化，这种设计让 Spark 更加有效率地运行。
 
 #### 3) Transformation 转换算子
@@ -481,19 +481,19 @@ groupByKey 算子操作发生在动作操作端，即 Shuffle 之后，所以势
 
 #### 你知道  reduceByKey、foldByKey、aggregateByKey、combineByKey 区别吗？
 
-reduceByKey 没有初始值 分区内和分区间逻辑相同
+- reduceByKey **没有初始值** 分区内和分区间逻辑相同
 
-foldByKey 有初始值 分区内和分区间逻辑相同
+- foldByKey **有初始值** 分区内和分区间逻辑相同
 
-aggregateByKey 有初始值 分区内和分区间逻辑可以不同
+- aggregateByKey 有初始值 **分区内和分区间逻辑可以不同**
 
-combineByKey 初始值可以变化结构 分区内和分区间逻辑不同
+- combineByKey **初始值可以变化结构 分区内和分区间逻辑不同**
 
 #### 你刚才提到了 DAG,能说一下什么是 DAG？
 
 DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程，有方向，无闭环(其实就是 RDD 执行的流程)；
 
-![1639396679128](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639396679128.png)
+![1639396679128](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/05/153157-562506.png)
 
 原始的 RDD 通过一系列的转换操作就形成了 DAG 有向无环图，任务执行时，可以按照 DAG 的描述，执行真正的计算(数据被操作的一个过程)。
 
@@ -525,11 +525,15 @@ DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程�
 
 **方法2：**
 
-（1）取出所有的 key；（2）对 key 进行迭代，每次取出一个 key 利用 spark 的排序算子进行排序。
+（1）取出所有的 key；
+
+（2）对 key 进行迭代，每次取出一个 key 利用 spark 的排序算子进行排序。
 
 **方法3：**
 
-（1）自定义分区器，按照 key 进行分区，使不同的 key 进到不同的分区；（2）对每个分区运用 spark 的排序算子进行排序。
+（1）自定义分区器，按照 key 进行分区，使不同的 key 进到不同的分区；
+
+（2）对每个分区运用 spark 的排序算子进行排序。
 
 ### 3. RDD 的持久化/缓存
 
@@ -568,10 +572,10 @@ RDD 通过 persist 或 cache 方法可以将前面的计算结果缓存，但是
 
 **总结：**
 
-1. RDD 持久化/缓存的目的是为了提高后续操作的速度
+1. RDD 持久化/缓存的目的是**为了提高后续操作的速度**
 2. 缓存的级别有很多，默认只存在内存中,开发中使用 memory_and_disk
-3. 只有执行 action 操作的时候才会真正将 RDD 数据进行持久化/缓存
-4. 实际开发中如果某一个 RDD 后续会被频繁的使用，可以将该 RDD 进行持久化/缓存
+3. **只有执行 action 操作的时候才会真正将 RDD 数据进行持久化/缓存**
+4. **实际开发中如果某一个 RDD 后续会被频繁的使用，可以将该 RDD 进行持久化/缓存**
 
 ### 4. RDD 容错机制 Checkpoint
 
@@ -581,11 +585,11 @@ RDD 通过 persist 或 cache 方法可以将前面的计算结果缓存，但是
 
 - **问题解决：**
 
-Checkpoint 的产生就是为了更加可靠的数据持久化，在 Checkpoint 的时候一般把数据放在在 HDFS 上，这就天然的借助了 HDFS 天生的高容错、高可靠来实现数据最大程度上的安全，实现了 RDD 的容错和高可用。
+**Checkpoint 的产生就是为了更加可靠的数据持久化**，在 Checkpoint 的时候一般把数据放在在 HDFS 上，这就天然的借助了 HDFS 天生的高容错、高可靠来实现数据最大程度上的安全，实现了 RDD 的容错和高可用。
 
 用法：
 
-```
+```scala
 SparkContext.setCheckpointDir("目录") //HDFS的目录
 
 RDD.checkpoint
@@ -596,7 +600,7 @@ RDD.checkpoint
 - 持久化和 Checkpoint 的区别：
 
 1. 位置：Persist 和 Cache 只能保存在本地的磁盘和内存中(或者堆外内存--实验中) Checkpoint 可以保存数据到 HDFS 这类可靠的存储上。
-2. 生命周期：Cache 和 Persist 的 RDD 会在程序结束后会被清除或者手动调用 unpersist 方法 Checkpoint 的 RDD 在程序结束后依然存在，不会被删除。
+2. 生命周期：Cache 和 Persist 的 RDD 会在程序结束后会被清除或者手动调用 unpersist 方法 Checkpoint 的 RDD 在程序结束后依然存在，不会被删除,也就是说checkpoint会保存依赖链的关系。
 
 ### 5. RDD 依赖关系
 
@@ -614,17 +618,19 @@ RDD.checkpoint
 
 - 如何区分宽窄依赖：
 
-窄依赖:父 RDD 的一个分区只会被子 RDD 的一个分区依赖；
-宽依赖:父 RDD 的一个分区会被子 RDD 的多个分区依赖(涉及到 shuffle)。
+> 窄依赖:父 RDD 的一个分区只会被子 RDD 的一个分区依赖；
+>
+> 宽依赖:父 RDD 的一个分区会被子 RDD 的多个分区依赖(涉及到 shuffle)。
 
 #### 2) 为什么要设计宽窄依赖
 
-1. 对于窄依赖：
+**对于窄依赖：**
 
 窄依赖的多个分区可以并行计算；
+
 窄依赖的一个分区的数据如果丢失只需要重新计算对应的分区的数据就可以了。
 
-1. 对于宽依赖：
+**对于宽依赖：**
 
 划分 Stage(阶段)的依据:对于宽依赖,必须等到上一阶段计算完成才能计算下一阶段。
 
@@ -635,12 +641,14 @@ RDD.checkpoint
 - DAG 是什么：
 
 DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程，有方向，无闭环(其实就是 RDD 执行的流程)；
+
 原始的 RDD 通过一系列的转换操作就形成了 DAG 有向无环图，任务执行时，可以按照 DAG 的描述，执行真正的计算(数据被操作的一个过程)。
 
 - DAG 的边界
 
 开始:通过 SparkContext 创建的 RDD；
-结束:触发 Action，一旦触发 Action 就形成了一个完整的 DAG。
+
+结束:触发 Action，一旦触发 Action 就形成了一个完整的 DAG,触发一个行动算子，就会生成一个job,然后就会生成一个DAG图。
 
 #### 2) DAG 划分 Stage
 
