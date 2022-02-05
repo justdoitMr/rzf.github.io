@@ -196,9 +196,9 @@ Spark 成功构建起了一体化、多元化的大数据处理体系。在任�
 
 Spark 产生之前，已经有 MapReduce 这类非常成熟的计算系统存在了，并提供了高层次的 API(map/reduce)，把计算运行在集群中并提供容错能力，从而实现分布式计算。
 
-虽然 MapReduce 提供了对数据访问和计算的抽象，但是对于数据的复用就是简单的将中间数据写到一个稳定的文件系统中(例如 HDFS)，所以会产生数据的复制备份，磁盘的 I/O 以及数据的序列化，所以在遇到需要在多个计算之间复用中间结果的操作时效率就会非常的低。而这类操作是非常常见的，例如迭代式计算，交互式数据挖掘，图计算等。
+虽然 MapReduce 提供了对数据访问和计算的抽象，但是对于数据的复用就是简单的将中间数据写到一个稳定的文件系统中(例如 **HDFS**)，所以会产生数据的复制备份，磁盘的 I/O 以及数据的序列化，所以在遇到需要在多个计算之间复用中间结果的操作时效率就会非常的低。而这类操作是非常常见的，例如**迭代式计算，交互式数据挖掘，图计算**等。
 
-认识到这个问题后，学术界的 AMPLab 提出了一个新的模型，叫做 RDD。RDD 是一个可以容错且并行的数据结构(其实可以理解成分布式的集合，操作起来和操作本地集合一样简单)，它可以让用户显式的将中间结果数据集保存在内存中，并且通过控制数据集的分区来达到数据存放处理最优化.同时 RDD 也提供了丰富的 API (map、reduce、filter、foreach、redeceByKey...)来操作数据集。后来 RDD 被 AMPLab 在一个叫做 Spark 的框架中提供并开源。
+认识到这个问题后，学术界的 AMPLab 提出了一个新的模型，叫做 RDD。**RDD 是一个可以容错且并行的数据结构(其实可以理解成分布式的集合，操作起来和操作本地集合一样简单)，它可以让用户显式的将中间结果数据集保存在内存中，并且通过控制数据集的分区来达到数据存放处理最优化**.同时 RDD 也提供了丰富的 API (map、reduce、filter、foreach、redeceByKey...)来操作数据集。后来 RDD 被 AMPLab 在一个叫做 Spark 的框架中提供并开源。
 
 简而言之，Spark 借鉴了 MapReduce 思想发展而来，保留了其分布式并行计算的优点并改进了其明显的缺陷。让中间数据存储在内存中提高了运行速度、并提供丰富的操作数据的 API 提高了开发速度。
 
@@ -256,7 +256,9 @@ Spark 提供了统一的解决方案。**Spark 可以用于批处理、交互式
 
 - 兼容性
 
-**Spark 可以非常方便地与其他的开源产品进行融合**。比如，Spark 可以使用 Hadoop 的 YARN 和 Apache Mesos 作为它的资源管理和调度器，并且可以处理所有 Hadoop 支持的数据，包括 HDFS、HBase 和 Cassandra 等。这对于已经部署 Hadoop 集群的用户特别重要，因为不需要做任何数据迁移就可以使用 Spark 的强大处理能力。Spark 也可以不依赖于第三方的资源管理和调度器，它实现了 Standalone 作为其内置的资源管理和调度框架，这样进一步降低了 Spark 的使用门槛，使得所有人都可以非常容易地部署和使用 Spark。此外，Spark 还提供了在 EC2 上部署 Standalone 的 Spark 集群的工具。
+**Spark 可以非常方便地与其他的开源产品进行融合**。比如，Spark 可以使用 Hadoop 的 YARN 和 Apache Mesos 作为它的资源管理和调度器，并且可以处理所有 Hadoop 支持的数据，包括 HDFS、HBase 和 Cassandra 等。这对于已经部署 Hadoop 集群的用户特别重要，因为不需要做任何数据迁移就可以使用 Spark 的强大处理能力。
+
+Spark 也可以不依赖于第三方的资源管理和调度器，它实现了 Standalone 作为其内置的资源管理和调度框架，这样进一步降低了 Spark 的使用门槛，使得所有人都可以非常容易地部署和使用 Spark。此外，Spark 还提供了在 EC2 上部署 Standalone 的 Spark 集群的工具。
 
 ### 4. Spark 运行模式
 
@@ -288,10 +290,10 @@ Spark 提供了统一的解决方案。**Spark 可以用于批处理、交互式
 
 ### Spark 为什么比 MapReduce 快？
 
-1. Spark 是基于内存计算，MapReduce 是基于磁盘运算，所以速度快
-2. Spark 拥有高效的调度算法，是基于 DAG,形成一系列的有向无环图
-3. Spark 是通过 RDD 算子来运算的，它拥有两种操作，一种转换操作，一种动作操作，可以将先运算的结果存储在内存中，随后在计算出来
-4. Spark 还拥有容错机制 Linage。
+1. Spark 是基于**内存计算**，MapReduce 是基于**磁盘运算**，所以速度快
+2. Spark 拥有高效的**调度算法**，是基于 DAG,形成一系列的有向无环图
+3. Spark 是通过 RDD 算子来运算的，它拥有两种操作，一种转换操作，一种动作操作，可以将先运算的结果存储在内存中，随后在计算出来.
+4. Spark 还拥有**容错机制 Linage**。
 
 ## 二、Spark Core
 
@@ -299,7 +301,7 @@ Spark 提供了统一的解决方案。**Spark 可以用于批处理、交互式
 
 #### 1) 为什么要有 RDD?
 
-在许多迭代式算法(比如机器学习、图算法等)和交互式数据挖掘中，不同计算阶段之间会**重用中间结果**，即一个阶段的输出结果会作为下一个阶段的输入。但是，之前的 MapReduce 框架采用非循环式的数据流模型，把中间结果写入到 HDFS 中，带来了大量的数据复制、磁盘 IO 和序列化开销。且这些框架只能支持一些特定的计算模式(map/reduce)，并没有提供一种通用的数据抽象。
+在许多迭代式算法(比如机器学习、图算法等)和交互式数据挖掘中，不同计算阶段之间会**重用中间结果**，即一个阶段的输出结果会作为下一个阶段的输入。但是，之前的 MapReduce 框架采用**非循环式的数据流模型**，把中间结果写入到 HDFS 中，带来了大量的数据复制、磁盘 IO 和序列化开销。且这些框架只能支持一些特定的计算模式(map/reduce)，并没有提供一种通用的数据抽象。
 
 AMP 实验室发表的一篇关于 RDD 的论文:《Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing》就是为了解决这些问题的。
 
@@ -309,7 +311,7 @@ RDD 提供了一个抽象的数据模型，让我们不必担心底层数据的�
 
 RDD(Resilient Distributed Dataset)叫做**弹性分布式数据集**，是 Spark 中最基本的数据抽象，代表一个**不可变、可分区、里面的元素可并行计算的集合**。单词拆解：
 
-- Resilient ：它是弹性的，RDD 里面的中的数据可以保存在内存中或者磁盘里面；
+- Resilient ：它是弹性的，RDD 里面的中的数据可以保存在**内存中或者磁盘**里面；
 - Distributed ：它里面的元素是分布式存储的，可以用于分布式计算；
 - Dataset: 它是一个集合，可以存放很多元素。
 
@@ -321,11 +323,11 @@ RDD(Resilient Distributed Dataset)叫做**弹性分布式数据集**，是 Spark
 
 在源码中可以看到有对 RDD 介绍的注释，我们来翻译下：
 
-1. A list of partitions ：一组分片(Partition)/一个分区(Partition)列表，即数据集的基本组成单位。对于 RDD 来说，每个分片都会被一个计算任务处理，分片数决定并行度。用户可以在创建 RDD 时指定 RDD 的分片个数，如果没有指定，那么就会采用默认值。
-2. A function for computing each split ：一个函数会被作用在每一个分区。Spark 中 RDD 的计算是以分片为单位的，compute 函数会被作用到每个分区上。
-3. A list of dependencies on other RDDs ：一个 RDD 会依赖于其他多个 RDD。RDD 的每次转换都会生成一个新的 RDD，所以 RDD 之间就会形成类似于流水线一样的前后依赖关系。在部分分区数据丢失时，Spark 可以通过这个依赖关系重新计算丢失的分区数据，而不是对 RDD 的所有分区进行重新计算。(Spark 的容错机制)
-4. Optionally, a Partitioner for key-value RDDs (e.g. to say that the RDD is hash-partitioned)：可选项，对于 KV 类型的 RDD 会有一个 Partitioner，即 RDD 的分区函数，默认为 HashPartitioner。
-5. Optionally, a list of preferred locations to compute each split on (e.g. block locations for an HDFS file)：可选项,一个列表，存储存取每个 Partition 的优先位置(preferred location)。对于一个 HDFS 文件来说，这个列表保存的就是每个 Partition 所在的块的位置。按照"移动数据不如移动计算"的理念，Spark 在进行任务调度的时候，会尽可能选择那些存有数据的 worker 节点来进行任务计算。
+1. A list of partitions（分区列表） ：一组分片(Partition)/一个分区(Partition)列表，即数据集的基本组成单位。对于 RDD 来说，每个分片都会被一个计算任务处理，**分片数决定并行度**。用户可以在创建 RDD 时指定 RDD 的分片个数，如果没有指定，那么就会采用默认值。
+2. A function for computing each split(计算函数) ：一个函数会被作用在每一个分区。Spark 中 RDD 的计算是以分片为单位的，compute 函数会被作用到每个分区上。
+3. A list of dependencies on other RDDs （依赖关系）：一个 RDD 会依赖于其他多个 RDD。RDD 的每次转换都会生成一个新的 RDD，所以 RDD 之间就会形成类似于流水线一样的前后依赖关系。在部分分区数据丢失时，Spark 可以通过这个依赖关系重新计算丢失的分区数据，而不是对 RDD 的所有分区进行重新计算。(Spark 的容错机制)
+4. Optionally, a Partitioner for key-value RDDs (e.g. to say that the RDD is hash-partitioned)（分区函数）：可选项，对于 KV 类型的 RDD 会有一个 Partitioner，即 RDD 的分区函数，默认为 HashPartitioner。
+5. Optionally, a list of preferred locations to compute each split on (e.g. block locations for an HDFS file)（最佳位置）：可选项,一个列表，存储存取每个 Partition 的优先位置(preferred location)。对于一个 HDFS 文件来说，这个列表保存的就是每个 Partition 所在的块的位置。按照"**移动数据不如移动计算**"的理念，Spark 在进行任务调度的时候，会尽可能选择那些存有数据的 worker 节点来进行任务计算。
 
 **总结**
 
@@ -338,6 +340,7 @@ RDD 是一个数据集的表示，不仅表示了数据集，还表示了这个�
 5. 最佳位置
 
 > 分区列表、分区函数、最佳位置，这三个属性其实说的就是数据集在哪，在哪计算更合适，如何分区；
+>
 > 计算函数、依赖关系，这两个属性其实说的是数据集怎么来的。
 
 ### 2. RDD-API
@@ -355,8 +358,6 @@ RDD 是一个数据集的表示，不仅表示了数据集，还表示了这个�
 makeRDD 方法底层调用了 parallelize 方法：
 
 ![1639395046262](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193047-916008.png)
-
-RDD源码
 
 #### 2) RDD 的算子分类
 
