@@ -100,7 +100,7 @@
 ### Redis
 
 1. [Redis基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Redis.md)
-2. [Redis面经](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Redis%E9%9D%A2%E7%BB%8F.md)
+2. [Redis数据结构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Rides%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.md)
 
 ### Zookeeper
 
@@ -212,6 +212,8 @@
 4. [Hive篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Hive%E7%AF%87.md)
 5. [Spark篇](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Spark.md)
 6. [Flink](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
+7. [Rides面试一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Rides.md)
+8. [Rides面试二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Rides%E9%9D%A2%E8%AF%95.md)
 
 ---
 
