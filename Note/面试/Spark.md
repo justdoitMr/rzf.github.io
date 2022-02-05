@@ -654,11 +654,9 @@ DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程�
 
 ![1639395229668](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/193351-101743.png)
 
-DAG划分Stage
-
 **一个 Spark 程序可以有多个 DAG(有几个 Action，就有几个 DAG，上图最后只有一个 Action（图中未表现）,那么就是一个 DAG)**。
 
-一个 DAG 可以有多个 Stage(根据宽依赖/shuffle 进行划分)。
+一个 DAG 可以有多个 Stage(**根据宽依赖/shuffle 进行划分**)。
 
 **同一个 Stage 可以有多个 Task 并行执行**(**task 数=分区数**，如上图，Stage1 中有三个分区 P1、P2、P3，对应的也有三个 Task)。
 
@@ -680,8 +678,8 @@ DAG划分Stage
 
 Spark 会根据 shuffle/宽依赖使用回溯算法来对 DAG 进行 Stage 划分，从后往前，遇到宽依赖就断开，遇到窄依赖就把当前的 RDD 加入到当前的 stage/阶段中
 
-具体的划分算法请参见 AMP 实验室发表的论文：《Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing》
-`http://xueshu.baidu.com/usercenter/paper/show?paperid=b33564e60f0a7e7a1889a9da10963461&site=xueshu_se`
+> 具体的划分算法请参见 AMP 实验室发表的论文：《Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing》
+> `http://xueshu.baidu.com/usercenter/paper/show?paperid=b33564e60f0a7e7a1889a9da10963461&site=xueshu_se`
 
 ### 7. RDD 累加器和广播变量
 
@@ -733,7 +731,7 @@ Counter value: 0
 
 **3. 代码示例**：
 
-```
+```scala
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{Accumulator, SparkConf, SparkContext}
 
@@ -780,7 +778,7 @@ object AccumulatorTest {
 
 关键词：**sc.broadcast()**
 
-```
+```scala
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -2066,15 +2064,17 @@ Spark 之所以一开始就提供基于 Hash 的 Shuffle 实现机制，其主�
 
 在基于 Hash 的 Shuffle 实现方式中，每个 Mapper 阶段的 Task 会为每个 Reduce 阶段的 Task 生成一个文件，通常会产生大量的文件（即对应为 M*R 个中间文件，其中， M 表示 Mapper 阶段的 Task 个数， R 表示 Reduce 阶段的 Task 个数） 伴随大量的随机磁盘 I/O 操作与大量的内存开销。
 
-为了缓解上述问题，在 Spark 0.8.1 版本中为基于 Hash 的 Shuffle 实现引入了 **Shuffle Consolidate 机制（即文件合并机制）**，将 Mapper 端生成的中间文件进行合并的处理机制。通过配置属性`spark.shuffie.consolidateFiles=true`，减少中间生成的文件数量。通过文件合并，可以将中间文件的生成方式修改为每个执行单位为每个 Reduce 阶段的 Task 生成一个文件。
+为了缓解上述问题，在 Spark 0.8.1 版本中为基于 Hash 的 Shuffle 实现引入了 **Shuffle Consolidate 机制（即文件合并机制）**，将 Mapper 端生成的中间文件进行合并的处理机制。通过配置属性`spark.shuffie.consolidateFiles=true`，减少中间生成的文件数量。**通过文件合并，可以将中间文件的生成方式修改为每个执行单位为每个 Reduce 阶段的 Task 生成一个文件**。
 
 > 执行单位对应为：每个 Mapper 端的 Cores 数／每个 Task 分配的 Cores 数（默认为 1) 。最终可以将文件个数从 M*R 修改为 E*C/T*R，其中， E 表示 Executors 个数， C 表示可用 Cores 个数， T 表示 Task 分配的 Cores 数。
 
 Spark1.1 版本引入了 Sort Shuffle：
 
-基于 Hash 的 Shuffle 的实现方式中，生成的中间结果文件的个数都会依赖于 Reduce 阶段的 Task 个数，即 Reduce 端的并行度，因此文件数仍然不可控，无法真正解决问题。为了更好地解决问题，在 Spark1.1 版本引入了基于 Sort 的 Shuffle 实现方式，并且在 Spark 1.2 版本之后，默认的实现方式也从基于 Hash 的 Shuffle，修改为基于 Sort 的 Shuffle 实现方式，即使用的 ShuffleManager 从默认的 hash 修改为 sort。
+基于 Hash 的 Shuffle 的实现方式中，**生成的中间结果文件的个数都会依赖于 Reduce 阶段的 Task 个数**，即 Reduce 端的并行度，因此文件数仍然不可控，无法真正解决问题。为了更好地解决问题，在 Spark1.1 版本引入了基于 Sort 的 Shuffle 实现方式，并且在 Spark 1.2 版本之后，默认的实现方式也从基于 Hash 的 Shuffle，修改为基于 Sort 的 Shuffle 实现方式，即使用的 ShuffleManager 从默认的 hash 修改为 sort。
 
-在基于 Sort 的 Shuffle 中，每个 Mapper 阶段的 Task 不会为每 Reduce 阶段的 Task 生成一个单独的文件，而是全部写到一个数据（Data）文件中，同时生成一个索引（Index）文件， Reduce 阶段的各个 Task 可以通过该索引文件获取相关的数据。避免产生大量文件的直接收益就是降低随机磁盘 I/0 与内存的开销。最终生成的文件个数减少到 2*M ，其中 M 表示 Mapper 阶段的 Task 个数，每个 Mapper 阶段的 Task 分别生成两个文件（1 个数据文件、 1 个索引文件），最终的文件个数为 M 个数据文件与 M 个索引文件。因此，最终文件个数是 2*M 个。
+在基于 Sort 的 Shuffle 中，每个 Mapper 阶段的 Task 不会为每 Reduce 阶段的 Task 生成一个单独的文件，**而是全部写到一个数据（Data）文件中，同时生成一个索引（Index）文件**， Reduce 阶段的各个 Task 可以通过该索引文件获取相关的数据。避免产生大量文件的直接收益就是降低随机磁盘 I/0 与内存的开销。
+
+最终生成的文件个数减少到 2M ，其中 M 表示 Mapper 阶段的 Task 个数，每个 Mapper 阶段的 Task 分别生成两个文件（1 个数据文件、 1 个索引文件），最终的文件个数为 M 个数据文件与 M 个索引文件。因此，最终文件个数是 2*M 个。
 
 从 Spark 1.4 版本开始，在 Shuffle 过程中也引入了基于 Tungsten-Sort 的 Shuffie 实现方式，通 Tungsten 项目所做的优化，可以极大提高 Spark 在数据处理上的性能。(Tungsten 翻译为中文是钨丝)
 
@@ -2082,13 +2082,13 @@ Spark1.1 版本引入了 Sort Shuffle：
 
 一张图了解下 Spark Shuffle 的迭代历史：
 
-![1639395702977](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194144-503864.png)Spark Shuffle 迭代历史
+![1639395702977](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194144-503864.png)
 
 **为什么 Spark 最终还是放弃了 HashShuffle ，使用了 Sorted-Based Shuffle？**
 
-我们可以从 Spark 最根本要优化和迫切要解决的问题中找到答案，使用 HashShuffle 的 Spark 在 Shuffle 时产生大量的文件。当数据量越来越多时，产生的文件量是不可控的，这严重制约了 Spark 的性能及扩展能力，所以 Spark 必须要解决这个问题，减少 Mapper 端 ShuffleWriter 产生的文件数量，这样便可以让 Spark 从几百台集群的规模瞬间变成可以支持几千台，甚至几万台集群的规模。
+我们可以从 Spark 最根本要优化和迫切要解决的问题中找到答案，使用 HashShuffle 的 Spark 在 Shuffle 时产生大量的文件。当数据量越来越多时，**产生的文件量是不可控的**，这严重制约了 Spark 的性能及扩展能力，所以 Spark 必须要解决这个问题，减少 Mapper 端 ShuffleWriter 产生的文件数量，这样便可以让 Spark 从几百台集群的规模瞬间变成可以支持几千台，甚至几万台集群的规模。
 
-但使用 Sorted-Based Shuffle 就完美了吗，答案是否定的，Sorted-Based Shuffle 也有缺点，其缺点反而是它排序的特性，它强制要求数据在 Mapper 端必须先进行排序，所以导致它排序的速度有点慢。好在出现了 Tungsten-Sort Shuffle ，它对排序算法进行了改进，优化了排序的速度。Tungsten-Sort Shuffle 已经并入了 Sorted-Based Shuffle，Spark 的引擎会自动识别程序需要的是 Sorted-Based Shuffle，还是 Tungsten-Sort Shuffle。
+但使用 Sorted-Based Shuffle 就完美了吗，答案是否定的，Sorted-Based Shuffle 也有缺点，其缺点反而是它**排序**的特性，它强制要求数据在 Mapper 端必须先进行排序，所以导致它排序的速度有点慢。好在出现了 Tungsten-Sort Shuffle ，**它对排序算法进行了改进，优化了排序的速度**。Tungsten-Sort Shuffle 已经并入了 Sorted-Based Shuffle，Spark 的引擎会自动识别程序需要的是 Sorted-Based Shuffle，还是 Tungsten-Sort Shuffle。
 
 **下面详细剖析每个 Shuffle 的底层执行原理：**
 
@@ -2098,9 +2098,11 @@ Spark1.1 版本引入了 Sort Shuffle：
 
 #### 1. HashShuffleManager
 
-shuffle write 阶段，主要就是在一个 stage 结束计算之后，为了下一个 stage 可以执行 shuffle 类的算子（比如 reduceByKey），而将每个 task 处理的数据按 key 进行“划分”。所谓“划分”，就是**对相同的 key 执行 hash 算法**，从而将相同 key 都写入同一个磁盘文件中，而每一个磁盘文件都只属于下游 stage 的一个 task。在将数据写入磁盘之前，会先将数据写入内存缓冲中，当内存缓冲填满之后，才会溢写到磁盘文件中去。
+shuffle write 阶段，主要就是在一个 stage 结束计算之后，为了下一个 stage 可以执行 shuffle 类的算子（比如 reduceByKey），而将每个 task 处理的数据按 **key** 进行“划分”。所谓“划分”，就是**对相同的 key 执行 hash 算法**，从而将**相同 key 都写入同一个磁盘文件中**，**而每一个磁盘文件都只属于下游 stage 的一个 task**。在将数据写入磁盘之前，会先将数据写入内存缓冲中，当内存缓冲填满之后，才会溢写到磁盘文件中去。
 
-下一个 stage 的 task 有多少个，当前 stage 的每个 task 就要创建多少份磁盘文件。比如下一个 stage 总共有 100 个 task，那么当前 stage 的每个 task 都要创建 100 份磁盘文件。如果当前 stage 有 50 个 task，总共有 10 个 Executor，每个 Executor 执行 5 个 task，那么每个 Executor 上总共就要创建 500 个磁盘文件，所有 Executor 上会创建 5000 个磁盘文件。由此可见，**未经优化的 shuffle write 操作所产生的磁盘文件的数量是极其惊人的**。
+下一个 stage 的 task 有多少个，当前 stage 的每个 task 就要创建多少份磁盘文件。比如下一个 stage 总共有 100 个 task，那么当前 stage 的每个 task 都要创建 100 份磁盘文件。
+
+如果当前 stage 有 50 个 task，总共有 10 个 Executor，每个 Executor 执行 5 个 task，那么每个 Executor 上总共就要创建 500 个磁盘文件，所有 Executor 上会创建 5000 个磁盘文件。由此可见，**未经优化的 shuffle write 操作所产生的磁盘文件的数量是极其惊人的**。
 
 shuffle read 阶段，通常就是一个 stage 刚开始时要做的事情。此时该 stage 的**每一个 task 就需要将上一个 stage 的计算结果中的所有相同 key，从各个节点上通过网络都拉取到自己所在的节点上，然后进行 key 的聚合或连接等操作**。由于 shuffle write 的过程中，map task 给下游 stage 的每个 reduce task 都创建了一个磁盘文件，因此 shuffle read 的过程中，每个 reduce task 只要从上游 stage 的所有 map task 所在节点上，拉取属于自己的那一个磁盘文件即可。
 
@@ -2178,7 +2180,11 @@ bypass 运行机制的触发条件如下：
 
 该过程的磁盘写机制其实跟未经优化的 HashShuffleManager 是一模一样的，因为都要创建数量惊人的磁盘文件，只是在最后会做一个磁盘文件的合并而已。因此少量的最终磁盘文件，也让该机制相对未经优化的 HashShuffleManager 来说，shuffle read 的性能会更好。
 
-而该机制与普通 SortShuffleManager 运行机制的不同在于：第一，磁盘写机制不同；第二，不会进行排序。也就是说，**启用该机制的最大好处在于，shuffle write 过程中，不需要进行数据的排序操作**，也就节省掉了这部分的性能开销。
+而该机制与普通 SortShuffleManager 运行机制的不同在于：
+
+第一，磁盘写机制不同；sorted是基于排序的写磁盘，但是bypass是基于hash的写磁盘。
+
+第二，不会进行排序。也就是说，**启用该机制的最大好处在于，shuffle write 过程中，不需要进行数据的排序操作**，也就节省掉了这部分的性能开销。
 
 bypass 运行机制的 SortShuffleManager 工作原理如下图所示：
 
@@ -2192,13 +2198,13 @@ bypass运行机制的SortShuffleManager工作原理
 
 Spark 提供了配置属性，用于选择具体的 Shuffle 实现机制，但需要说明的是，虽然默认情况下 Spark 默认开启的是基于 SortShuffle 实现机制，但实际上，参考 Shuffle 的框架内核部分可知基于 SortShuffle 的实现机制与基于 Tungsten Sort Shuffle 实现机制都是使用 SortShuffleManager，而内部使用的具体的实现机制，是通过提供的两个方法进行判断的：
 
-**对应非基于 Tungsten Sort 时，通过 SortShuffleWriter.shouldBypassMergeSort 方法判断是否需要回退到 Hash 风格的 Shuffle 实现机制，当该方法返回的条件不满足时，则通过 SortShuffleManager.canUseSerializedShuffle 方法判断是否需要采用基于 Tungsten Sort Shuffle 实现机制，而当这两个方法返回都为 false，即都不满足对应的条件时，会自动采用普通运行机制。**
+> **对应非基于 Tungsten Sort 时，通过 SortShuffleWriter.shouldBypassMergeSort 方法判断是否需要回退到 Hash 风格的 Shuffle 实现机制，当该方法返回的条件不满足时，则通过 SortShuffleManager.canUseSerializedShuffle 方法判断是否需要采用基于 Tungsten Sort Shuffle 实现机制，而当这两个方法返回都为 false，即都不满足对应的条件时，会自动采用普通运行机制。**
 
 因此，当设置了 `spark.shuffle.manager=tungsten-sort` 时，也不能保证就一定采用基于 Tungsten Sort 的 Shuffle 实现机制。
 
 要实现 Tungsten Sort Shuffle 机制需要满足以下条件：
 
-1. Shuffle 依赖中不带聚合操作或没有对输出进行排序的要求。
+1. **Shuffle 依赖中不带聚合操作或没有对输出进行排序的要求**。
 2. Shuffle 的序列化器支持序列化值的重定位（当前仅支持 KryoSerializer Spark SQL 框架自定义的序列化器）。
 3. Shuffle 过程中的输出分区个数少于 16777216 个。
 
@@ -2242,7 +2248,7 @@ Spark运行流程
 
 #### 1. 从代码角度看 DAG 图的构建
 
-```
+```scala
 Val lines1 = sc.textFile(inputPath1).map(...).map(...)
 
 Val lines2 = sc.textFile(inputPath2).map(...)
@@ -2260,7 +2266,7 @@ dtinone.filter(...).foreach(...)
 
 上述代码的 DAG 图如下所示：
 
-![1639395845014](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194406-812232.png)构建DAG图
+![1639395845014](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194406-812232.png)
 
 Spark 内核会在需要计算发生的时刻绘制一张关于计算路径的有向无环图，也就是如上图所示的 DAG。
 
@@ -2278,6 +2284,7 @@ Spark Application 中可以因为不同的 Action 触发众多的 job，一个 A
 
 > 回顾下宽窄依赖的划分原则：
 > **窄依赖**：父 RDD 的一个分区只会被子 RDD 的一个分区依赖。即一对一或者多对一的关系，可理解为独生子女。常见的窄依赖有：map、filter、union、mapPartitions、mapValues、join（父 RDD 是 hash-partitioned）等。
+>
 > **宽依赖**：父 RDD 的一个分区会被子 RDD 的多个分区依赖(涉及到 shuffle)。即一对多的关系，可理解为超生。常见的宽依赖有 groupByKey、partitionBy、reduceByKey、join（父 RDD 不是 hash-partitioned）等。
 
 **核心算法：回溯算法**
@@ -2289,8 +2296,6 @@ Spark 内核会从触发 Action 操作的那个 RDD 开始**从后往前推**，
 #### 3. 将 DAG 划分为 Stage 剖析
 
 ![1639395893175](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194454-947407.png)
-
-DAG划分Stage
 
 **一个 Spark 程序可以有多个 DAG(有几个 Action，就有几个 DAG，上图最后只有一个 Action（图中未表现）,那么就是一个 DAG)**。
 
@@ -2304,7 +2309,7 @@ DAG划分Stage
 
 #### 4. 提交 Stages
 
-调度阶段的提交，最终会被转换成一个任务集的提交，DAGScheduler 通过 TaskScheduler 接口提交任务集，这个任务集最终会触发 TaskScheduler 构建一个 TaskSetManager 的实例来管理这个任务集的生命周期，对于 DAGScheduler 来说，提交调度阶段的工作到此就完成了。
+调度阶段的提交，最终会被转换成一个**任务集**的提交，DAGScheduler 通过 TaskScheduler 接口提交任务集，这个任务集最终会触发 TaskScheduler 构建一个 TaskSetManager 的实例来管理这个任务集的生命周期，对于 DAGScheduler 来说，提交调度阶段的工作到此就完成了。
 
 而 TaskScheduler 的具体实现则会在得到计算资源的时候，进一步通过 TaskSetManager 调度具体的任务到对应的 Executor 节点上进行运算。
 
@@ -2358,8 +2363,6 @@ Spark Application 不能跨应用程序共享数据，除非将数据写入到�
 
 ![1639395985521](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194627-15396.png)
 
-Executor进程专属
-
 #### 2. 支持多种资源管理器
 
 Spark 与资源管理器无关，只要能够获取 Executor 进程，并能保持相互通信就可以了。
@@ -2367,8 +2370,6 @@ Spark 与资源管理器无关，只要能够获取 Executor 进程，并能保�
 Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2。如图所示:
 
 ![1639396010079](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194651-952705.png)
-
-支持多种资源管理器
 
 #### 3. Job 提交就近原则
 
@@ -2380,8 +2381,6 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 ![1639396030617](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194711-410137.png)
 
-Job提交就近原则
-
 #### 4. 移动程序而非移动数据的原则执行
 
 **移动程序而非移动数据的原则执行，Task 采用了数据本地性和推测执行的优化机制**。
@@ -2391,8 +2390,6 @@ Job提交就近原则
 如图所示:
 
 ![1639396053165](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/13/194734-242051.png)
-
-数据本地性
 
 ## 八、Spark 数据倾斜
 
