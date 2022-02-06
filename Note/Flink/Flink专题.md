@@ -140,7 +140,7 @@ Flink是一个以**流**为核心的**高可用、高性能**的分布式计算�
 
 **数据流**：
 
-所有产生的数据都天然带有时间概念，把事件按照时间顺序排列起来，就形成了一个事件流，也被称作数据流。
+所有产生的数据都天然带有**时间概念**，**把事件按照时间顺序排列起来，就形成了一个事件流**，也被称作数据流。
 
 **流批一体**：
 
@@ -162,7 +162,7 @@ Flink的设计思想是以**流**为核心，**批是流的特例**，擅长处�
 
 **集群级容错:** Flink与集群管理器紧密连接，如YARN、Kubernetes，当进程挂掉后，自动重启新进程接管之前的工作。同时具备**高可用**性,可消除所有**单点故障**。
 
-**应用级容错**:Flink使用轻量级分布式快照，设计检查点（**checkpoint**）实现可靠容错。Flink 利用检查点特性，在框架层面 提供 **Exactly-once** 语义，即端到端的一致性，确保数据仅处理一次，不会重复也不会丢失，即使出现故障，也能保证数据只写一次。
+**应用级容错**:Flink使用**轻量级分布式快照**，设计检查点（**checkpoint**）实现可靠容错。Flink 利用检查点特性，在框架层面 提供 **Exactly-once** 语义，即**端到端**的一致性，确保数据仅处理一次，不会重复也不会丢失，即使出现故障，也能保证数据只写一次。
 
 > Storm：没有 SQL 和高阶 API 的支持、无法支持 exactly once；
 > 
@@ -176,7 +176,7 @@ Flink的设计思想是以**流**为核心，**批是流的特例**，擅长处�
 
 **下面我们介绍两个框架的主要区别：**
 
-1. **架构模型**
+##### **架构模型**
 
 Spark Streaming 在运行时的主要角色包括：
 
@@ -198,7 +198,7 @@ Flink 在运行时主要包含：
 
 ![1636187379141](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/162939-818557.png)
 
-2. **任务调度**
+##### **任务调度**
 
 Spark Streaming 连续不断的生成微小的数据批次，构建有向无环图DAG，Spark Streaming 会依次创建 DStreamGraph、JobScheduler。
 
@@ -214,7 +214,7 @@ JobManager 会根据 JobGraph 生成 **ExecutionGraph**，ExecutionGraph 是 Fli
 > Flink：StreamGraph-->JobGraph-->ExecutionGraph--> 执行图
 > Spark：DStreamGraph=spark application--->job-->stage--->Task
 
-1. **时间机制**
+##### 时间机制
 
 Spark Streaming 支持的时间机制有限，只支持、**处理时间**。
 
@@ -222,7 +222,7 @@ Flink 支持了流处理程序在时间上的三个定义：**事件时间 Event
 
 ![1636187492849](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/163133-942618.png)
 
-4. **容错机制**
+##### **容错机制**
 
 对于 Spark Streaming 任务，我们可以设置**checkpoint**，然后假如发生故障并重启，我们可以从上次 checkpoint 之处恢复，**但是这个行为只能使得数据不丢失，可能会重复处理，不能做到恰好一次处理语义**。
 
@@ -1272,7 +1272,7 @@ Flink中，广播状态中叫作 BroadcastState。 在广播状态模式中使�
 
 上图这个示例包含两个流，一个为**kafka模型流**，该模型是通过机器学习或者深度学习训练得到的模型，将该模型通过广播，发送给下游所有规则算子，规则算子将规则缓存到Flink的本地内存中，另一个为**Kafka数据流**，用来接收测试集，该测试集依赖于模型流中的模型，通过模型完成测试集的推理任务。
 
-广播状态（State）必须是MapState类型，广播状态模式需要使用广播函数进行处理，广播函数提供了处理广播数据流和普通数据流的接口。
+**广播状态（State）必须是MapState类型，广播状态模式需要使用广播函数进行处理，广播函数提供了处理广播数据流和普通数据流的接口**。
 
 #### 25、Flink 状态接口包括哪些？
 
@@ -1282,7 +1282,7 @@ Flink中，广播状态中叫作 BroadcastState。 在广播状态模式中使�
 
 （2）**状态访问接口**:从StateBackend获取状态对象本身。
 
-**状态操作接口**
+##### **状态操作接口**
 
 Flink 中的**状态操作接口**面向两类用户，即**应用开发者和Flink框架本身**。 所有Flink设计了两套接口
 
@@ -1298,7 +1298,7 @@ Flink 中的**状态操作接口**面向两类用户，即**应用开发者和Fl
 
 内部State 接口 是给 Flink 框架使用，提供更多的State方法，可以根据需要灵活扩展。除了对State中数据的访问之外，还提供内部运行时信息，如State中数据的序列化器，命名空间（namespace）、命名空间的序列化器、命名空间合并的接口。**内部State接口命名方式为InternalxxxState。**
 
-**状态访问接口**
+##### **状态访问接口**
 
 **有了状态之后，开发者自定义UDF时，应该如何访问状态？**
 
@@ -1423,7 +1423,7 @@ RocksDBStateBackend 持久化策略有两种：
 ![1636197047284](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/06/191047-603915.png)
 
 
-在执行持久化策略的时候，使用异步机制，每个算子启动1个独立的线程，将自身的状态写入分布式存储可靠存储中。在做持久化的过程中，状态可能会被持续修改，
+在执行持久化策略的时候，使用异步机制，每个算子启动1个独立的线程，将自身的状态写入分布式存储可靠存储中。在做持久化的过程中，状态可能会被持续修改。
 
 **基于内存的状态后端**使用 CopyOnWriteStateTable 来保证线程安全，RocksDBStateBackend则使用RocksDB的快照机制，使用快照来保证线程安全。
 
@@ -1489,7 +1489,7 @@ State可以被记录，在失败的情况下数据还可以恢复。
 
 #### 31、什么是Savepoin保存点？
 
-**保存点**在 Flink 中叫作 **Savepoint**. 是基于Flink 检查点机制的应用完整快照备份机制. 用来保存状态 可以在另一个集群或者另一个时间点.从保存的状态中将作业恢复回来。适用 于应用升级、集群迁移、 Flink 集群版本更新、A/B测试以及假定场景、暂停和重启、归档等场景。保存点可以视为一个(算子 ID -> State) 的Map，对于每一个有状态的算子，Key是算子ID，Value是算子State。
+**保存点**在 Flink 中叫作 **Savepoint**. 是基于Flink 检查点机制的应用完整快照备份机制. 用来保存状态 ，可以在另一个集群或者另一个时间点.从保存的状态中将作业恢复回来。适用 于应用升级、集群迁移、 Flink 集群版本更新、A/B测试以及假定场景、暂停和重启、归档等场景。保存点可以视为一个(算子 ID -> State) 的Map，对于每一个有状态的算子，Key是算子ID，Value是算子State。
 
 #### 32、什么是CheckpointCoordinator检查点协调器？
 
@@ -1511,20 +1511,23 @@ kafka topic有且只有一个分区
 
 假设kafka的topic-test只有一个分区，flink的Source task记录了当前消费到kafka test topic的所有partition的offset
 
-```
+```text
 例：（0，1000）表示0号partition目前消费到offset为1000的数据
 ```
 
 **Flink的pv task记录了当前计算的各app的pv值，为了方便讲解，我这里有两个app：app1、app2**
 
-```
+```text
 例：（app1，50000）（app2，10000）表示app1当前pv值为50000
 
 表示app2当前pv值为10000每来一条数据，只需要确定相应app_id，将相应的value值+1后put到map中即可；
 ```
 
-该案例中，CheckPoint保存的其实就是第n次CheckPoint消费的offset信息和各app的pv值信息，记录一下发生CheckPoint当前的状态信息，并将该状态信息保存到相应的状态后端。图下代码：（注：状态后端是保存状态的地方，决定状态如何保存，如何保障状态高可用，我们只需要知道，我们能从状态后端拿到offset信息和pv信息即可。状态后端必须是高可用的，否则我们的状态后端经常出现故障，会导致无法通过checkpoint来恢复我们的应用程序）。
-```
+该案例中，CheckPoint保存的其实就是第n次CheckPoint消费的offset信息和各app的pv值信息，记录一下发生CheckPoint当前的状态信息，并将该状态信息保存到相应的状态后端。
+
+图下代码：（注：状态后端是保存状态的地方，决定状态如何保存，如何保障状态高可用，我们只需要知道，我们能从状态后端拿到offset信息和pv信息即可。状态后端必须是高可用的，否则我们的状态后端经常出现故障，会导致无法通过checkpoint来恢复我们的应用程序）。
+
+```text
 chk-100offset：（0，1000）pv：（app1，50000）（app2，10000）该状态信息表示第100次CheckPoint的时候， partition 0 offset消费到了1000，pv统计
 
 ```
@@ -1555,7 +1558,7 @@ Flink设置有作业失败重启策略，包含三种：
 
 启动方式如下：
 
-```
+```scala
 /bin/flink -s /flink/checkpoints/03112312a12398740a87393/chk-50/_metadata
 ```
 
@@ -1591,9 +1594,9 @@ Barrier 会在数据流源头被注人并行数据流中。**Barrier n所在的�
 
 Barrier 接着向下游传递。当一个非数据源算子从所有的输入流中收到了快照 n 的Barrier时，该算子就会对自己的 State 保存快照，并向自己的下游**广播发送**快照 n 的 Barrier。一旦Sink 算子接收到 Barrier ，有两种情况：
 
-（1）如果是引擎内严格一次处理保证，当 Sink 算子已经收到了所有上游的 Barrie n 时， Sink 算子对自己的 State 进行快照，然后通知检查点协调器( CheckpointCoordinator) 。当所有的算子都向检查点协调器汇报成功之后，检查点协调器向所有的算子确认本次快照完成。
+（1）**如果是引擎内严格一次处理保证**，当 Sink 算子已经收到了所有上游的 Barrie n 时， Sink 算子对自己的 State 进行快照，**然后通知检查点协调器( CheckpointCoordinator)** 。当所有的算子都向检查点协调器汇报成功之后，检查点协调器向所有的算子确认本次快照完成。
 
-（2）如果是端到端严格一次处理保证，当 Sink 算子已经收到了所有上游的 Barrie n 时， Sink 算子对自己的 State 进行快照，并预提交事务（两阶段提交的第一阶段），再通知检查点协调器( CheckpointCoordinator) ，检查点协调器向所有的算子确认本次快照完成，Sink 算子提交事务（两阶段提交的第二阶段），本次事务完成。
+（2）**如果是端到端严格一次处理保证**，当 Sink 算子已经收到了所有上游的 Barrie n 时， Sink 算子对自己的 State 进行快照，并预提交事务（两阶段提交的第一阶段），再通知检查点协调器( CheckpointCoordinator) ，检查点协调器向所有的算子确认本次快照完成，Sink 算子提交事务（两阶段提交的第二阶段），本次事务完成。
 
 我们接着33的案例来具体说一下如何执行分布式快照：
 
@@ -2233,7 +2236,7 @@ bin/flink run org.apache.flink.WordCount xxx.jar
 
 **（1）Flink Client向Yarn ResourceManager提交任务信息。**
 
-​1）Flink Client将应用配置（Flink-conf.yaml、logback.xml、log4j.properties）和相关文件（Flink Jar、配置类文件、用户Jar文件、JobGraph对象等）上传至分布式存储HDFS中。
+1）Flink Client将应用配置（Flink-conf.yaml、logback.xml、log4j.properties）和相关文件（Flink Jar、配置类文件、用户Jar文件、JobGraph对象等）上传至分布式存储HDFS中。
 
 2）Flink Client向Yarn ResourceManager提交任务信息。
 

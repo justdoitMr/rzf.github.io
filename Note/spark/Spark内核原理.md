@@ -53,7 +53,7 @@ Spark 内核泛指 Spark 的核心运行机制，包括 **Spark 核心组件的�
 
 **Driver**
 
-Spark 驱动器节点，用于执行 Spark 任务中的 main 方法，负责实际代码的执行工作，根据部署方式的不同，Driver运行的位置也不同，有两种方式，第一种是本地客户端，第二种是集群中，运行在集群中可以受到资源管理器的监控，可以失败重试。
+Spark 驱动器节点，用于执行 Spark 任务中的 main 方法，负责实际代码的执行工作，根据部署方式的不同，Driver运行的位置也不同，有两种方式，**第一种是本地客户端，第二种是集群中**，运行在集群中可以受到资源管理器的监控，可以失败重试。
 
 Driver 在 Spark 作业执行时主要负责：
 
@@ -129,7 +129,7 @@ Executor 有两个核心功能：
 9.Driver 线程继续执行完成作业的调度和任务的执行。
 
 10. Driver 分配任务并监控任务的执行。
- 
+
 > 注意：
 > 
 > SparkSubmit、ApplicationMaster 和CoarseGrainedExecutorBackend 是独立的进程；
@@ -199,8 +199,9 @@ Driver 启动后向 Master 注册应用程序，Master 根据 submit 脚本的�
 Executor 的所有 Worker，然后在这些 Worker 之间分配 Executor，Worker 上的 Executor 启动后会向 Driver 反向注册，所有的 Executor 注册完成后，Driver 开始执行 main 函数，之后执行到 Action 算子时，开始划分 Stage，每个 Stage 生成对应的 TaskSet，之后将 Task 分发到各个Executor 上执行。
 
 > 那么这两种部署模式有什么特点呢?
+>
 > cluster模式是把Driver运行在集群中，这样由集群来管理作业的运行，如果作业运行失败的话，可以进行重试机制，并且Driver运行在集群中可以减小客户端的压力，解耦作用，有利于集群中Executor和Driver进行通信，减小网络资源的消耗。
-> 
+>
 > Driver运行在客户端，在提交任务之后可以返回一些作业的信息，缺点是如果很多用户都在客户端提交作业，那么客户端的压力会很大，消耗网络资源。
 
 ## Spark通讯架构
@@ -272,8 +273,9 @@ TransportServer：Netty 通信服务端，一个 RpcEndpoint 对应一个 Transp
 
 ## Spark 任务调度机制
 
-在生产环境下，Spark 集群的部署方式一般为 YARN-Cluster 模式，之后的内核分析内容中我们默认集群的部署方式为 YARN-Cluster  模式。在上一章中我们讲解了 Spark YARN-
-Cluster 模式下的任务提交流程，但是我们并没有具体说明 Driver 的工作流程， Driver 线程主要是初始化 SparkContext  对象， 准备运行所需的上下文， 然后一方面保持与ApplicationMaster 的 RPC 连接，通过ApplicationMaster 申请资源，另一方面根据用户业务逻辑开始调度任务，将任务下发到已有的空闲 Executor 上，调度任务是由Driver负责进行的。
+在生产环境下，Spark 集群的部署方式一般为 YARN-Cluster 模式，之后的内核分析内容中我们默认集群的部署方式为 YARN-Cluster  模式。
+
+在上一章中我们讲解了 Spark YARN-Cluster 模式下的任务提交流程，但是我们并没有具体说明 Driver 的工作流程， Driver 线程主要是初始化 SparkContext  对象， 准备运行所需的上下文， 然后一方面保持与ApplicationMaster 的 RPC 连接，通过ApplicationMaster 申请资源，另一方面根据用户业务逻辑开始调度任务，将任务下发到已有的空闲 Executor 上，调度任务是由Driver负责进行的。
 
 当 ResourceManager 向ApplicationMaster 返回Container 资源时，ApplicationMaster 就尝试在对应的Container 上启动 Executor 进程，Executor 进程起来后，会向Driver 反向注册， 注册成功后保持与 Driver 的心跳，同时等待 Driver 分发任务，当分发的任务执行完毕后， 将任务状态上报给Driver。
 
@@ -311,11 +313,11 @@ Spark 的任务调度是从 DAG 切割开始，主要是由DAGScheduler 来完�
 
 ![20211108154446](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108154446.png)
 
-Job 由 saveAsTextFile 触发，该 Job 由 RDD-3 和 saveAsTextFile 方法组成，根据 RDD 之间的依赖关系从RDD-3 开始回溯搜索，直到没有依赖的 RDD-0，在回溯搜索过程中，RDD-
-3 依赖 RDD-2，并且是宽依赖，所以在RDD-2 和 RDD-3 之间划分 Stage，RDD-3 被划到最后一个 Stage，即 ResultStage 中，RDD-2 依赖RDD-1，RDD-1 依赖RDD-0，这些依赖都是窄依赖，所以将 RDD-0、RDD-1 和 RDD-2 划分到同一个 Stage，形成 pipeline 操作，。即
-ShuffleMapStage 中，实际执行的时候，数据记录会一气呵成地执行 RDD-0 到 RDD-2 的转化。不难看出，其本质上是一个深度优先搜索（Depth First Search）算法。
+Job 由 saveAsTextFile 触发，该 Job 由 RDD-3 和 saveAsTextFile 方法组成，根据 RDD 之间的依赖关系从RDD-3 开始回溯搜索，直到没有依赖的 RDD-0，在回溯搜索过程中，RDD-3 依赖 RDD-2，并且是宽依赖，所以在RDD-2 和 RDD-3 之间划分 Stage，RDD-3 被划到最后一个 Stage，即 ResultStage 中，RDD-2 依赖RDD-1，RDD-1 依赖RDD-0，这些依赖都是窄依赖，所以将 RDD-0、RDD-1 和 RDD-2 划分到同一个 Stage，形成 pipeline 操作，即ShuffleMapStage 中，实际执行的时候，数据记录会一气呵成地执行 RDD-0 到 RDD-2 的转化。不难看出，其本质上是一个深度优先搜索（Depth First Search）算法。
 
-一个 Stage 是否被提交，需要判断它的父 Stage 是否执行，只有在父 Stage 执行完毕才能提交当前 Stage，如果一个 Stage 没有父 Stage，那么从该 Stage 开始提交。Stage 提交时会将 Task 信息（分区信息以及方法等）序列化并被打包成 TaskSet 交给 TaskScheduler，一个Partition 对应一个 Task，另一方面 TaskScheduler 会监控 Stage 的运行状态，只有 Executor 丢失或者 Task 由于 Fetch 失败才需要重新提交失败的 Stage 以调度运行失败的任务，其他类型的 Task 失败会在TaskScheduler 的调度过程中重试。
+一个 Stage 是否被提交，需要判断它的父 Stage 是否执行，只有在父 Stage 执行完毕才能提交当前 Stage，如果一个 Stage 没有父 Stage，那么从该 Stage 开始提交。Stage 提交时会将 Task 信息（分区信息以及方法等）序列化并被打包成 TaskSet 交给 TaskScheduler.
+
+一个Partition 对应一个 Task，**另一方面 TaskScheduler 会监控 Stage 的运行状态，只有 Executor 丢失或者 Task 由于 Fetch 失败才需要重新提交失败的 Stage 以调度运行失败的任务，其他类型的 Task 失败会在TaskScheduler 的调度过程中重试**。
 
 相对来说 DAGScheduler 做的事情较为简单，仅仅是在 Stage 层面上划分 DAG，提交Stage 并监控相关状态信息。TaskScheduler 则相对较为复杂，下面详细阐述其细节。
 
@@ -333,8 +335,7 @@ TaskSetManager 负责监控管理同一个 Stage 中的 Tasks ， TaskScheduler 
 
 上图中，将 TaskSetManager 加入 rootPool 调度池中之后，调用 SchedulerBackend 的
 
-riviveOffers 方法给 driverEndpoint 发送 ReviveOffer 消息；driverEndpoint 收到 ReviveOffer 消息后调用 makeOffers 方法，过滤出活跃状态的 Executor（这些 Executor 都是任务启动时反向注册到 Driver 的 Executor），然后将 Executor 封装成 WorkerOffer 对象；准备好计算资源
-（WorkerOffer）后，taskScheduler 基于这些资源调用 resourceOffer 在 Executor 上分配 task。
+riviveOffers 方法给 driverEndpoint 发送 ReviveOffer 消息；driverEndpoint 收到 ReviveOffer 消息后调用 makeOffers 方法，过滤出活跃状态的 Executor（这些 Executor 都是任务启动时反向注册到 Driver 的 Executor），然后将 Executor 封装成 WorkerOffer 对象；准备好计算资源（WorkerOffer）后，taskScheduler 基于这些资源调用 resourceOffer 在 Executor 上分配 task。
 
 ### 调度策略
 
@@ -455,7 +456,7 @@ bypass 运行机制的触发条件如下：
 
 该过程的磁盘写机制其实跟未经优化的 HashShuffleManager 是一模一样的，因为都要创建数量惊人的磁盘文件，只是在最后会做一个磁盘文件的合并而已。因此少量的最终磁盘文件，也让该机制相对未经优化的HashShuffleManager 来说，shuffle read 的性能会更好。
 
-而该机制与普通 SortShuffleManager 运行机制的不同在于：不会进行排序。也就是说， 启用该机制的最大好处在于，shuffle write 过程中，不需要进行数据的排序操作，也就节省掉了这部分的性能开销。
+而该机制与普通 SortShuffleManager 运行机制的不同在于：**不会进行排序**。也就是说， 启用该机制的最大好处在于，shuffle write 过程中，不需要进行数据的排序操作，也就节省掉了这部分的性能开销。
 
 ![20211108161108](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108161108.png)
 
@@ -469,7 +470,11 @@ bypass 运行机制的触发条件如下：
 
 #### 堆内内存
 
-堆 内 内 存 的 大 小 ， 由 Spark   应 用 程 序 启 动 时 的	– executor-memory 或spark.executor.memory 参数配置。Executor 内运行的并发任务共享 JVM 堆内内存，这些任务在缓存 RDD 数据和广播（Broadcast）数据时占用的内存被规划为存储（Storage）内存， 而这些任务在执行 Shuffle 时占用的内存被规划为执行（Execution）内存，剩余的部分不做特殊规划，那些 Spark 内部的对象实例，或者用户定义的 Spark 应用程序中的对象实例，均占用剩余的空间。不同的管理模式下，这三部分占用的空间大小各不相同。
+堆 内 内 存 的 大 小 ， 由 Spark   应 用 程 序 启 动 时 的	– executor-memory 或spark.executor.memory 参数配置。Executor 内运行的并发任务共享 JVM 堆内内存，这些任务在缓存 RDD 数据和广播（Broadcast）数据时占用的内存被规划为**存储（Storage）内存**， 而这些任务在执行 Shuffle 时占用的内存被规划为**执行（Execution）内存**，剩余的部分不做特殊规划，那些 Spark 内部的对象实例，或者用户定义的 Spark 应用程序中的对象实例，均占用剩余的空间。不同的管理模式下，这三部分占用的空间大小各不相同。
+
+- 存储内存
+- 执行内存
+- 其他内存
 
 Spark 对堆内内存的管理是一种逻辑上的”规划式”的管理，因为对象实例占用内存的申请和释放都由 JVM 完成，Spark 只能在申请后和释放前记录这些内存，我们来看其具体流程：
 
@@ -478,7 +483,7 @@ Spark 对堆内内存的管理是一种逻辑上的”规划式”的管理，�
 1. Spark 在代码中 new 一个对象实例；
 
 2. JVM 从堆内内存分配空间，创建对象并返回对象引用；
- 
+
 3. Spark 保存该对象的引用，记录该对象占用的内存。
 
 **释放内存流程如下：**
@@ -503,6 +508,11 @@ Spark 对堆内内存的管理是一种逻辑上的”规划式”的管理，�
 
 在默认情况下堆外内存并不启用，可通过配置 spark.memory.offHeap.enabled 参数启用， 并由 spark.memory.offHeap.size 参数设定堆外空间的大小。除了没有 other 空间，堆外内存与堆内内存的划分方式相同，所有运行中的并发任务共享存储内存和执行内存。
 
+堆外内存划分为两部分：
+
+- 存储内存
+- 执行内存
+
 ### 内存空间分配
 
 #### 静态内存管理
@@ -520,10 +530,10 @@ Fraction
 ```
 
 其中 systemMaxMemory 取决于当前 JVM 堆内内存的大小，最后可用的执行内存或者存储内存要在此基础上与各自的 memoryFraction 参数和 safetyFraction 参数相乘得出。上述计算公式中的两个 safetyFraction 参数，其意义在于在逻辑上预留出 1-safetyFraction 这么一块保险区域，降低因实际内存超出当前预设范围而导致 OOM 的风险（上文提到，对于非序列化对象的内存采样估算会产生误差）。值得注意的是，这个预留的保险区域仅仅是一种逻辑上的规划，在具体使用时 Spark 并没有区别对待，和”其它内存”一样交给了 JVM 去管理。
- 
+
 Storage 内存和 Execution 内存都有预留空间，目的是防止 OOM，因为 Spark 堆内内存大小的记录是不准确的，需要留出保险区域。
 
-堆外的空间分配较为简单，只有存储内存和执行内存，如下图所示。可用的执行内存和存储内存占用的空间大小直接由参数 spark.memory.storageFraction 决定，由于堆外内存占用的空间可以被精确计算，所以无需再设定保险区域。
+堆外的空间分配较为简单，只有**存储内存和执行内存**，如下图所示。可用的执行内存和存储内存占用的空间大小直接由参数 spark.memory.storageFraction 决定，由于堆外内存占用的空间可以被精确计算，所以无需再设定保险区域。
 
 ![20211108161901](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108161901.png)
 
@@ -531,7 +541,7 @@ Storage 内存和 Execution 内存都有预留空间，目的是防止 OOM，因
 
 #### 堆外内存管理
 
-Spark1.6 之后引入的统一内存管理机制，与静态内存管理的区别在于存储内存和执行内存共享同一块空间，可以动态占用对方的空闲区域，统一内存管理的堆内内存结构如图所示：
+Spark1.6 之后引入的统一内存管理机制，**与静态内存管理的区别在于存储内存和执行内存共享同一块空间，可以动态占用对方的空闲区域**，统一内存管理的堆内内存结构如图所示：
 
 统一内存管理的堆外内存结构如下图所示：
 
@@ -550,22 +560,23 @@ Spark1.6 之后引入的统一内存管理机制，与静态内存管理的区�
 
 ![20211108162124](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108162124.png)
 
-凭借统一内存管理机制，Spark 在一定程度上提高了堆内和堆外内存资源的利用率，降低了开发者维护 Spark 内存的难度，但并不意味着开发者可以高枕无忧。如果存储内存的空间太大或者说缓存的数据过多，反而会导致频繁的全量垃圾回收，降低任务执行时的性能，因为缓存的 RDD 数据通常都是长期驻留内存的。所以要想充分发挥 Spark 的性能，需要开发者进一步了解存储内存和执行内存各自的管理方式和实现原理。
+凭借统一内存管理机制，Spark 在一定程度上提高了**堆内和堆外内存资源的利用率**，降低了开发者维护 Spark 内存的难度，但并不意味着开发者可以高枕无忧。
+
+如果存储内存的空间太大或者说缓存的数据过多，反而会导致频繁的全量垃圾回收，降低任务执行时的性能，因为缓存的 RDD 数据通常都是长期驻留内存的。所以要想充分发挥 Spark 的性能，需要开发者进一步了解存储内存和执行内存各自的管理方式和实现原理。
 
 ### 存储内存管理
 
 #### RDD持久化机制
 
-弹性分布式数据集（RDD）作为 Spark  最根本的数据抽象，是只读的分区记录（Partition）的集合，只能基于在稳定物理存储中的数据集上创建，或者在其他已有的 RDD 上执行转换
-（Transformation）操作产生一个新的 RDD。转换后的 RDD 与原始的RDD 之间产生的依赖关系，构成了血统（Lineage）。凭借血统，Spark  保证了每一个RDD 都可以被重新恢复。但RDD 的所有转换都是惰性的，即只有当一个返回结果给 Driver 的行动（Action）发生时，
+弹性分布式数据集（RDD）作为 Spark  最根本的数据抽象，是只读的分区记录（Partition）的集合，只能基于在稳定物理存储中的数据集上创建，或者在其他已有的 RDD 上执行转换（Transformation）操作产生一个新的 RDD。转换后的 RDD 与原始的RDD 之间产生的依赖关系，构成了血统（Lineage）。凭借血统，Spark  保证了每一个RDD 都可以被重新恢复。但RDD 的所有转换都是惰性的，即只有当一个返回结果给 Driver 的行动（Action）发生时，
 
 Spark 才会创建任务读取RDD，然后真正触发转换的执行。
 
 Task 在启动之初读取一个分区时，会先判断这个分区是否已经被持久化，如果没有则需要检查 Checkpoint 或按照血统重新计算。所以如果一个 RDD 上要执行多次行动，可以在第一次行动中使用 persist 或 cache 方法，在内存或磁盘中持久化或缓存这个 RDD，从而在后面的行动时提升计算速度。
 
-事实上，cache 方法是使用默认的 MEMORY_ONLY 的存储级别将 RDD 持久化到内存，故缓存是一种特殊的持久化。 堆内和堆外存储内存的设计，便可以对缓存 RDD 时使用的内存做统一的规划和管理。
+事实上，cache 方法是使用默认的 MEMORY_ONLY 的存储级别将 RDD 持久化到内存，**故缓存是一种特殊的持久化**。 堆内和堆外存储内存的设计，便可以对缓存 RDD 时使用的内存做统一的规划和管理。
 
-RDD 的持久化由 Spark 的 Storage 模块负责，实现了 RDD 与物理存储的解耦合。Storage 模块负责管理Spark 在计算过程中产生的数据，将那些在内存或磁盘、在本地或远程存取数据的功能封装了起来。在具体实现时 Driver 端和 Executor 端的 Storage 模块构成了主从式的架构，即Driver 端的BlockManager 为 Master，Executor 端的 BlockManager 为 Slave。Storage 模块在逻辑上以 Block 为基本存储单位，RDD 的每个 Partition 经过处理后唯一对应一个 Block（BlockId 的格式为 rdd_RDD-ID_PARTITION-ID ）。Driver 端的 Master 负责整个Spark 应用程序的Block 的元数据信息的管理和维护，而 Executor 端的 Slave 需要将Block 的更新等状态上报到 Master，同时接收 Master 的命令，例如新增或删除一个RDD。
+RDD 的持久化由 Spark 的 Storage 模块负责，实现了 RDD 与物理存储的解耦合。Storage 模块负责管理Spark 在计算过程中产生的数据，将那些在内存或磁盘、在本地或远程存取数据的功能封装了起来。在具体实现时 Driver 端和 Executor 端的 **Storage 模块构成了主从式的架构**，即Driver 端的BlockManager 为 Master，Executor 端的 BlockManager 为 Slave。Storage 模块在逻辑上以 Block 为基本存储单位，RDD 的每个 Partition 经过处理后唯一对应一个 Block（BlockId 的格式为 rdd_RDD-ID_PARTITION-ID ）。Driver 端的 Master 负责整个Spark 应用程序的Block 的元数据信息的管理和维护，而 Executor 端的 Slave 需要将Block 的更新等状态上报到 Master，同时接收 Master 的命令，例如新增或删除一个RDD。
 
 ![20211108162309](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108162309.png)
 

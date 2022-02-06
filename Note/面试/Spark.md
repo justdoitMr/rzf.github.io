@@ -367,8 +367,11 @@ RDD 的算子分为两类:
 2. Action动作操作:**返回值不是 RDD(无返回值或返回其他的)**，会触发一个新的job进行执行。
 
 > ❣️ 注意:
+>
 > 1、RDD 不实际存储真正要计算的数据，而是记录了数据的位置在哪里，数据的转换关系(调用了什么方法，传入什么函数)。
+>
 > 2、RDD 中的所有转换都是**惰性求值/延迟执行**的，也就是说并不会直接计算。只有当发生一个要求返回结果给 Driver 的 Action 动作时，这些转换才会真正运行。
+>
 > 3、之所以使用惰性求值/延迟执行，是因为这样可以在 Action 时对 RDD 操作形成 DAG 有向无环图进行 Stage 的划分和并行优化，这种设计让 Spark 更加有效率地运行。
 
 #### 3) Transformation 转换算子
@@ -539,7 +542,7 @@ DAG(Directed Acyclic Graph 有向无环图)指的是数据转换执行的过程�
 
 在实际开发中某些 RDD 的计算或转换可能会比较耗费时间，如果这些 RDD 后续还会频繁的被使用到，那么可以将这些 RDD 进行持久化/缓存，这样下次再使用到的时候就不用再重新计算了，提高了程序运行的效率。
 
-```
+```scala
 val rdd1 = sc.textFile("hdfs://node01:8020/words.txt")
 val rdd2 = rdd1.flatMap(x=>x.split(" ")).map((_,1)).reduceByKey(_+_)
 rdd2.cache //缓存/持久化
@@ -2188,7 +2191,7 @@ bypass 运行机制的触发条件如下：
 
 bypass 运行机制的 SortShuffleManager 工作原理如下图所示：
 
-![1639395772870](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639395772870.png)
+![1639395772870](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/06/135614-25707.png)
 
 bypass运行机制的SortShuffleManager工作原理
 
@@ -2309,7 +2312,7 @@ Spark 内核会从触发 Action 操作的那个 RDD 开始**从后往前推**，
 
 #### 4. 提交 Stages
 
-调度阶段的提交，最终会被转换成一个**任务集**的提交，DAGScheduler 通过 TaskScheduler 接口提交任务集，这个任务集最终会触发 TaskScheduler 构建一个 TaskSetManager 的实例来管理这个任务集的生命周期，对于 DAGScheduler 来说，提交调度阶段的工作到此就完成了。
+调度阶段的提交，最终会被转换成一个**任务集**的提交，DAGScheduler 通过 TaskScheduler 接口提交任务集，这个任务集最终会触发 TaskScheduler 构建一个 **TaskSetManager 的实例来管理这个任务集的生命周期**，对于 DAGScheduler 来说，提交调度阶段的工作到此就完成了。
 
 而 TaskScheduler 的具体实现则会在得到计算资源的时候，进一步通过 TaskSetManager 调度具体的任务到对应的 Executor 节点上进行运算。
 
@@ -2319,7 +2322,7 @@ Spark 内核会从触发 Action 操作的那个 RDD 开始**从后往前推**，
 
 1. DAGScheduler 监控 Job 与 Task：
 
-要保证相互依赖的作业调度阶段能够得到顺利的调度执行，DAGScheduler 需要监控当前作业调度阶段乃至任务的完成情况。
+要保证相互依赖的作业调度阶段能够得到顺利的调度执行，**DAGScheduler 需要监控当前作业调度阶段乃至任务的完成情况**。
 
 这通过对外暴露一系列的回调函数来实现的，对于 TaskScheduler 来说，这些回调函数主要包括任务的开始结束失败、任务集的失败，DAGScheduler 根据这些任务的生命周期信息进一步维护作业和调度阶段的状态信息。
 
@@ -2393,22 +2396,24 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 ## 八、Spark 数据倾斜
 
-
-
-就是数据分到各个区的数量不太均匀,可以自定义分区器,想怎么分就怎么分。
+就是数据分到各个区的数量不太均匀,**可以自定义分区器**,想怎么分就怎么分。
 
 **Spark中的数据倾斜问题主要指shuffle过程中出现的数据倾斜问题，是由于不同的key对应的数据量不同导致的不同task所处理的数据量不同的问题**。
 
 例如，reduced端一共要处理100万条数据，第一个和第二个task分别被分配到了1万条数据，计算5分钟内完成，第三个task分配到了98万数据，此时第三个task可能需要10个小时完成，这使得整个Spark作业需要10个小时才能运行完成，这就是数据倾斜所带来的后果。
 
-> 注意，要区分开**数据倾斜**与**数据过量**这两种情况，数据倾斜是指少数task被分配了绝大多数的数据，因此少数task运行缓慢；数据过量是指所有task被分配的数据量都很大，相差不多，所有task都运行缓慢。
+> 注意，要区分开**数据倾斜**与**数据过量**这两种情况：
+>
+> 数据倾斜是指少数task被分配了绝大多数的数据，因此少数task运行缓慢；
+>
+> 数据过量是指所有task被分配的数据量都很大，相差不多，所有task都运行缓慢。
 
 数据倾斜的表现：
 
-1. Spark作业的大部分task都执行迅速，只有有限的几个task执行的非常慢，此时可能出现了数据倾斜，作业可以运行，但是运行得非常慢；
-2. Spark作业的大部分task都执行迅速，但是有的task在运行过程中会突然报出OOM，反复执行几次都在某一个task报出OOM错误，此时可能出现了数据倾斜，作业无法正常运行。定位数据倾斜问题：
-3. 查阅代码中的shuffle算子，例如reduceByKey、countByKey、groupByKey、join等算子，根据代码逻辑判断此处是否会出现数据倾斜；
-4. 查看Spark作业的log文件，log文件对于错误的记录会精确到代码的某一行，可以根据异常定位到的代码位置来明确错误发生在第几个stage，对应的shuffle算子是哪一个；
+1. Spark作业的大部分task都执行迅速，**只有有限的几个task执行的非常慢**，此时可能出现了数据倾斜，作业可以运行，但是运行得非常慢；
+2. Spark作业的大部分task都执行迅速，但是有的**task在运行过程中会突然报出OOM**，反复执行几次都在某一个task报出OOM错误，此时可能出现了数据倾斜，作业无法正常运行。定位数据倾斜问题：
+3. 查阅代码中的shuffle算子，例如reduceByKey、countByKey、groupByKey、join等算子，**根据代码逻辑判断此处是否会出现数据倾斜**；
+4. **查看Spark作业的log文件，log文件对于错误的记录会精确到代码的某一行**，可以根据异常定位到的代码位置来明确错误发生在第几个stage，对应的shuffle算子是哪一个；
 
 ### 1. 预聚合原始数据
 
@@ -2416,7 +2421,7 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 绝大多数情况下，Spark作业的数据来源都是Hive表，这些Hive表基本都是经过ETL之后的昨天的数据。为了避免数据倾斜，我们可以考虑避免shuffle过程，如果避免了shuffle过程，那么从根本上就消除了发生数据倾斜问题的可能。
 
-如果Spark作业的数据来源于Hive表，那么可以先在Hive表中对数据进行聚合，例如按照key进行分组，将同一key对应的所有value用一种特殊的格式拼接到一个字符串里去，这样，一个key就只有一条数据了；之后，对一个key的所有value进行处理时，只需要进行map操作即可，无需再进行任何的shuffle操作。通过上述方式就避免了执行shuffle操作，也就不可能会发生任何的数据倾斜问题。
+如果Spark作业的数据来源于Hive表，**那么可以先在Hive表中对数据进行聚合**，例如按照key进行分组，将同一key对应的所有value用一种特殊的格式拼接到一个字符串里去，这样，一个key就只有一条数据了；之后，对一个key的所有value进行处理时，只需要进行map操作即可，无需再进行任何的shuffle操作。通过上述方式就避免了执行shuffle操作，也就不可能会发生任何的数据倾斜问题。
 
 对于Hive表中数据的操作，不一定是拼接成一个字符串，也可以是直接对key的每一条数据进行累计计算。要区分开，处理的数据量大和数据倾斜的区别。
 
@@ -2430,7 +2435,7 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 **1. 过滤**
 
-如果在Spark作业中允许丢弃某些数据，那么可以考虑将可能导致数据倾斜的key进行过滤，滤除可能导致数据倾斜的key对应的数据，这样，在Spark作业中就不会发生数据倾斜了。
+如果在Spark作业中允许丢弃某些数据，那么可以考虑将可能导致数据倾斜的key进行过滤，滤除可能导致数据倾斜的key对应的数据，这样，在Spark作业中就不会发生	数据倾斜了。
 
 **2. 使用随机key**
 
@@ -2482,7 +2487,7 @@ Spark 支持资源管理器包含：Standalone、On Mesos、On YARN、Or On EC2�
 
 **2. reduce端并行度设置存在的缺陷**
 
-提高reduce端并行度并没有从根本上改变数据倾斜的本质和问题（方案一和方案二从根本上避免了数据倾斜的发生），只是尽可能地去缓解和减轻shuffle reduce task的数据压力，以及数据倾斜的问题，适用于有较多key对应的数据量都比较大的情况。
+**提高reduce端并行度并没有从根本上改变数据倾斜的本质和问题（方案一和方案二从根本上避免了数据倾斜的发生）**，只是尽可能地去缓解和减轻shuffle reduce task的数据压力，以及数据倾斜的问题，适用于有较多key对应的数据量都比较大的情况。
 
 该方案通常无法彻底解决数据倾斜，因为如果出现一些极端情况，比如某个key对应的数据量有100万，那么无论你的task数量增加到多少，这个对应着100万数据的key肯定还是会分配到一个task中去处理，因此注定还是会发生数据倾斜的。所以这种方案只能说是在发现数据倾斜时尝试使用的一种手段，尝试去用最简单的方法缓解数据倾斜而已，或者是和其他方案结合起来使用。
 
@@ -2520,7 +2525,7 @@ map join过程
 
 ## 九、Spark性能优化
 
-## Spark调优之RDD算子调优
+### Spark调优之RDD算子调优
 
 ### 1. RDD复用
 
@@ -2540,15 +2545,13 @@ RDD架构优化
 
 获取到初始RDD后，应该考虑**尽早地过滤掉不需要的数据**，进而减少对内存的占用，从而提升Spark作业的运行效率。
 
-> 本文首发于公众号：五分钟学大数据，欢迎围观！回复【书籍】即可获得上百本大数据书籍
-
 ### 3. 读取大量小文件-用wholeTextFiles
 
 当我们将一个文本文件读取为 RDD 时，输入的每一行都会成为RDD的一个元素。
 
 也可以将多个完整的文本文件一次性读取为一个pairRDD，其中键是文件名，值是文件内容。
 
-```
+```scala
 val input:RDD[String] = sc.textFile("dir/*.log") 
 ```
 
@@ -2556,7 +2559,7 @@ val input:RDD[String] = sc.textFile("dir/*.log")
 
 但是这样对于大量的小文件读取效率并不高，应该使用 **wholeTextFiles**返回值为RDD[(String, String)]，其中Key是文件的名称，Value是文件的内容。
 
-```
+```scala
 def wholeTextFiles(path: String, minPartitions: Int = defaultMinPartitions): RDD[(String, String)])
 ```
 
@@ -2564,7 +2567,7 @@ def wholeTextFiles(path: String, minPartitions: Int = defaultMinPartitions): RDD
 
 wholeTextFiles读取小文件:
 
-```
+```scala
 val filesRDD: RDD[(String, String)] =
 sc.wholeTextFiles("D:\\data\\files", minPartitions = 3)
 val linesRDD: RDD[String] = filesRDD.flatMap(_._2.split("\\r\\n"))
@@ -2626,11 +2629,9 @@ rrd.forPartitions(_....)  表示每个分区的数据组成的迭代器
 
 ### 5. filter+coalesce/repartition(减少分区)
 
-在Spark任务中我们经常会使用filter算子完成RDD中数据的过滤，在任务初始阶段，从各个分区中加载到的数据量是相近的，但是一旦进过filter过滤后，每个分区的数据量有可能会存在较大差异，如下图所示：
+在Spark任务中我们经常会使用filter算子完成RDD中数据的过滤，在任务初始阶段，从各个分区中加载到的数据量是相近的，但是一旦进过filter过滤后，每个分区的数据量有可能会存在较大差异，
 
-![图片](data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==)分区数据过滤结果
-
-根据上图我们可以发现两个问题：
+可以发现两个问题：
 
 1. 每个partition的数据量变小了，如果还按照之前与partition相等的task个数去处理当前数据，有点浪费task的计算资源；
 2. 每个partition的数据量不一样，会导致后面的每个task处理每个partition数据的时候，每个task要处理的数据量不同，这很有可能导致数据倾斜问题。
@@ -2644,7 +2645,7 @@ rrd.forPartitions(_....)  表示每个分区的数据组成的迭代器
 
 那么具体应该如何实现上面的解决思路？我们需要coalesce算子。
 
-repartition与coalesce都可以用来进行重分区，其中repartition只是coalesce接口中shuffle为true的简易实现，coalesce默认情况下不进行shuffle，但是可以通过参数进行设置。
+**repartition与coalesce都可以用来进行重分区，其中repartition只是coalesce接口中shuffle为true的简易实现，coalesce默认情况下不进行shuffle，但是可以通过参数进行设置**。
 
 假设我们希望将原本的分区个数A通过重新分区变为B，那么有以下几种情况：
 
@@ -2678,7 +2679,7 @@ Spark官方推荐，**task数量应该设置为Spark作业总CPU core数量的2~
 
 Spark作业并行度的设置如下：
 
-```
+```scala
 val conf = new SparkConf().set("spark.default.parallelism", "500")
 ```
 
@@ -2723,7 +2724,7 @@ reduceByKey 算子执行过程
 
 groupByKey与reduceByKey的运行原理如下图1和图2所示：
 
-![1639396246826](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1639396246826.png)
+![1639396246826](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/06/120610-12643.png)
 
 图1：groupByKey原理
 
@@ -2743,7 +2744,7 @@ Spark持久化在大部分情况下是没有问题的，但是有时数据可能
 
 持久化设置如下：
 
-```
+```scala
 sc.setCheckpointDir(‘HDFS’)
 rdd.cache/persist(memory_and_disk)
 rdd.checkpoint
@@ -2757,11 +2758,11 @@ rdd.checkpoint
 
 广播变量在每个Executor保存一个副本，此Executor的所有task共用此广播变量，这让变量产生的副本数量大大减少。
 
-在初始阶段，广播变量只在Driver中有一份副本。task在运行的时候，想要使用广播变量中的数据，此时首先会在自己本地的Executor对应的BlockManager中尝试获取变量，如果本地没有，BlockManager就会从Driver或者其他节点的BlockManager上远程拉取变量的复本，并由本地的BlockManager进行管理；之后此Executor的所有task都会直接从本地的BlockManager中获取变量。
+在初始阶段，广播变量只在Driver中有一份副本。task在运行的时候，想要使用广播变量中的数据，此时首先会在自己本地的Executor对应的BlockManager中尝试获取变量，如果本地没有，BlockManager就会从Driver或者其他节点的BlockManager上远程拉取变量的复本，并由本地的**BlockManager**进行管理；之后此Executor的所有task都会直接从本地的BlockManager中获取变量。
 
 对于多个Task可能会共用的数据可以广播到每个Executor上：
 
-```
+```scala
 val 广播变量名= sc.broadcast(会被各个Task用到的变量,即需要广播的变量)
 
 广播变量名.value//获取广播变量
@@ -2775,7 +2776,7 @@ Spark官方宣称Kryo序列化机制比Java序列化机制**性能提高10倍左
 
 Kryo序列化注册方式的代码如下：
 
-```
+```scala
 public class MyKryoRegistrator implements KryoRegistrator{
   @Override
   public void registerClasses(Kryo kryo){
@@ -2786,7 +2787,7 @@ public class MyKryoRegistrator implements KryoRegistrator{
 
 配置Kryo序列化方式的代码如下：
 
-```
+```scala
 //创建SparkConf对象
 val conf = new SparkConf().setMaster(…).setAppName(…)
 //使用Kryo序列化库
@@ -2795,19 +2796,17 @@ conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
 conf.set("spark.kryo.registrator", "bigdata.com.MyKryoRegistrator"); 
 ```
 
-> 本文档首发于公众号：五分钟学大数据，回复【666】即可获得全套大数据笔面试教程
-
 ## Spark调优之Shuffle调优
 
 ### 1. map和reduce端缓冲区大小
 
-在Spark任务运行过程中，如果shuffle的map端处理的数据量比较大，但是map端缓冲的大小是固定的，可能会出现map端缓冲数据频繁spill溢写到磁盘文件中的情况，使得性能非常低下，通过调节map端缓冲的大小，可以避免频繁的磁盘IO操作，进而提升Spark任务的整体性能。
+在Spark任务运行过程中，如果shuffle的map端处理的数据量比较大，但是map端缓冲的大小是固定的，可能会出现map端缓冲数据频繁spill溢写到磁盘文件中的情况，使得性能非常低下，**通过调节map端缓冲的大小，可以避免频繁的磁盘IO操作，进而提升Spark任务的整体性能**。
 
 map端缓冲的默认配置是32KB，如果每个task处理640KB的数据，那么会发生640/32 = 20次溢写，如果每个task处理64000KB的数据，即会发生64000/32=2000次溢写，这对于性能的影响是非常严重的。
 
 map端缓冲的配置方法：
 
-```
+```scala
 val conf = new SparkConf()
   .set("spark.shuffle.file.buffer", "64")
 ```
@@ -2818,7 +2817,7 @@ reduce端数据拉取缓冲区的大小可以通过`spark.reducer.maxSizeInFligh
 
 reduce端数据拉取缓冲区配置：
 
-```
+```scala
 val conf = new SparkConf()
   .set("spark.reducer.maxSizeInFlight", "96")
 ```
@@ -2831,7 +2830,7 @@ reduce端拉取数据重试次数可以通过`spark.shuffle.io.maxRetries`参数
 
 reduce端拉取数据重试次数配置：
 
-```
+```scala
 val conf = new SparkConf()
   .set("spark.shuffle.io.maxRetries", "6")
 ```
@@ -2842,7 +2841,7 @@ reduce端拉取数据等待间隔可以通过`spark.shuffle.io.retryWait`参数�
 
 reduce端拉取数据等待间隔配置：
 
-```
+```scala
 val conf = new SparkConf()
   .set("spark.shuffle.io.retryWait", "60s")
 ```
@@ -2857,7 +2856,7 @@ SortShuffleManager排序操作阈值的设置可以通过`spark.shuffle.sort.byp
 
 reduce端拉取数据等待间隔配置：
 
-```
+```scala
 val conf = new SparkConf()
   .set("spark.shuffle.sort.bypassMergeThreshold", "400")
 ```
@@ -2890,7 +2889,7 @@ reduce端task会一边拉取一边计算，不一定每次都会拉满48MB的数
 
 JVM GC导致的shuffle文件拉取失败调整数据重试次数和reduce端拉取数据时间间隔：
 
-```
+```scala
 val conf = new SparkConf()
   .set("spark.shuffle.io.maxRetries", "6")
   .set("spark.shuffle.io.retryWait", "60s")
@@ -2931,10 +2930,6 @@ SparkSQL的内部要进行很复杂的SQL的语义解析、语法树转换等等
 **JVM栈内存溢出基本上就是由于调用的方法层级过多，产生了大量的，非常深的，超出了JVM栈深度限制的递归**。（我们猜测SparkSQL有大量or语句的时候，在解析SQL时，例如转换为语法树或者进行执行计划的生成的时候，对于or的处理是递归，or非常多时，会发生大量的递归）
 
 此时，**建议将一条sql语句拆分为多条sql语句来执行，每条sql语句尽量保证100个以内的子句**。根据实际的生产环境试验，一条sql语句的or关键字控制在100个以内，通常不会导致JVM栈内存溢出。
-
-------
-
-> 更多大数据好文，欢迎关注公众号【**五分钟学大数据**】
 
 ## 十一、Spark大厂面试真题
 
