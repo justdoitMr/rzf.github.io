@@ -1191,8 +1191,6 @@ uid=1001(rzf) gid=10(wheel) groups=10(wheel)
 uid=1001(rzf) gid=10(wheel) groups=10(wheel)
 ~~~
 
-
-
 ## 文件权限类
 
 ### 文件属性
@@ -1703,8 +1701,6 @@ pstree -d
  //杀死断后号所在的进程
  kill -9 pid
 ~~~
-
-
 
 ## 解压类
 
