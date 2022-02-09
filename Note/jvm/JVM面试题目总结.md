@@ -673,7 +673,7 @@ Eden区域对象经过第一次Minor GC后仍然能够存活，并且能被Survi
 
  **各个垃圾回收器对比**： 
 
-![1644327534104](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/08/213919-84692.png)
+![1644372419229](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/100700-545004.png)
 
 ## 生产上如何配置垃圾收集器？ 
 
