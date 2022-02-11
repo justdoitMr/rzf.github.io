@@ -369,3 +369,518 @@ FROM teacher
 WHERE techName LIKE "孟%";
 ~~~
 
+#### 汇总分析
+
+##### 面试题：查询课程编号为“0002”的总成绩
+
+~~~sql
+--思路分析
+*
+分析思路
+select 查询结果 [总成绩:汇总函数sum]
+from 从哪张表中查找数据[成绩表score]
+where 查询条件 [课程号是0002]
+*/
+
+SELECT
+	deptno,
+	SUM(score)
+FROM score
+WHERE deptno = '0002';
+~~~
+
+学会使用聚合函数：sum()
+
+##### 查询选了课程的学生人数
+
+**使用group by去重**
+
+~~~sql
+-- 查询选课的人
+SELECT
+	id,
+	COUNT(id)
+FROM score
+GROUP BY id;
+
+-- 使用子查询统计人数
+SELECT
+	COUNT(*) AS num
+FROM
+(
+	SELECT
+		id,
+		COUNT(id)
+	FROM score
+	GROUP BY id
+)tmp;
+~~~
+
+在这里使用的是子查询代替distinct()函数去重，使用group by先分组，然后统计分组的个数即可。
+
+也可以使用distinct对数据进行去重，但是当数据量大时候，效率很低。
+
+**使用distinct去重**
+
+~~~sql
+/*
+这个题目翻译成大白话就是：查询有多少人选了课程
+select 学号，成绩表里学号有重复值需要去掉
+from 从课程表查找score;
+*/
+select count(distinct 学号) as 学生人数 
+from score;
+~~~
+
+#### 分组练习
+
+##### 查询各科成绩最高和最低的分
+
+查询各科成绩最高和最低的分， 以如下的形式显示：课程号，最高分，最低分。
+
+~~~sql
+/*
+分析思路
+select 查询结果 [课程ID：是课程号的别名,最高分：max(成绩) ,最低分：min(成绩)]
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [没有]
+group by 分组 [各科成绩：也就是每门课程的成绩，需要按课程号分组];
+*/
+SELECT
+	deptno,
+	MAX(score),
+	MIN(score)
+FROM score
+GROUP BY deptno;
+~~~
+
+##### 查询每门课程被选修的学生数
+
+~~~sql
+/*
+分析思路
+select 查询结果 [课程号，选修该课程的学生数：汇总函数count]
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [没有]
+group by 分组 [每门课程：按课程号分组];
+*/
+SELECT 
+	deptno,
+	COUNT(id) AS num
+FROM score
+GROUP BY deptno;
+~~~
+
+##### 查询男生、女生人数
+
+> /*
+> 分析思路
+> select 查询结果 [性别，对应性别的人数：汇总函数count]
+> from 从哪张表中查找数据 [性别在学生表中，所以查找的是学生表student]
+> where 查询条件 [没有]
+> group by 分组 [男生、女生人数：按性别分组]
+> having 对分组结果指定条件 [没有]
+> order by 对查询结果排序[没有];
+> */
+
+~~~sql
+
+SELECT
+	sex,
+	COUNT(sex)
+FROM student
+GROUP BY sex;
+~~~
+
+**思路二**
+
+首先给性别打上标签，然后使用if语句进行判断。
+
+~~~sql
+-- 使用if判断语句
+SELECT
+	*,
+	IF(sex='男',1,0) AS target
+FROM student;
+
+-- 使用子查询统计男女生人数
+
+SELECT
+	SUM(IF(target=1,1,0)) AS man,
+	SUM(IF(target=0,1,0))AS woman
+FROM
+(
+	SELECT
+		*,
+		IF(sex='男',1,0) AS target
+	FROM student
+)AS tmp;
+~~~
+
+**思路三**
+
+~~~sql
+SELECT
+	SUM(IF(sex ='男',1,0)) AS man,
+	SUM(IF(sex='女',1,0)) AS woman
+FROM student;
+~~~
+
+**思路四，使用case when**
+
+~~~sql
+SELECT
+	SUM(CASE WHEN sex = '男' THEN 1 ELSE 0 END ) AS man,
+	SUM(CASE WHEN sex = '女' THEN 1 ELSE 0 END ) AS woman
+FROM student;
+~~~
+
+#### 分组结果的条件
+
+##### 查询平均成绩大于60分学生的学号和平均成绩
+
+~~~sql
+/* 
+题目翻译成大白话：
+平均成绩：展开来说就是计算每个学生的平均成绩
+这里涉及到“每个”就是要分组了
+平均成绩大于60分，就是对分组结果指定条件
+
+分析思路
+select 查询结果 [学号，平均成绩：汇总函数avg(成绩)]
+from 从哪张表中查找数据 [成绩在成绩表中，所以查找的是成绩表score]
+where 查询条件 [没有]
+group by 分组 [平均成绩：先按学号分组，再计算平均成绩]
+having 对分组结果指定条件 [平均成绩大于60分]
+*/
+SELECT
+	id,
+	ROUND(AVG(score),3) AS avg_score
+FROM score
+GROUP BY id
+HAVING avg_score>60;
+~~~
+
+##### 查询至少选修两门课程的学生学号
+
+~~~sql
+/* 
+翻译成大白话：
+第1步，需要先计算出每个学生选修的课程数据，需要按学号分组
+第2步，至少选修两门课程：也就是每个学生选修课程数目>=2，对分组结果指定条件
+
+分析思路
+select 查询结果 [学号,每个学生选修课程数目：汇总函数count]
+from 从哪张表中查找数据 [课程的学生学号：课程表score]
+where 查询条件 [至少选修两门课程：需要先计算出每个学生选修了多少门课，需要用分组，所以这里没有where子句]
+group by 分组 [每个学生选修课程数目：按课程号分组，然后用汇总函数count计算出选修了多少门课]
+having 对分组结果指定条件 [至少选修两门课程：每个学生选修课程数目>=2]
+*/
+SELECT
+	id,
+	COUNT(deptno) AS con
+FROM score
+GROUP BY id
+HAVING con>=2;
+~~~
+
+##### 查询同名同姓学生名单并统计同名人数
+
+~~~sql
+/* 
+翻译成大白话，问题解析：
+1）查找出姓名相同的学生有谁，每个姓名相同学生的人数
+查询结果：姓名,人数
+条件：怎么算姓名相同？按姓名分组后人数大于等于2，因为同名的人数大于等于2
+分析思路
+select 查询结果 [姓名,人数：汇总函数count(*)]
+from 从哪张表中查找数据 [学生表student]
+where 查询条件 [没有]
+group by 分组 [姓名相同：按姓名分组]
+having 对分组结果指定条件 [姓名相同：count(*)>=2]
+order by 对查询结果排序[没有];
+*/
+SELECT
+	NAME,
+	COUNT(NAME) AS con
+FROM student
+GROUP BY NAME
+HAVING con>=2;
+~~~
+
+##### 查询不及格的课程并按课程号从大到小排列
+
+~~~sql
+/* 
+分析思路
+select 查询结果 [课程号]
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [不及格：成绩 <60]
+group by 分组 [没有]
+having 对分组结果指定条件 [没有]
+order by 对查询结果排序[课程号从大到小排列：降序desc];
+*/
+SELECT 
+	deptno,
+	score
+FROM score
+WHERE score >= 60
+ORDER BY deptno DESC;
+~~~
+
+##### 查询每门课程的平均成绩，结果按平均成绩升序排序，平均成绩相同时，按课程号降序排列
+
+~~~sql
+/* 
+分析思路
+select 查询结果 [课程号,平均成绩：汇总函数avg(成绩)]
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [没有]
+group by 分组 [每门课程：按课程号分组]
+having 对分组结果指定条件 [没有]
+order by 对查询结果排序[按平均成绩升序排序:asc，平均成绩相同时，按课程号降序排列:desc];
+*/
+SELECT
+	deptno,
+	ROUND(AVG(score)) AS avg_score
+FROM score
+GROUP BY deptno
+ORDER BY avg_score ASC,deptno DESC;
+~~~
+
+##### 检索课程编号为“0004”且分数小于60的学生学号，结果按按分数降序排列
+
+~~~sql
+/* 
+分析思路
+select 查询结果 []
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [课程编号为“04”且分数小于60]
+group by 分组 [没有]
+having 对分组结果指定条件 []
+order by 对查询结果排序[查询结果按按分数降序排列];
+*/
+SELECT
+	id,
+	deptno,
+	score
+FROM score
+WHERE deptno = '0002' AND score <80
+ORDER BY score DESC;
+~~~
+
+##### 统计每门课程的学生选修人数(超过2人的课程才统计)
+
+~~~sql
+/* 
+分析思路
+select 查询结果 [要求输出课程号和选修人数]
+from 从哪张表中查找数据 []
+where 查询条件 []
+group by 分组 [每门课程：按课程号分组]
+having 对分组结果指定条件 [学生选修人数(超过2人的课程才统计)：每门课程学生人数>2]
+order by 对查询结果排序[查询结果按人数降序排序，若人数相同，按课程号升序排序];
+*/
+SELECT
+	deptno,
+	COUNT(id) AS num
+FROM score
+GROUP BY deptno
+HAVING num>=2
+ORDER BY num DESC,deptno ASC;
+~~~
+
+##### 首先查询有两门功课在80分以上的同学的学号
+
+首先求出有那些同学有两门功课成绩大于80
+
+~~~sql
+SELECT
+	id
+FROM score
+WHERE score >=80
+GROUP BY id
+HAVING COUNT(id)>=2;
+~~~
+
+然后求有两门功课成绩大于80分的同学的平均成绩。
+
+~~~sql
+SELECT
+	id,
+	ROUND(AVG(score),3) AS avg_score
+FROM score
+WHERE id IN
+(
+	SELECT
+		id
+	FROM score
+	WHERE score >=80
+	GROUP BY id
+	HAVING COUNT(id)>=2
+)
+GROUP BY id;
+
+~~~
+
+- 使用in子查询。
+
+**思路二**
+
+~~~sql
+/* 
+第1步：得到每个学生的平均成绩，显示学号，平均成绩
+select 查询结果 [学号,平均成绩：汇总函数avg(成绩)]
+from 从哪张表中查找数据 [涉及到成绩：成绩表score]
+where 查询条件 [没有]
+group by 分组 [每个学生的平均：按学号分组]
+having 对分组结果指定条件 [没有]
+order by 对查询结果排序[没有];
+*/
+select 学号, avg(成绩) as 平均成绩
+from score
+group by 学号;
+
+
+/* 
+第2步：再加上限制条件：
+1）不及格课程
+2）两门以上[不及格课程]
+select 查询结果 [学号,平均成绩：汇总函数avg(成绩)]
+from 从哪张表中查找数据 [涉及到成绩：成绩表score]
+where 查询条件 [限制条件：不及格课程，平均成绩<60]
+group by 分组 [每个学生的平均：按学号分组]
+having 对分组结果指定条件 [限制条件：课程数目>2,汇总函数count(课程号)>2]
+order by 对查询结果排序[没有];
+*/
+SELECT
+	id,
+	ROUND(AVG(score),3) AS avg_score
+FROM score
+WHERE score >=80
+GROUP BY id
+HAVING COUNT(id)>=2;
+~~~
+
+#### 汇总分析
+
+##### 查询学生的总成绩并进行排名
+
+~~~sql
+/*
+分析思路
+select 查询结果 [总成绩：sum(成绩), 学号]
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [没有]
+group by 分组 [学生的总成绩：按照每个学生学号进行分组]
+order by 排序 [按照总成绩进行排序：sum(成绩)];
+/*
+
+SELECT
+	id,
+	SUM(score) AS sum_score
+FROM score
+GROUP BY id
+ORDER BY sum_score DESC;
+~~~
+
+##### 查询平均成绩大于60分的学生的学号和平均成绩
+
+~~~sql
+/*
+分析思路
+select 查询结果 [学号, 平均成绩: avg(成绩)]
+from 从哪张表中查找数据 [成绩表score]
+where 查询条件 [没有]
+group by 分组 [学号]
+having 分组条件 [平均成绩大于60分：avg(成绩 ) >60]
+order by 排序 [没有];
+/*
+SELECT
+	id,
+	AVG(score) AS avg_score
+FROM score
+GROUP BY id
+HAVING avg_score >=70;
+~~~
+
+#### 复杂查询
+
+##### 查询所有课程成绩大于等于80分学生的学号、姓名
+
+首先查询所有成绩都大于80分的学生的信息
+
+~~~sql
+-- 查询所有课程成绩都大于80的学生
+SELECT 
+	*
+FROM score
+GROUP BY id
+HAVING score >=80;
+~~~
+
+首先查询所有成绩都大于80分的学生的id
+
+~~~sql
+-- 查询所有课程成绩都大于80的学生的id
+SELECT
+	id
+FROM
+(
+	SELECT 
+		*
+	FROM score
+	GROUP BY id
+	HAVING score >=80
+)AS tmp;
+~~~
+
+使用内连接查询学生id的名字
+
+~~~sql
+-- 使用join查询名字
+SELECT 
+	student.id,
+	student.`name`
+FROM student
+INNER JOIN
+(
+	SELECT
+		id
+	FROM
+	(
+		SELECT 
+			*
+		FROM score
+		GROUP BY id
+		HAVING score >=80
+	)AS tmp
+)tab
+ON student.id = tab.id;
+~~~
+
+**思路二：使用in子句**
+
+~~~sql
+SELECT 
+	id,
+	NAME
+FROM student
+WHERE id IN
+(
+SELECT
+	id
+FROM
+(
+		SELECT 
+			*
+		FROM score
+		GROUP BY id
+		HAVING score >=80
+	)AS tmp
+)
+~~~
+
+> 这里注意一下，判断某一个学生所有成绩都大于80分，不能使用where判断，因为where子句只是一个过滤条件，所以我们需要先按照学号分组，然后判断每一个组内成绩是否大于80，所以需要使用having语句。
+
+##### 查询没有学全所有课的学生的学号、姓名
