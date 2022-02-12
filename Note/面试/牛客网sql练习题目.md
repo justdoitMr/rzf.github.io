@@ -884,3 +884,656 @@ FROM
 > 这里注意一下，判断某一个学生所有成绩都大于80分，不能使用where判断，因为where子句只是一个过滤条件，所以我们需要先按照学号分组，然后判断每一个组内成绩是否大于80，所以需要使用having语句。
 
 ##### 查询没有学全所有课的学生的学号、姓名
+
+```text
+/*
+查找出学号，条件：没有学全所有课，也就是该学生选修的课程数 < 总的课程数
+【考察知识点】in，子查询
+*/
+```
+
+1. 首先从course表中查询一共有多少门功课
+
+~~~sql
+-- 首先查询一共有多少们功课
+
+SELECT
+	COUNT(*) AS deptNum
+FROM course;
+~~~
+
+2. 查询选修了所有功课的学生的学号
+
+~~~sql
+-- 查询选修课程数量超过3门的学生
+
+SELECT
+	id
+FROM score
+GROUP BY id
+HAVING COUNT(deptno)>=(
+	SELECT
+		COUNT(*) AS deptNum
+	FROM course
+);
+~~~
+
+3. 从student表中使用in子句查询学生姓名。
+
+~~~sql
+-- 在student表中，使用in查询学生的名字
+
+SELECT
+	id,
+	NAME
+FROM student
+WHERE id IN
+(
+	SELECT
+		id
+	FROM score
+	GROUP BY id
+	HAVING COUNT(deptno)>=(
+		SELECT
+			COUNT(*) AS deptNum
+		FROM course
+	)
+);
+~~~
+
+##### 查询出只选修了两门课程的全部学生的学号和姓名|
+
+1. 首先查询处选修两门课程的学生的id
+
+~~~sql
+SELECT
+	id
+FROM score
+GROUP BY id
+HAVING COUNT(deptno)=2;
+~~~
+
+2. 使用join内连接和student表关联查询出学生的姓名
+
+~~~sql
+-- 使用join关联学号查询姓名
+
+SELECT
+	tmp.id,
+	student.name
+FROM
+(
+	SELECT
+		id
+	FROM score
+	GROUP BY id
+	HAVING COUNT(deptno)=2
+)tmp
+JOIN student
+ON tmp.id = student.id;
+~~~
+
+在这里做了一个优化操作，子查询是一个小表，使用小表关联大表。
+
+#### 日期函数
+
+![1644638232964](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/115715-402389.png)
+
+##### 获取当前日期
+
+~~~sql
+-- 获取当前日期
+SELECT CURRENT_DATE;
+~~~
+
+##### 获取当前系统时间
+
+~~~sql
+-- 获取当前系统时间
+SELECT CURRENT_TIME;
+~~~
+
+##### 获取当前系统的时间和日期
+
+~~~sql
+-- 获取当前日通的日期和时间
+SELECT CURRENT_TIMESTAMP;
+~~~
+
+##### 获取年份信息
+
+~~~sql
+-- 获取年份信息
+SELECT YEAR('2022-02-12');
+~~~
+
+##### 获取月份信息
+
+~~~sql
+-- 获取月月份信息
+SELECT MONTH('2022-02-12');
+~~~
+
+##### 获取具体日期
+
+~~~sql
+-- 获取日期day
+SELECT DAY('2022-02-12');
+~~~
+
+##### 获取日期对应星期几
+
+~~~sql
+-- 获取日期对应的星期几
+SELECT DAYNAME('2022-02-12');
+~~~
+
+##### 查询各科成绩前两名的记录
+
+> 典型的top N问题
+
+~~~sql
+-- 查找0002好课程的前两名成绩，如果有多个课程，我们可以使用union all进行合并操作
+(SELECT
+	*
+FROM score
+WHERE deptno ='0001'
+ORDER BY score DESC
+LIMIT 2
+)
+UNION ALL
+(
+SELECT
+	*
+FROM score
+WHERE deptno ='0002'
+ORDER BY score DESC
+LIMIT 2
+)
+UNION ALL
+(
+SELECT
+	*
+FROM score
+WHERE deptno ='0003'
+ORDER BY score DESC
+LIMIT 2
+)
+~~~
+
+##### 查询各学生的年龄（精确到月份）
+
+~~~sql
+/*
+【知识点】时间格式转化​
+*/
+select 学号 ,timestampdiff(month ,出生日期 ,now())/12 
+from student ;
+-- 计算每一个学生的年龄
+
+SELECT
+	id,
+	TIMESTAMPDIFF(MONTH,DATE,NOW())/12
+FROM student;
+~~~
+
+TIMESTAMPDIFF(interval，time1_expr,time2_expr)：interval是时间的间隔，year,month,day，后面两个参数是时间表达式，除以12表示interval的单位。
+
+##### 查询本月过生日的学生
+
+~~~sql
+-- 查询本月过生日的学生
+
+SELECT
+	*
+FROM student
+WHERE MONTH(DATE)=MONTH(NOW())+2;
+~~~
+
+#### Top N问题
+
+> 需要了解一下关联子查询
+
+##### 分组取每组最大值
+
+**案例：按课程号分组取成绩最大值所在行的数据**
+
+我们可以使用分组（group by）和汇总函数得到每个组里的一个值（最大值，最小值，平均值等）。但是无法得到成绩最大值所在行的数据。
+
+~~~sql
+select 课程号,max(成绩) as 最大成绩
+from score 
+group by 课程号;
+SELECT
+	id,
+	deptno,
+	MAX(score) AS max_score
+FROM score
+GROUP BY deptno;
+~~~
+
+##### 分组取每组最小值
+
+**案例：按课程号分组取成绩最小值所在行的数据**
+
+~~~sql
+-- 分组每一组取最小值
+
+SELECT
+	id,
+	deptno,
+	MIN(score) AS min_score
+FROM score
+GROUP BY deptno;
+~~~
+
+##### 每组最大的N条记录
+
+**案例：查询各科成绩前两名的记录**
+
+第1步，查出有哪些组
+
+我们可以按课程号分组，查询出有哪些组，对应这个问题里就是有哪些课程号
+
+~~~sql
+select 课程号,max(成绩) as 最大成绩
+from score 
+group by 课程号;
+
+SELECT
+	deptno,
+	MAX(score) AS max_score
+FROM score
+GROUP BY deptno;
+~~~
+
+第2步：先使用order by子句按成绩降序排序（desc），然后使用limt子句返回topN（对应这个问题返回的成绩前两名）
+
+~~~sql
+-- 课程号'0001' 这一组里成绩前2名
+select * 
+from score 
+where 课程号 = '0001' 
+order by 成绩  desc 
+limit 2;
+~~~
+
+同样的，可以写出其他组的（其他课程号）取出成绩前2名的sql
+
+第3步，使用union all 将每组选出的数据合并到一起
+
+~~~sql
+-- 查找0002好课程的前两名成绩，如果有多个课程，我们可以使用union all进行合并操作
+(SELECT
+	*
+FROM score
+WHERE deptno ='0001'
+ORDER BY score DESC
+LIMIT 2
+)
+UNION ALL
+(
+SELECT
+	*
+FROM score
+WHERE deptno ='0002'
+ORDER BY score DESC
+LIMIT 2
+)
+UNION ALL
+(
+SELECT
+	*
+FROM score
+WHERE deptno ='0003'
+ORDER BY score DESC
+LIMIT 2
+)
+~~~
+
+#### 多表查询
+
+##### 查询所有学生的学号、姓名、选课数、总成绩
+
+1. 首先查询每一个学生选修几门功课的信息
+
+~~~sql
+SELECT	
+	id,
+	COUNT(deptno) AS dept_num,
+	SUM(score) AS sum_score
+FROM score
+GROUP BY id;
+~~~
+
+2. 和join表做内连接查询学生信息
+
+~~~sql
+-- 使用join内链接查询名字
+SELECT
+	student.`id`,
+	student.`name`,
+	tmp.dept_num,
+	tmp.sum_score
+FROM
+(
+	SELECT	
+		id,
+		COUNT(deptno) AS dept_num,
+		SUM(score) AS sum_score
+	FROM score
+	GROUP BY id
+)AS tmp
+INNER JOIN student
+ON tmp.id = student.id;
+~~~
+
+**第二种思路，使用left join**
+
+~~~sql
+selecta.学号,a.姓名,count(b.课程号) as 选课数,sum(b.成绩) as 总成绩
+from student as a left join score as b
+on a.学号 = b.学号
+group by a.学号;
+
+-- 使用左外链接
+
+SELECT
+	student.id,
+	student.name,
+	COUNT(score.deptno) AS dept_num,
+	SUM(score.score) AS score_sum
+FROM student
+LEFT JOIN score
+ON student.`id` = score.`id`
+GROUP BY id;
+~~~
+
+##### 查询平均成绩大于85的所有学生的学号、姓名和平均成绩
+
+使用左外链接。
+
+~~~sql
+-- 查询平均成绩大于85的所有学生的学号、姓名和平均成绩
+
+SELECT
+	student.`id`,
+	student.`name`,
+	AVG(score) AS avg_score
+FROM student
+INNER JOIN score
+ON student.`id` = score.`id`
+GROUP BY id
+HAVING avg_score >=85;
+~~~
+
+##### 查询学生的选课情况：学号，姓名，课程号，课程名称
+
+使用多表的内连接查询。
+
+~~~sql
+-- 查询学生的选课情况：学号，姓名，课程号，课程名称
+
+SELECT
+	student.`id`,
+	student.`name`,
+	score.`deptno`,
+	course.`courseName`
+FROM student
+INNER JOIN score
+ON student.`id` = score.`id`
+INNER JOIN course
+ON score.`deptno` = course.`courseId`;
+~~~
+
+##### 查询出每门课程的及格人数和不及格人数
+
+考察case-when的用法
+
+~~~sql
+-- 查询出每门课程的及格人数和不及格人数
+
+SELECT
+	deptno,
+	SUM(CASE WHEN score >=60 THEN 1 ELSE 0 END)AS p1,
+	SUM(CASE WHEN score <60 THEN 1 ELSE 0 END)AS p2
+FROM score
+GROUP BY deptno;
+~~~
+
+##### 使用分段[100-85],[85-70],[70-60],[<60]来统计各科成绩，分别统计：各分数段人数，课程号和课程名称
+
+~~~sql
+-- 考察case表达式
+select a.课程号,b.课程名称,
+sum(case when 成绩 between 85 and 100 
+	 then 1 else 0 end) as '[100-85]',
+sum(case when 成绩 >=70 and 成绩<85 
+	 then 1 else 0 end) as '[85-70]',
+sum(case when 成绩>=60 and 成绩<70  
+	 then 1 else 0 end) as '[70-60]',
+sum(case when 成绩<60 then 1 else 0 end) as '[<60]'
+from score as a right join course as b 
+on a.课程号=b.课程号
+group by a.课程号,b.课程名称;
+~~~
+
+**分段统计**
+
+~~~sql
+SELECT a.deptno,b.courseName,
+SUM(CASE WHEN score BETWEEN 85 AND 100 
+	 THEN 1 ELSE 0 END) AS '[100-85]',
+SUM(CASE WHEN score >=70 AND score<85 
+	 THEN 1 ELSE 0 END) AS '[85-70]',
+SUM(CASE WHEN score>=60 AND score<70  
+	 THEN 1 ELSE 0 END) AS '[70-60]',
+SUM(CASE WHEN score<60 THEN 1 ELSE 0 END) AS '[<60]'
+FROM score AS a RIGHT JOIN course AS b 
+ON a.deptno=b.`courseId`
+GROUP BY a.deptno,b.courseName;
+~~~
+
+##### 查询课程编号为0003且课程成绩在80分以上的学生的学号和姓名
+
+~~~sql
+-- 查询课程编号为0003且课程成绩在80分以上的学生的学号和姓名
+
+SELECT
+	student.`id`,
+	student.`name`
+FROM student
+INNER JOIN score
+ON student.`id`=score.`id`
+WHERE score.`id`='0003' AND score >=80;
+~~~
+
+#### 行列转换
+
+下面是学生的成绩表（表名score，列名：学号、课程号、成绩）
+
+![1644645012906](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/135014-288812.png)
+
+使用sql实现将该表行转列为下面的表结构
+
+![1644645041686](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1644645041686.png)
+
+**第1步，使用常量列输出目标表的结构**
+
+可以看到查询结果已经和目标表非常接近了
+
+~~~sql
+select 学号,'课程号0001','课程号0002','课程号0003'
+from score;
+
+SELECT id,'课程号0001','课程号0002','课程号0003'
+FROM score;
+~~~
+
+![1644645153056](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/135234-508214.png)
+
+**第2步，使用case表达式，替换常量列为对应的成绩**
+
+~~~sql
+-- 第2步，使用case表达式，替换常量列为对应的成绩
+
+SELECT
+	id,
+	(CASE deptno WHEN '0001' THEN score ELSE 0 END) AS '0001',
+	(CASE deptno WHEN '0002' THEN score ELSE 0 END) AS '0002',
+	(CASE deptno WHEN '0003' THEN score ELSE 0 END) AS '0003'
+FROM score;
+~~~
+
+![1644645415593](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/135657-726189.png)
+
+在这个查询结果中，每一行表示了某个学生某一门课程的成绩。比如第一行是'学号0001'选修'课程号00001'的成绩，而其他两列的'课程号0002'和'课程号0003'成绩为0。
+
+每个学生选修某门课程的成绩在下图的每个方块内。我们可以通过分组，取出每门课程的成绩。
+
+![1644645448836](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/135730-195360.png)
+
+**第3关，分组**
+
+分组，并使用最大值函数max取出上图每个方块里的最大值
+
+~~~sql
+-- 分组
+SELECT
+	id,
+	MAX((CASE deptno WHEN '0001' THEN score ELSE 0 END)) AS '0001',
+	MAX((CASE deptno WHEN '0002' THEN score ELSE 0 END)) AS '0002',
+	MAX((CASE deptno WHEN '0003' THEN score ELSE 0 END)) AS '0003'
+FROM score
+GROUP BY id;
+~~~
+
+![1644645590016](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/140049-569987.png)
+
+##### mysql中case-when的两种用法
+
+MySQL 的 case when 的语法有两种：
+
+1. 简单函数 
+   `CASE [col_name] WHEN [value1] THEN [result1]…ELSE [default] END`
+2. 搜索函数 
+   `CASE WHEN [expr] THEN [result1]…ELSE [default] END`
+
+ **简单函数**
+
+~~~sql
+SELECT
+    NAME '英雄',
+    CASE NAME
+        WHEN '德莱文' THEN
+            '斧子'
+        WHEN '德玛西亚-盖伦' THEN
+            '大宝剑'
+        WHEN '暗夜猎手-VN' THEN
+            '弩'
+        ELSE
+            '无'
+    END '装备'
+FROM
+    user_info;
+~~~
+
+**搜索函数**
+
+`CASE WHEN [expr] THEN [result1]…ELSE [default] END`：搜索函数可以写判断，并且搜索函数只会返回第一个符合条件的值，其他`case`被忽略
+
+~~~sql
+# when 表达式中可以使用 and 连接条件
+SELECT
+    NAME '英雄',
+    age '年龄',
+    CASE
+        WHEN age < 18 THEN
+            '少年'
+        WHEN age < 30 THEN
+            '青年'
+        WHEN age >= 30
+        AND age < 50 THEN
+            '中年'
+        ELSE
+            '老年'
+    END '状态'
+FROM
+    user_info;
+~~~
+
+#### 多表连接
+
+##### 检索"0001"课程分数小于60，按分数降序排列的学生信息
+
+思路
+
+![1644646148135](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/140910-751782.png)
+
+~~~sql
+-- 检索"0001"课程分数大于等于80，按分数降序排列的学生信息
+
+SELECT
+	student.id,
+	student.name,
+	score.score
+FROM student
+INNER JOIN score
+ON student.`id` = score.`id` 
+WHERE deptno = '0001' AND score >=80
+ORDER BY score DESC;
+~~~
+
+##### 查询不同老师所教不同课程平均分从高到低显示
+
+思路
+
+![1644646537010](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/141539-371208.png)
+
+~~~sql
+-- 查询不同老师所教不同课程平均分从高到低显示
+
+SELECT
+	teacher.`techName`,
+	ROUND(AVG(score)) AS avg_score
+FROM teacher
+INNER JOIN course
+ON teacher.`techNo` = course.`techNo`
+INNER JOIN score
+ON course.`courseId` = score.`deptno`
+GROUP BY teacher.`techNo`
+ORDER BY avg_score DESC;
+~~~
+
+##### 查询课程名称为"数学"，且分数低于60的学生姓名和分数
+
+思路
+
+![1644646850766](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/12/142052-998848.png)
+
+~~~sql
+SELECT 
+	student.`id`,
+	student.`name`,
+	score.`score`
+FROM student
+INNER JOIN score
+ON student.`id` = score.`id`
+INNER JOIN course
+ON score.`deptno` = course.`courseId`
+WHERE score <=60;
+~~~
+
+##### 查询任何一门课程成绩在70分以上的姓名、课程名称和分数（与上题类似）
+
+~~~sql
+select a.姓名,c.课程名称 ,b.成绩 
+from student as ​a 
+inner join score as b 
+​​on a.学号=b.学号
+inner join course c on b.课程号 =c.课程号 
+where b.成绩 >70;
+~~~
+
+##### 查询两门及其以上不及格课程的同学的学号，姓名及其平均成绩
+
