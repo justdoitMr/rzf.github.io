@@ -92,6 +92,7 @@
 ### Hive
 
 1. [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hive/Hive.md)
+2. [Hive中的窗口函数]()
 
 ### HBase
 

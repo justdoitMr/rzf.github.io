@@ -56,9 +56,9 @@
 
 **ods层**
 
-存放原始的数据，本项目中存放行为数据的是：ods_base_log表，日志数据通过springboot产生，然后传输到kafka的ods_base_log分区中，供后续的使用。
+存放原始的数据，本项目中存放行为数据的是：ods_base_log表，日志数据通过springboot产生，然后传输到kafka的**ods_base_log**分区中，供后续的使用。
 
-存放业务数据的是：业务数据在mysql数据库中，本项目使用的是Flink CDC监控库中的所有表，将数据传输到kafka的ods_base_db主题中。
+存放业务数据的是：业务数据在mysql数据库中，本项目使用的是Flink CDC监控库中的所有表，将数据传输到kafka的**ods_base_db**主题中。
 
 **dwd和dim**
 
@@ -68,7 +68,7 @@
 
 **dwm**
 
-这一层是dwd层到dws层之间的过度层，也可以看作是中间数据层。提取公共数据为后面ads层计算指标做准备。
+**这一层是dwd层到dws层之间的过度层，也可以看作是中间数据层。提取公共数据为后面ads层计算指标做准备**。
 
 **dws**
 
@@ -107,11 +107,11 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 
 > 我们的日志分为三类，针对不同的业务，可能有多种分类方法
 
-- 页面日志输出到主流
+- **页面日志**输出到主流
 
-- 启动日志输出到启动侧输出流
+- **启动日志**输出到启动侧输出流
 
-- 曝光日志输出到曝光侧输出流。
+- **曝光日志**输出到曝光侧输出流。
 
 在Flink中因为有测输出流，所以我们可以使用测输出流进行分流处理，但是如果在spark streaming中，没有测输出流，我们就需要使用filter进行过滤。
 
@@ -128,6 +128,8 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 同时如果是新访客且没有访问记录的话，会写入首次访问时间。
 
 **消费 ods_base_log 主题数据创建流**
+
+> 主要工作就是读取ods_base_log中的数据，然后过滤掉不合法的json数据。
 
 ```java
 //TODO 2.消费 ods_base_log 主题数据创建流
@@ -219,11 +221,11 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 
 那么我们具体是如何区分上面这三种页面呢：
 
-启动日志有下面字段：common,start,ts
+- 启动日志有下面字段：common,start,ts
 
-曝光日志：common,displays,page,ts字段
+- 曝光日志：common,displays,page,ts字段
 
-页面日志：page,common,ts
+- 页面日志：page,common,ts
 
 所以，我们根据一条数据中是否有start,display去判断日志的类型。
 
@@ -280,11 +282,11 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 
 #### 将不同流的数据推送下游的 Kafka 的不同 Topic 中
 
-页面日志：dwd_page_log
+- 页面日志：dwd_page_log
 
-曝光日志：dwd_display_log
+- 曝光日志：dwd_display_log
 
-启动日志：dwd_start_log
+- 启动日志：dwd_start_log
 
 在ods层中，每一条数据都是json数据的格式。
 
@@ -307,8 +309,6 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 
 ## 功能三：准备业务数据 DWD 层
 
-
-
 业务数据的变化，我们可以通过 FlinkCDC 采集到，但是 FlinkCDC 是把全部数据统一写入一个 Topic 中, mysql数据库中的所有表数据全部写入了一个topic中，这些数据包括**事实数据，也包含维度数据**，这样显然不利于日后的数据处理，所以这个功能是从 Kafka 的业务数据 ODS 层读取数据，经过处理后，将**维度数据保存到 HBase，将事实数据写回 Kafka 作为业务数据的 DWD 层**。
 
 ### 主要任务
@@ -316,6 +316,8 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 **接收 Kafka 数据，过滤空值数据**
 
 对 FlinkCDC 抓取数据进行 ETL，有用的部分保留，没用的过滤掉，这里过滤的是type类型为delete的数据，也就打delete标签的数据。
+
+> 这里为什么需要把delete标签的数据过滤掉，因为在mysql业务数据库中，删除的数据，在下游不需要对其进行处理，所以可以直接在这里进行过滤掉。
 
 **实现动态分流功能**
 
@@ -334,9 +336,9 @@ dws层数据存储在clickhouse中，根据某个**维度主题将多个事实�
 - 另一种是用 mysql 数据库存储，周期性的同步；每隔一段时间去查询mysql.
 - 另一种是用 mysql 数据库存储，使用广播流。数据配置有变化，就广播到下游数据流中。
 
-第二种方案是周期性同步，使用select语句去查询表，而第三种方案是用Flink cdc去监控配置文件，有变化的话，就广播到下游的所有流中。
+> 第二种方案是周期性同步，使用select语句去查询表，而第三种方案是用Flink cdc去监控配置文件，有变化的话，就广播到下游的所有流中。
 
-这里选择第二种方案，主要是 MySQL 对于配置数据初始化和维护管理，使用 FlinkCDC读取配置信息表，将**配置流作为广播流与主流**进行连接。
+这里选择第三种方案，主要是 MySQL 对于配置数据初始化和维护管理，使用 FlinkCDC读取配置信息表，将**配置流作为广播流与主流**进行连接。
 
 ![20211130130031](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211130130031.png)
 
@@ -417,6 +419,8 @@ Flink cdc监控表处理配置文件，一旦发现有新的表加入，那么�
 创建配置表 table_process
 
 ##### Mysql动态配置表说明
+
+> 这里的主键是表+操作类型，可以唯一确定一条数据记录。
 
 ```sql
 CREATE TABLE `table_process` (
@@ -530,7 +534,7 @@ public class GmallConfig {
 ```
 ##### 自定义函数 TableProcessFunction
 
-自定义TableProcessFunction主要完成的功能是：分流处理数据 ，广播流数据,主流数据(根据广播流数据进行处理)。详情请参考代码。
+自定义TableProcessFunction主要完成的功能是：**分流处理数据 ，广播流数据,主流数据**(根据广播流数据进行处理)。详情请参考代码。
 
 ##### 提取Kafka流数据和HBase流数据
 
@@ -638,7 +642,7 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
 ### 分流 Sink 之保存业务数据到 Kafka 主题
 
 在 MyKafkaUtil 中添加属性定义
-`private static String DEFAULT_TOPIC = "dwd_default_topic";`
+`private static String DEFAULT_TOPIC = "dwd_default_topic";`，将事实表中的数据保存到这个默认的主题当中。
 
  两个创建 FlinkKafkaProducer 方法对比
 
@@ -721,6 +725,10 @@ DWD 的实时计算核心就是**数据分流**，其次是**状态识别**。�
 
 从对比表中能明显看出，Rich 系列能功能强大，ProcessFunction 功能更强大，但是相对的越全面的算子使用起来也更加繁琐。
 
+`RichMapFunction`：`new RichMapFunction<JSONObject, JSONObject>()`新老用户校验这块，因为涉及状态编程，所以使用的是RichMapFunction函数。
+
+`RichSinkFunction`：`RichSinkFunction`将分流后的维度表数据输出到hbase中使用了`RichSinkFunction`接口。
+
 ### ODS
 
 数据源：行为数据(日志数据)，业务数据
@@ -743,7 +751,7 @@ ODS层做了什么：
 
 **做了什么工作**
 
-1. 过滤藏数据--->使用测输出流技术，为了可以查看脏数据率指标
+1. 过滤藏数据--->使用测输出流技术，**为了可以查看脏数据率指标**
 2. 新老用户校验--->前台校验不准(新用户不准)
 3. 分流--->使用测输出流，分三个流（页面，启动，曝光），在离线数仓中，分5种数据流（页面，启动，曝光，动作日志，错误日志）
 4. 写入kafka系统。

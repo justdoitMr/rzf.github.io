@@ -335,7 +335,9 @@ redis 控制数据的生命周期，通过数据是否失效控制业务行为�
 
 ![1640927547523](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/31/131227-764591.png)
 
-哈希等价于Java语言的HashMap或者是Python语言的dict，在实现结构上它使用二维结构，**第一维是数组，第二维是链表**，**hash的内容key和value存放在链表中，数组里存放的是链表的头指针**。通过key查找元素时，先计算key的hashcode，然后用hashcode对数组的长度进行取模定位到链表的表头，再对链表进行遍历获取到相应的value值，链表的作用就是用来将产生了「hash碰撞」的元素串起来。Java语言开发者会感到非常熟悉，因为这样的结构和HashMap是没有区别的。**哈希的第一维数组的长度也是2^n**。
+哈希等价于Java语言的HashMap或者是Python语言的dict，在实现结构上它使用二维结构，**第一维是数组，第二维是链表**，**hash的内容key和value存放在链表中，数组里存放的是链表的头指针**。通过key查找元素时，先计算key的hashcode，然后用hashcode对数组的长度进行取模定位到链表的表头，再对链表进行遍历获取到相应的value值，链表的作用就是用来将产生了「hash碰撞」的元素串起来。
+
+Java语言开发者会感到非常熟悉，因为这样的结构和HashMap是没有区别的。**哈希的第一维数组的长度也是2^n**。
 
 ![1640927613110](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/31/131334-602897.png)
 

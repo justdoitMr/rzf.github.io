@@ -20,6 +20,87 @@ round()函数：保留几位小数使用，本题目设置保留三位小数。
 
 ### Mysql开窗函数使用
 
+窗口函数语法：其中[]中的内容可以省略
+
+```sql
+<窗口函数> over ([partition by <列清单>] order by <排序用列清单>)
+```
+
+窗口函数大体可以分为以下两种：
+
+1. 能够作为窗口函数的聚合函数（sum，avg，count，max，min）
+2. rank，dense_rank。row_number等专用窗口函数。
+
+partition by 能够设定排序的对象范围，类似于group by语句，这里就是以product_type划分排序范围。
+
+order by能够指定哪一列，何种顺序进行排序。也可以通过asc，desc来指定升序降序。
+
+窗口函数兼具**分组和排序**两种功能。通过partition by分组后的记录集合称为窗口。
+
+然而partition by不是窗口函数所必须的
+
+由于窗口函数无需参数，因此通常括号里都是空的。
+
+窗口函数的适用范围：只能在select子句中使用。
+
+作为窗口函数使用的聚合函数：
+
+sum：以累计的计算方式进行计算。
+
+avg:以累计的方式计算窗口内部的平均。
+
+#### 窗口函数的描述
+
+窗口函数作用于一个**数据行集合**。窗口是标准的SQL术语，**用来描述SQL语句内OVER子句划定的内容**，这个内容就是**窗口函数的作用域**。而在OVER子句中，定义了窗口所覆盖的与当前行相关的数据行集、行的排序及其他的相关元素。
+
+#### 窗口函数中的元素
+
+**窗口函数的行为描述出现在函数的OVER子句中**，并涉及多个元素。3个核心元素分别是**分区、排序和框架**。不是所有的窗口函数都支持这3个元素。
+
+##### 分区
+
+分区元素是由PARTITION BY子句定义，并被所有的窗口函数支持。他对当前计算的窗口函数进行限制，仅仅那些在结果集的分区列中与当前行有相同值的行才能进入窗口。如果没有指定PARTITION BY子句，窗口就没有限制。
+
+换种说法就是：如果没有显示指定分区，则默认分区就是把整个查询结果集当作一个分区。有一点不太明显，这里提出来：同一个查询中的不同函数，可能会有不同的分区描述。
+
+##### 排序
+
+排序元素定义计算的顺序，如果与分区有关，则是在分区内的顺序。在标准的SQL中，所有函数都支持排序元素。起初SQL SERVER不支持聚合函数中的排序元素，而仅仅支持分区。对聚合函数红排序的支持，是从SQL SERVER 2012 开始的。
+
+有趣的是，针对不同的函数类别，排序元素有轻微的不同意义。对于排名函数，排序是直观的。而聚合窗口函数的排序和排名窗口的排序略有意义上的不同。在聚合中，与某些人认为的相反，排序与聚合的顺序无关；然而，排序元素为下面将描述的框架选项赋予一定的含义，换句话说，排序元素帮助限定在窗口内的行。
+
+##### 框架
+
+从本质上来说，框架是一个在分区内对行进行进一步限制的筛选器。它适用于聚合窗口函数，也适用于三个偏移函数：FIRST_VALUE、LAST_VALUE、NTH_VALUE。把这个窗口元素想成是基于给定的排序，在当前行所在分区中定义两个点，这两个点形成的框架之间的行才会参与计算。
+
+在标准的框架描述中，包含一个ROWS或RANGE选项，用来定义框架的开始行和结束行，这两行也可以形成“框架外”（框架内的行被排除在计算外）窗口选项。SQL SERVER 2012 开始支持框架，完全实现ROWS选项，部分实现RANGE选项，尚未实现“框架外”窗口选项。
+
+ROWS选项允许我们用相对当前行的偏移行数来指定框架的起点和终点。RANGE选项更具灵活性，可以以框架起终点的值于当前行的值的差异来定义偏移行数。“框架外”窗口选项用来定义如何对当前行及具有相同值的行进行处置。
+
+#### 支持窗口元素的查询函数
+
+并不是所有的查询子句都支持窗口函数，相反，仅仅SELECT和ORDER BY 子句支持窗口函数。为帮助理解，我们先看看SQL不同子句的执行顺序：
+
+1、FROM
+
+2、WHERE
+
+3、GROUP BY
+
+4、HAVING
+
+5、SELECT
+
+ 5.1、Evalute Expressions（判断表达式）
+
+ 5.2、删除重复数据
+
+6、ORDER BY
+
+7、OFFSET-FETCH/TOP
+
+只有SELECT和ORDER BY 子句直接支持窗口函数。做这个限制的原因是为了避免二义性，因此把（几乎是）查询的最终结果当作窗口的起点。如果窗口函数可以早于SELECT阶段出现，那么通过一些查询表单会无法得到正确的结果。
+
 Mysql 开窗函数在Mysql8.0+ 中可以得以使用，实在且好用。
 
 - row number() over
@@ -1536,4 +1617,184 @@ where b.成绩 >70;
 ~~~
 
 ##### 查询两门及其以上不及格课程的同学的学号，姓名及其平均成绩
+
+> 分组+条件+多表连接
+>
+> 翻译成大白话:计算每个学号不及格分数个数，筛选出大于2个的学号并找出姓名，平均成绩，思路如图：
+
+![1644728874878](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/130757-690971.png)
+
+~~~sql
+select b.姓名,avg(a.成绩),a.学号  
+from score as​ a
+inner join student as b 
+​​on a.学号 =b.学号 
+where a.成绩 <60
+group by a.学号 
+having count(a.学号 ) >=2;
+
+-- 查询两门及其以上不及格课程的同学的学号，姓名及其平均成绩
+
+SELECT
+	student.`id`,
+	student.`name`,
+	AVG(score) AS avg_score
+FROM student
+INNER JOIN score
+ON student.`id` = score.`id`
+WHERE score>=80
+GROUP BY student.`id`
+HAVING COUNT(student.`id`)>=2;
+~~~
+
+##### 查询不同课程成绩相同的学生的学生编号、课程编号、学生成绩
+
+> 重点问题，单张表相互做内连接
+
+![1644729517695](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/131840-947545.png)
+
+~~~sql
+select distinct ​a.学号 ,a.成绩 ,a.课程号 
+from score as​ a 
+inner join score as b 
+​​on a.学号 =b.学号 
+where a.成绩 =b.成绩 and a.课程号 != b.课程号 ;
+-- 查询不同课程成绩相同的学生的学生编号、课程编号、学生成绩
+
+SELECT
+	DISTINCT(a.`id`),
+	a.`deptno`,
+	a.`score`
+FROM score AS a
+INNER JOIN score AS b
+ON a.`id` = b.`id`
+WHERE a.`score` = b.`score` AND a.`deptno` != b.`deptno`;
+~~~
+
+##### 查询课程编号为“0001”的课程比“0002”的课程成绩高的所有学生的学号
+
+> 多表连接+条件，思路如图
+
+![1644729784215](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/132306-977636.png)
+
+~~~sql
+select a.学号  
+​from 
+(select 学号 ,成绩 from score where 课程号=01) as a
+inner join 
+(select 学号 ,成绩 from score where 课程号=02) as b
+on a.学号 =b.学号 
+inner join student c on c.学号 =a.学号 
+where a.成绩 >b.成绩 ;
+~~~
+
+##### 查询学过编号为“0001”的课程并且也学过编号为“0002”的课程的学生的学号、姓名
+
+1. 首先查询选修了0001号课程和0002号课程的同学
+
+~~~sql
+-- 首先查询选修了0001和0002号课程的同学，使用的是同一张表的内连接
+
+SELECT
+	a.`id`
+FROM score AS a
+INNER JOIN score AS b
+ON a.`id` = b.`id`
+WHERE a.`deptno`='0001' AND b.`deptno`='0002';
+~~~
+
+2. 使用in子句查询学生的信息
+
+~~~sql
+-- 使用in条件查询姓名
+
+SELECT
+	id,
+	NAME
+FROM student
+WHERE id IN
+(
+	SELECT
+		a.`id`
+	FROM score AS a
+	INNER JOIN score AS b
+	ON a.`id` = b.`id`
+	WHERE a.`deptno`='0001' AND b.`deptno`='0002'
+);
+~~~
+
+**第二种思路**
+
+![1644730161758](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/132924-153412.png)
+
+~~~sql
+select a.学号  
+​​from 
+(select 学号 ,成绩 from score where 课程号=01) as a
+inner join 
+(select 学号 ,成绩 from score where 课程号=02) as b
+on a.学号 =b.学号 
+inner join student c on c.学号 =a.学号 
+where a.成绩 >b.成绩 ;
+~~~
+
+##### 查询学过“孟扎扎”老师所教的所有课的同学的学号、姓名
+
+![1644730720596](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/133843-101298.png)
+
+> 没做出来
+
+#### 窗口函数
+
+##### 查询学生平均成绩及其名次
+
+![1644731123683](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/134526-580124.png)
+
+~~~sql
+select 学号 ,avg(成绩),
+row_number () over( order by avg(成绩) desc)
+from score
+group by 学号  ;
+-- 查询学生平均成绩及其名次
+
+SELECT
+	id,
+	row_number() over(ORDER BY AVG(score) DESC)
+FROM score
+GROUP BY id;
+~~~
+
+##### 按各科成绩进行排序，并显示排名
+
+![1644731231353](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/134714-256049.png)
+
+~~~sql
+-- 按各科成绩进行排序，并显示排名
+
+SELECT
+	id,
+	row_number() over(PARTITION BY deptno ORDER BY score DESC)
+FROM score;
+~~~
+
+##### 查询每门功成绩最好的前两名学生姓名
+
+![1644731653586](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/13/135415-564185.png)
+
+~~~sql
+SELECT
+	student.id,
+	student.`name`,
+	tmp.ranking
+FROM student
+INNER JOIN
+(
+SELECT
+	id,
+	row_number() over(PARTITION BY deptno ORDER BY score DESC)AS ranking
+FROM score
+)AS tmp
+ON student.`id` = tmp.id
+WHERE ranking <3;
+~~~
 

@@ -8,9 +8,17 @@
 
 因为单位时间内 mid 的操作数据非常有限不能明显的压缩数据量（如果是数据量够大，或者单位时间够长可以）
 
-所以用常用统计的四个维度进行聚合 渠道、新老用户、app 版本、省市区域。
+所以用常用统计的四个维度进行聚合 **渠道、新老用户、app 版本、省市区域**。
 
-度量值包括 启动、日活（当日首次启动）、访问页面数、新增用户数、跳出数、平均页面停留时长、总访问时长。
+度量值包括 ：
+
+- 启动
+- 日活（当日首次启动）
+- 访问页面数
+- 新增用户数
+- 跳出数
+- 平均页面停留时长
+- 总访问时长
 
 各个数据在维度聚合前不具备关联性，所以先进行维度聚合
 * 进行关联 这是一个 fulljoin
@@ -20,7 +28,7 @@
 
 我们在之前通过分流等手段，把数据分拆成了独立的 Kafka Topic。那么接下来如何处理数据，就要思考一下我们到底要通过实时计算出哪些指标项。
 
-因为实时计算与离线不同，实时计算的开发和运维成本都是非常高的，要结合实际情况考虑是否有必要象离线数仓一样，建一个大而全的中间层。如果没有必要大而全，这时候就需要大体规划一下要实时计算出的指标需求了。把这些指标以主题宽表的形式输出就是我们的 DWS 层。
+因为实时计算与离线不同，实时计算的开发和运维成本都是非常高的，要结合实际情况考虑是否有必要象离线数仓一样，建一个大而全的中间层。**如果没有必要大而全，这时候就需要大体规划一下要实时计算出的指标需求了。把这些指标以主题宽表的形式输出就是我们的 DWS 层**。
 
 在DWM层，我们形成了四张宽表：
 
@@ -43,7 +51,7 @@
 ![20211201142629](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211201142629.png)
 ![20211201142647](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211201142647.png)
 
-横向看，是我们的维度，也就是形成的宽表，可以看出有四个主题：
+横向看，是我们的维度，也就是形成的宽表，通常是维度表字段，可以看出有四个主题：
 
 1. 访客
 2. 商品
@@ -86,7 +94,7 @@
 
 1. 接收各个明细数据，变为数据流，我们有五个需求，那么**数据源有三个主题**，也就是三条数据的来源。
 2. 把数据流合并在一起，**成为一个相同格式对象的数据流，使用的是union方法。**
-3. 对合并的流进行聚合，聚合的时间窗口决定了数据的时效性，在离线数仓中，我们是按照天进行轻度的汇总，但是在实施数据仓库中，我们一般按照小时进行汇总。
+3. 对合并的流进行聚合，**聚合的时间窗口**决定了数据的时效性，在离线数仓中，我们是按照天进行轻度的汇总，但是在实时d数据仓库中，我们一般按照小时进行汇总。
 4. 把聚合结果写在数据库中(ck数据库).
 
 #### 功能实现
@@ -299,7 +307,7 @@ public class VisitorStats {
 
 ###### 窗口内聚合及补充时间字段
 
-因为我们需要保证写入ck数据库的幂等性操作，所以需要直到窗口的开始和结束时间，所以我们使用全量聚合函数，获取窗口的开始和结束时间封装到对象中。
+**因为我们需要保证写入ck数据库的幂等性操作，所以需要直到窗口的开始和结束时间，所以我们使用全量聚合函数，获取窗口的开始和结束时间封装到对象中**。
 
 ~~~ java
  SingleOutputStreamOperator<VisitorStats> result = windowedStream.reduce(new ReduceFunction<VisitorStats>() {
@@ -336,7 +344,7 @@ public class VisitorStats {
 
 ##### 写入 OLAP 数据库
 
-为何要写入 ClickHouse 数据库，ClickHouse 数据库作为专门解决大量数据统计分析的数据库，在保证了海量数据存储的能力，同时又兼顾了响应速度。而且还支持标准 SQL，即灵活又易上手。
+**为何要写入 ClickHouse 数据库，ClickHouse 数据库作为专门解决大量数据统计分析的数据库，在保证了海量数据存储的能力，同时又兼顾了响应速度**。而且还支持标准 SQL，即灵活又易上手。
 
 ###### ClickHouse 数据表准备
 
@@ -344,6 +352,7 @@ public class VisitorStats {
 create table visitor_stats (
   stt DateTime,
   edt DateTime,
+  
   vc String,
   ch String,
   ar String,
@@ -361,12 +370,11 @@ order by (stt,edt,is_new,vc,ch,ar);
 
 数据库中的字段和前面VisitorStats实体类的字段相互对应。
 
-之所以选用 ReplacingMergeTree 引擎主要是靠它来保证数据表的**幂等性**。
+之所以选用 **ReplacingMergeTree** 引擎主要是靠它来保证数据表的**幂等性**。
 
 paritition by 把日期变为数字类型（如：20201126），用于分区。所以尽量保证查询条件尽量包含 stt 字段。是按照天进行分区
 
-order by 后面字段数据在同一分区下，出现重复会被去重，重复数据保留 ts 最大的数
-据。
+**order by 后面字段数据在同一分区下，出现重复会被去重，重复数据保留 ts 最大的数据**。
 
 其中 flink-connector-jdbc 是官方通用的 jdbcSink 包。只要引入对应的 jdbc 驱动，flink可以用它应对各种支持 jdbc 的数据库，比如 phoenix 也可以用它。但是这个 jdbc-sink 只支持数据流对应一张数据表。如果是一流对多表，就必须通过自定义的方式实现了，比如之前的维度数据。
 
@@ -389,7 +397,7 @@ order by 后面字段数据在同一分区下，出现重复会被去重，重�
 	}
 ~~~
 
-JdbcSink.<T>sink( )的四个参数说明:
+`JdbcSink.<T>sink( )`的四个参数说明:
 
 - 参数 1： 传入 Sql，格式如：insert into xxx values(?,?,?,?)
 - 参数 2: 可以用 lambda 表达实现(jdbcPreparedStatement, t) -> t 为数据对象，要装配到语句预编译器的参数中。
@@ -482,13 +490,13 @@ public @interface TransientSink {
 * Desc: 项目常用配置
 */
 public class GmallConfig {
-public static final String HBASE_SCHEMA="GMALL2021_REALTIME";
-public static final String
-PHOENIX_SERVER="jdbc:phoenix:hadoop102,hadoop103,hadoop104:2181";
-public static final String
-CLICKHOUSE_URL="jdbc:clickhouse://hadoop102:8123/default";
-public static final String CLICKHOUSE_DRIVER =
-"ru.yandex.clickhouse.ClickHouseDriver";
+  public static final String HBASE_SCHEMA="GMALL2021_REALTIME";
+  public static final String
+  PHOENIX_SERVER="jdbc:phoenix:hadoop102,hadoop103,hadoop104:2181";
+  public static final String
+  CLICKHOUSE_URL="jdbc:clickhouse://hadoop102:8123/default";
+  public static final String CLICKHOUSE_DRIVER =
+  "ru.yandex.clickhouse.ClickHouseDriver";
 }
 ~~~
 
@@ -497,10 +505,7 @@ public static final String CLICKHOUSE_DRIVER =
 ~~~ java
      /**
          *
-         *
-         *
          * 这里需要学习一点，就是在做窗口聚合的时候，可以增量聚合和全量聚合一起使用
-         *
          *
          * 在之前向hbase中写入数据的时候，并没有使用jdbc sink,因为在之前访问的表都不一样，并且每一个表中的字段都不一样
          * 在这里写入ck中使用jdbc sink,因为这里写入ck中的数据属于同一张表中的数据，我们可以使用sql语句直接写入
@@ -549,9 +554,9 @@ common模块里面的数据
 >
 > 那么组合起来的宽表字段有：spu_id,spu_name,sku_id,sku_name,tradeMark,category,时间戳，窗口开始和结束时间，还有8个需求指标，金额，下单次数，商品个数等等字段。
 
-在这里字段比较多，如果一个一个字段赋值默认值，很麻烦，所以我们使用构造者设计模式。
+**在这里字段比较多，如果一个一个字段赋值默认值，很麻烦，所以我们使用构造者设计模式**。
 
-在这里需要注意一点：在我们计算的八个指标中下单和支付有完整的商品信息，其他6个指标都没有商品的完整信息，所以我们需要去hbase中查询商品信息，针对每一条数据，都去hbase中查询一次，然后补充信息，但是这样效率很低，那么我们能否把其他6张表数据全部unuin起来，然后查询，这样的话查询次数并没有减少，但是从代码角度，代码少写很多。
+在这里需要注意一点：在我们计算的八个指标中**下单和支付**有完整的商品信息，其他6个指标都没有商品的完整信息，所以我们需要去hbase中查询商品信息，针对每一条数据，都去hbase中查询一次，然后补充信息，但是这样效率很低，那么我们能否把其他6张表数据全部unuin起来，然后查询，这样的话查询次数并没有减少，但是从代码角度，代码少写很多。
 
 所以我们采取首先对所有数据按照sku_id进行分组聚合，然后再去查询，这样代码量少了，查询次数也少了。
 
@@ -653,6 +658,8 @@ public class ProductStats {
     Long ts; //统计时间戳，使用事件时间开窗
 }
 ~~~
+
+> 注意：在ProductStats里面使用了创建者模式取创建一个对象，因为该类里面的属性是比较多的，如果对属性一一赋值的话，那么需要很多冗余代码，使用构造者模式，只需要给需要赋值的属性赋值即可。
 
 ##### 创建 ProductStatsApp，从 Kafka 主题中获得数据流
 
@@ -1040,31 +1047,31 @@ public class GmallConfig {
 
 ~~~ java
 create table product_stats_2021 (
-stt DateTime,
-edt DateTime,
-sku_id UInt64,
-sku_name String,
-sku_price Decimal64(2),
-spu_id UInt64,
-spu_name String ,
-tm_id UInt64,
-tm_name String,
-category3_id UInt64,
-category3_name String ,
-display_ct UInt64,
-click_ct UInt64,
-favor_ct UInt64,
-cart_ct UInt64,
-order_sku_num UInt64,
-order_amount Decimal64(2),
-order_ct UInt64 ,
-payment_amount Decimal64(2),
-paid_order_ct UInt64,
-refund_order_ct UInt64,
-refund_amount Decimal64(2),
-comment_ct UInt64,
-good_comment_ct UInt64 ,
-ts UInt64
+  stt DateTime,
+  edt DateTime,
+  sku_id UInt64,
+  sku_name String,
+  sku_price Decimal64(2),
+  spu_id UInt64,
+  spu_name String ,
+  tm_id UInt64,
+  tm_name String,
+  category3_id UInt64,
+  category3_name String ,
+  display_ct UInt64,
+  click_ct UInt64,
+  favor_ct UInt64,
+  cart_ct UInt64,
+  order_sku_num UInt64,
+  order_amount Decimal64(2),
+  order_ct UInt64 ,
+  payment_amount Decimal64(2),
+  paid_order_ct UInt64,
+  refund_order_ct UInt64,
+  refund_amount Decimal64(2),
+  comment_ct UInt64,
+  good_comment_ct UInt64 ,
+  ts UInt64
 )engine =ReplacingMergeTree(ts)
 partition by toYYYYMMDD(stt)
 order by (stt,edt,sku_id );
@@ -1225,16 +1232,16 @@ public class ProvinceStats {
 
 ~~~ java
 create table province_stats (
-stt DateTime,
-edt DateTime,
-province_id UInt64,
-province_name String,
-area_code String,
-iso_code String,
-iso_3166_2 String,
-order_amount Decimal64(2),
-order_count UInt64,
-ts UInt64
+  stt DateTime,
+  edt DateTime,
+  province_id UInt64,
+  province_name String,
+  area_code String,
+  iso_code String,
+  iso_3166_2 String,
+  order_amount Decimal64(2),
+  order_count UInt64,
+  ts UInt64
 )engine =ReplacingMergeTree(ts)
 partition by toYYYYMMDD(stt)
 order by (stt,edt,province_id);
