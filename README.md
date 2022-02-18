@@ -36,10 +36,14 @@
 #### 集合:(重难点👍)
 
 1. [ArrayList源码+扩容机制分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/ArrayList%E6%BA%90%E7%A0%81%2B%E6%89%A9%E5%AE%B9%E6%9C%BA%E5%88%B6%E5%88%86%E6%9E%90.md)
-2. [LinkedList源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/LinkedList%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90.md)
-3. [HashMap(JDK1.8)源码+底层数据结构分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/HashMap(JDK1.8)%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
-4. [ConcurrentHashMap源码+底层数据结构分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/ConcurrentHashMap%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
-5. [Java集合框架常见面试题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98.md)
+2. [ArrayList快速失败机制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/ArrayList%E7%9A%84%E5%BF%AB%E9%80%9F%E5%A4%B1%E8%B4%A5%E6%9C%BA%E5%88%B6.md)
+3. [LinkedList源码分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/LinkedList%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90.md)
+4. [HashMap(JDK1.8)源码+底层数据结构分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/HashMap(JDK1.8)%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
+5. [HashMap面试题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/HashMap%20%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%9F.md)
+6. [ConcurrentHashMap源码+底层数据结构分析](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/ConcurrentHashMap%E6%BA%90%E7%A0%81%2B%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%88%86%E6%9E%90.md)
+7. [LinkedHashMap 源码详细分析（JDK1.8）](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/LinkedHashMap%20%E6%BA%90%E7%A0%81%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90%EF%BC%88JDK1.8%EF%BC%89.md)
+8. [集合面试题一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/Java%E9%9B%86%E5%90%88%E6%A1%86%E6%9E%B6%E5%B8%B8%E8%A7%81%E9%9D%A2%E8%AF%95%E9%A2%98.md)
+9. [集合面试题目二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9B%86%E5%90%88/%E9%9B%86%E5%90%88%E4%BB%8B%E7%BB%8D.md)
 
 #### 多线程:(重难点👍)
 
