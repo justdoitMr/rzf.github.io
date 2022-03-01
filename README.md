@@ -32,6 +32,7 @@
 3. [Java常见关键字总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/Java%E5%B8%B8%E8%A7%81%E5%85%B3%E9%94%AE%E5%AD%97%E6%80%BB%E7%BB%93.md)
 4. [IO模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/IO%E6%A8%A1%E5%9E%8B.md)
 5. [排序](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/%E6%8E%92%E5%BA%8F.md)
+6. [接口和抽象类的区别](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/%E6%8E%A5%E5%8F%A3%E5%92%8C%E6%8A%BD%E8%B1%A1%E7%B1%BB%E7%9A%84%E5%8C%BA%E5%88%AB.md)
 
 #### 集合:(重难点👍)
 
