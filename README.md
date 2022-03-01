@@ -215,6 +215,8 @@
 7. [JVM二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/jvm/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 8. [数据库](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E6%95%B0%E6%8D%AE%E5%BA%93.md)
 9. [网络](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E7%BD%91%E7%BB%9C.md)
+10. [Leetcode sql面试题目](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Leetcode%20sql%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE.md)
+11. [牛客网sql练习题目](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E7%89%9B%E5%AE%A2%E7%BD%91sql%E7%BB%83%E4%B9%A0%E9%A2%98%E7%9B%AE.md)
 
 ### 框架部分
 
