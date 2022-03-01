@@ -349,9 +349,7 @@ group by login_date_first --按照三天的日期对数据进行分组
 
 需求定义：
 
-沉默用户：只在安装当天启动过，且启动时间是在7天前
-
-第一次登录的时间等于最后一次的登录时间，
+沉默用户：只在安装当天启动过，且启动时间是在7天前，第一次登录的时间等于最后一次的登录时间，
 
 dwt_uv_topic中有一个累计活跃天数字段，如果字段为1，标识指在安装当天启动过，之后再也没有登陆过。还需要保证登录时间在7天之前
 
@@ -506,8 +504,6 @@ where last_wk.mid_id is null;
 
 > 减法操作使用not in实现也可以使用left join方法实现
 
-
-
 ##### 流式用户数
 
 需求定义：
@@ -560,8 +556,7 @@ from
 
 首先查找本周的活跃用户，在dws层数据，每一个设备的行为占据一行，已经对数据进行去重，是按照天的单位去重。
 
-但是我们在这里考虑的是一周，所以还需要考虑周去重问题,group by 为什么可以去重，group by之后，一组只能有一行数据，相当于去重
-distinct在hive中不经常用，因为distinct是全局去重，所有数据分发到一个reduce中，效率低，而group by可以将一组数据发送到一个reduce中
+但是我们在这里考虑的是一周，所以还需要考虑周去重问题,group by 为什么可以去重，group by之后，一组只能有一行数据，相当于去重，distinct在hive中不经常用，因为distinct是全局去重，所有数据分发到一个reduce中，效率低，而group by可以将一组数据发送到一个reduce中
 
 ###### 思路一
 
@@ -1414,7 +1409,6 @@ where rk <=10;--去排名前十
 -- 也可以去dws层的用户主题表中计算，一行数据标识一个用户当天的各种行为，对每一个人的下单笔数和下单金额相加，就是总的下单金额和下单笔数
 -- 在这里从dws层计算数据，相当于已经做过当天的汇总数据
 
-
 -- 装载数据
 
 select
@@ -1741,3 +1735,24 @@ group by tm_id, category1_id, category1_name;
 ###### 创建表
 
 ![1640399065390](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202112/25/102426-684635.png)
+
+###### 装载数据
+
+~~~sql
+insert into table ads_area_topic
+select
+    '2020-06-14',
+    id,
+    province_name,
+    area_code,
+    iso_code,
+    region_id,
+    region_name,
+    login_day_count,
+    order_day_count,
+    order_day_amount,
+    payment_day_count,
+    payment_day_amount
+from dwt_area_topic;
+~~~
+

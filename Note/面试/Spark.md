@@ -1500,6 +1500,49 @@ DStream 会被按照时间间隔划分成一批一批的 RDD，当批处理间�
 
 Spark Streaming 的工作流程像下面的图所示一样，接受到实时数据后，给数据分批次，然后传给 Spark Engine 处理最后生成该批次的结果。
 
+### spark Streaming是如何实现的，整体流程？
+
+**整体流程**
+
+Spark Streaming 中，会有一个接收器组件 Receiver，作为一个长期运行的 task 跑在一个 Executor 上。Receiver 接收外部的数据流形成 input DStream。
+
+DStream 会被按照时间间隔划分成一批一批的 RDD，当批处理间隔缩短到秒级时，便可以用于处理实时数据流。时间间隔的大小可以由参数指定，一般设在 500 毫秒到几秒之间。
+
+对 DStream 进行操作就是对 RDD 进行操作，计算处理的结果可以传给外部系统。
+
+Spark Streaming 的工作流程像下面的图所示一样，接受到实时数据后，给数据分批次，然后传给 Spark Engine 处理最后生成该批次的结果。
+
+> Spark Streaming在内部处理的机制原理是：先接受实时流的数据，并根据一定的时间间隔拆分成一批批的数据，这些批数据在Spark内核对应一个RDD实例，因此，流数据的DStream可以看成一组RDDs，然后通过调用Spark核心的作业处理这些批数据，最终得到处理后的一批批结果数据。 
+
+### 如何从kafka中获取数据（spark streaming获取数据有哪两种方式，有什么特点）
+
+#### 基于receiver模式
+
+使用 kafka 高层次 Comsumer API 来实现的。receiver 从 kafka 获取的数据都是存储在 executor 内存的，然后 spark streaming 启动的 job 会去处理这些数据。用这种方式来与 Kafka 集成，配置中设置了     `enable.auto.commit`为 true，表明自己不需要维护 offset，而是由 Kafka 自己来维护（在 Kafka 0.10 后，默认的 offset 存储位置改为了 Kafka，实际上就是 Kafka 的一个 topic），Kafka 消费者会周期性地（默认为 5s）去修改偏移量。
+
+这种方式接收的数据都保存在 Receiver 中，一旦出现意外，数据就有可能丢失，要想避免丢失的情况，就必须采用 WAL（Write Ahead Log，预写日志）机制，在数据写入内存前先进行持久化。    
+
+现在我们来试想一种情况，数据从 Kafka 取出后，进行了 WAL，在这个时候，Driver 与 Executor 因为某种原因宕机，这时最新偏移量还没来得及提交，那么在 Driver 恢复后，会从记录的偏移量继续消费数据并处理 WAL 的数据，这样一来，被 WAL 持久化的数据就会被重复计算一次。因此，开启了 WAL 后，这样的容错机制最多只能实现“至少一次”的消息送达语义。而且开启 WAL 后，增加了 I/O 开销，降低了 Spark Streaming 的吞吐量，还会产生冗余存储。    
+
+> 也就是基于receiver模式可能会重复消费数据。
+
+#### Direct模式
+
+spark 1.3 引入的，从而能够确保更加健壮的机制。这种接收数据的方式会**周期性地查询 kafka**，来获取每个 topic+partition 最新的 offset，从而定义每个 batch 的 offset 的范围。
+
+当处理数据的 job 启动时，就会使用 kafka 简单 Comsumer API 来获取 kafka 指定 offset 范围的数据。利用 Spark 本身的 DAG 容错机制，使所有计算失败的数据均可溯源，从而实现了“恰好一次”的消息送达语义。    
+
+#### 两种方式的对比
+
+- 基于 receiver 的方式，是使用 Kafka 的高阶 API 来在 ZooKeeper 中保存消费过的 offset 的。这是消费 Kafka 数据的传统方式。这种方式配合着 WAL 机制可以保证数据零丢失的高可靠性，但是却无法保证数据被处理一次且仅一次，可能会处理两次。因为 Spark 和 ZooKeeper 之间可能是不同步的。
+- 基于 direct 的方式，使用 kafka 的简单 api，Spark Streaming 自己就负责追踪消费的 offset，并保存在 checkpoint 中。Spark 自己一定是同步的，因此可以保证数据是消费一次且仅消费一次。
+
+> 最重要一点就是，基于receiver方式，是由kafka来维护每一个partition的offset位置的。
+>
+> 而基于direct模式，是由spark自己维护offset的位置。
+>
+> 在生产中，基本上是使用direct模式的。
+
 ### Spark Streaming 如何执行流式计算的?
 
 Spark Streaming 中的流式计算其实并不是真正的流计算，而是微批计算。Spark Streaming 的 RDD 实际是一组小批次的 RDD 集合，是微批（Micro-Batch）的模型，以批为核心。
