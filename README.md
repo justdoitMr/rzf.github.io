@@ -78,6 +78,7 @@
 1. [Mysql基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E5%9F%BA%E7%A1%80.md)
 2. [Mysql高级](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E9%AB%98%E7%BA%A7.md)
 3. [Mysql主从复制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8E%9F%E7%90%86.md)
+4. [sql Top N问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/sql%20Top%20N%E9%97%AE%E9%A2%98.md)
 
 #### 设计模式
 
