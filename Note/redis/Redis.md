@@ -2833,7 +2833,7 @@ redis-server -slaveof <masterip> <masterport>
 
 案例
 
-y也可以把链接的master节点之间添加到配置文件中。
+也可以把链接的master节点之间添加到配置文件中。
 
 ~~~ java
  redis-cli /opt/module/redis/conf/redis-6380.conf --slaveof 127.0.0.1 6379
@@ -2911,7 +2911,7 @@ redis-server –a <password>
 >
 > 部分复制：发送slave发送指令之后master节点在缓冲区中存放的数据
 >
-> 最终slave会获取和master全部一样的数据，而在master端也会记录当前slave节点已经同步完数据的位置。 
+> 最终slave会获取和master全部一样；的数据，而在master端也会记录当前slave节点已经同步完数据的位置。 
 
 ##### **数据同步阶段master说明**
 
@@ -3167,7 +3167,7 @@ slave-serve-stale-data yes|no
   - 找一个slave作为master
   - 修改其他slave的配置，连接新的主
   - 启动新的master与slave
-  - 全量复制*N+部分复制*N
+  - 全量复制N+部分复制N
 
 - 关闭期间的数据服务谁来承接？
 - 找一个主？怎么找法？
