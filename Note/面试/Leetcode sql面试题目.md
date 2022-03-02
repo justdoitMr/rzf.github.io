@@ -104,7 +104,7 @@ where 课程='语文' and
 
 - offset n表示跳过x条语句
 
-- limit y offset x ：分句表示查询结果跳过 x 条数据，读取前 y 条数据
+- limit y offset x ：分句表示查询结果跳过 x 条数据，读取前 y 条数据,包括第x条数据。
 
 使用limit和offset，降序排列再返回第二条记录可以得到第二大的值。
 
@@ -142,3 +142,88 @@ and 课程='语文')
 ,null) as '语文课第二名成绩';
 ~~~
 
+### [177. 第N高的薪水](https://leetcode-cn.com/problems/nth-highest-salary/)
+
+> 这种解法没有完全通过
+
+~~~sql
+select ifnull(
+    (
+        select
+      distinct salary
+      from Employee
+      order by salary limit n,1
+    ),null
+)
+~~~
+
+### [178. 分数排名](https://leetcode-cn.com/problems/rank-scores/)
+
+~~~sql
+select
+    score,
+    dense_rank()  over(order by score desc) as 'rank'
+from Scores;
+~~~
+
+#### ROW_NUMBER()
+
+Row_number() 在排名是序号 连续 不重复，即使遇到表中的两个一样的数值亦是如此
+
+~~~sql
+select *,row_number() OVER(order by number ) as row_num
+from num 
+~~~
+
+![1646124409797](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1646124409797.png)
+
+> 记住row_numer就是进行编号操作。
+
+注意：在使用row_number() 实现分页时需要特别注意一点，over子句中的order by 要与SQL排序记录中的order by保持一致，否则得到的序号可能不是连续的
+
+~~~sql
+select *,row_number() OVER(order by number ) as row_num
+from num
+ORDER BY id
+~~~
+
+![1646124481486](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/01/164802-357738.png)
+
+#### rank()
+
+Rank() 函数会把要求排序的值相同的归为一组且每组序号一样，排序不会连续执行
+
+~~~sql
+select *,rank() OVER(order by number ) as row_num
+from num 
+~~~
+
+![1646124568186](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/01/164928-395332.png)
+
+> rank排名总数据总个数不会减少
+
+#### dense_rank()
+
+Dense_rank() 排序是连续的，也会把相同的值分为一组且每组排序号一样
+
+~~~sql
+select *,dense_rank() OVER(order by number ) as row_num
+from num 
+~~~
+
+![1646124626700](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/01/165027-440239.png)
+
+> 排名连续。总数会减少
+
+#### ntile()
+
+Ntile(group_num) 将所有记录分成group_num个组，每组序号一样
+
+~~~sql
+select *,ntile(2) OVER(order by number ) as row_num
+from num 
+~~~
+
+![1646124689362](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/01/165130-457268.png)
+
+> 注意，ntile()里面的参数2表示数据分两组。
