@@ -113,7 +113,7 @@
 ### Hive
 
 1. [Hive笔记](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hive/Hive.md)
-2. [Hive中的窗口函数]()
+2. [Hive中的窗口函数](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/hive/Hive%E4%B8%AD%E7%9A%84%E7%AA%97%E5%8F%A3%E5%87%BD%E6%95%B0.md)
 
 ### HBase
 
