@@ -1565,7 +1565,7 @@ map、flatMap、filter、union、reduceByKey、join、transform，这是算子�
 
 print、saveAsTextFile、saveAsObjectFiles、saveAsHadoopFiles等。
 
-### 使用 Spark Streaming 有状态装换的算子有哪些?
+### 使用 Spark Streaming 有状态转换的算子有哪些?
 
 有状态装换的算子包含：
 

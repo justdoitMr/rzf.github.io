@@ -16,13 +16,15 @@ Hadoop 从 v2 开始，将资源调度与监控、任务作业的管理单独从
 
 从上图可以看出，ResourceManager 和 NodeManager 组成了数据计算框架。其中ResourceManager 负责管理计算过程所需的所有的资源；NodeManager 是计算框架在每一个节点上的agent，负责container以及监控资源，并将资源使用情况汇报给 ResouceManager或 Scheduler；每个应用程序ApplicationMaster实际上是一个特定于框架的库，其任务是协调来自ResourceManager的资源，并与NodeManager一起执行和监视任务。【翻译自官方文档】
 
-ResourceManager 包括Scheduler 和 ApplicationManager 两大组件。调度程序负责根据容量，队列等约束将资源分配给各种正在运行的应用程序。Scheduler 是纯调度程序，因为它不执行应用程序状态的监视或跟踪。 此外，由于应用程序故障或硬件故障，它无法保证重新启动失败的任务。调度程序根据应用程序的资源需求执行其调度功能; 它是基于资源Container的抽象概念，它包含内存，CPU，磁盘，网络等元素。【翻译自官方文档】
+ResourceManager 包括Scheduler 和 ApplicationManager 两大组件。
+
+调度程序负责根据容量，队列等约束将资源分配给各种正在运行的应用程序。Scheduler 是纯调度程序，因为它不执行应用程序状态的监视或跟踪。 此外，由于应用程序故障或硬件故障，它无法保证重新启动失败的任务。调度程序根据应用程序的资源需求执行其调度功能; 它是基于资源Container的抽象概念，它包含内存，CPU，磁盘，网络等元素。【翻译自官方文档】
 
 综上所述，研究YARN，不得不研究ResourceManager 和 NodeManager的服务体系。其中，研究ResourceManager就必须要研究 Scheduler 和 ApplicationManager两大组件。
 
 注意，Container 其实是一个基于资源的一个概念，并不是某种服务。
 
-了解Yarn架构，先要了解两个概念。 **作业**。也可称为应用程序，包含一个或多个任务。***任务**。在运行MapReduce时，一个任务可以是一个Mapper或一个Reducer。
+了解Yarn架构，先要了解两个概念。 **作业**。也可称为应用程序，包含一个或多个任务。**任务**。在运行MapReduce时，一个任务可以是一个Mapper或一个Reducer。
 
 ### 相关组件说明
 
@@ -134,7 +136,7 @@ Container是对于资源的抽象, 它封装了某个节点上的多维度资源
 
 ![1636089691204](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202111/05/132132-932144.png)
 
-- Job=多个stage，Stage=多个同种task, Task分为ShuffleMapTask和ResultTask，Dependency分为ShuffleDependency和NarrowDependency
+> Job=多个stage，Stage=多个同种task, Task分为ShuffleMapTask和ResultTask，Dependency分为ShuffleDependency和NarrowDependency
 
 **Spark运行模式：**
 
