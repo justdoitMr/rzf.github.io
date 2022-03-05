@@ -605,7 +605,7 @@ Eden区域对象经过第一次Minor GC后仍然能够存活，并且能被Survi
 -  **Class文件常量池**。class文件是一组以字节为单位的二进制数据流，在java代码的编译期间，我们编写的java文件就被编译为.class文件格式的二进制数据存放在磁盘中，其中就包括class文件常量池。 
 -  **运行时常量池**：运行时常量池相对于class常量池一大特征就是具有动态性，java规范并不要求常量只能在运行时才产生，也就是说运行时常量池的内容并不全部来自class常量池，在运行时可以通过代码生成常量并将其放入运行时常量池中，这种特性被用的最多的就是String.intern()。 
 -  **全局字符串常量池**：字符串常量池是JVM所维护的一个字符串实例的引用表，在HotSpot VM中，它是一个叫做StringTable的全局表。在字符串常量池中维护的是字符串实例的引用，底层C++实现就是一个Hashtable。这些被维护的引用所指的字符串实例，被称作”被驻留的字符串”或”interned string”或通常所说的”进入了字符串常量池的字符串”。  
--  基本类型包装类对象常量池：java中基本类型的包装类的大部分都实现了常量池技术，这些类是Byte,Short,Integer,Long,Character,Boolean,另外两种浮点数类型的包装类则没有实现。另外上面这5种整型的包装类也只是在对应值小于等于127时才可使用对象池，也即对象不负责创建和管理大于127的这些类的对象。
+-  **基本类型包装类对象常量池**：java中基本类型的包装类的大部分都实现了常量池技术，这些类是Byte,Short,Integer,Long,Character,Boolean,另外两种浮点数类型的包装类则没有实现。另外上面这5种整型的包装类也只是在对应值小于等于127时才可使用对象池，也即对象不负责创建和管理大于127的这些类的对象。
 
 ## 你都有哪些手段用来排查内存溢出？ 
 
@@ -700,7 +700,7 @@ Eden区域对象经过第一次Minor GC后仍然能够存活，并且能被Survi
 ## jvm调优工具又哪些？各自的作用又是什么（重点）
 
 - jps: 查看进程的参数信息;
-- jstat: 查看某个Java进程内的线程堆栈信息;
+- jstat: 可以查看堆内存各部分的使用量，以及加载类的数量
 - jinfo: 查看虚拟机参数；
 - jmap:查看堆内存使用状况，生成快照存储(dump文件);
 - jhat: 分析jmap dump生成的快照文件；
@@ -1293,19 +1293,9 @@ MinorGC 在年轻代空间不足的时候发生，MajorGC 指的是老年代的 
 
  FullGC 有三种情况：第一，当老年代无法再分配内存的时候；第二，元空间不足的时候；第三，显示调用 System.gc 的时候。另外，像 CMS 一类的垃圾回收器，在 MinorGC 出现 promotion failure 的时候也会发生 FullGC。 
 
-## 说说常用的内存调试工具？
-
-jmap,jstack,jconsole
-
 ## 分派：静态分派和动态分派
 
-作者：程序员库森
 
-链接：
-
-https://www.nowcoder.com/discuss/627413?type=all&order=recall&pos=&page=1&ncTraceId=&channel=-1&source_id=search_all_nctrack&gio_id=C8C8E5F0AD03E8328F4154EBBE288434-1644315143150
-
-来源：牛客网
 
 ## 详细说一下CMS的回收过程？CMS的问题是什么？ 
 
@@ -1396,12 +1386,6 @@ https://www.nowcoder.com/discuss/627413?type=all&order=recall&pos=&page=1&ncTrac
 ## GC是什么? 为什么要有 GC?
 
 GC 是垃圾收集（GabageCollection）；Java 提供的 GC 功能可以自动监测对象是否超过作用域从而达到自动回收内存的目的，而不需要人为手动释放内存；主要调用的是 System.gc() 和 Runtime.getRuntime().gc()；
-
-链接：
-
-https://www.nowcoder.com/discuss/627413?type=all&order=recall&pos=&page=1&ncTraceId=&channel=-1&source_id=search_all_nctrack&gio_id=C8C8E5F0AD03E8328F4154EBBE288434-1644315143150
-
-来源：牛客网
 
 ## Minor GC 和 Full GC 有什么不同呢？ 
 
@@ -1653,8 +1637,6 @@ Java虚拟机（JVM）是运行 Java  字节码的虚拟机。JVM有针对不同
 
 -verbose:class -XX:+TraceClassUnloading 查看类加载和卸载信息
 
-
-
 -XX:SurvivorRatio Eden和其中一个survivor的比值
 
 -XX:PretenureSizeThreshold 大对象进入老年代的阈值，Serial和ParNew生效
@@ -1719,7 +1701,19 @@ Java虚拟机（JVM）是运行 Java  字节码的虚拟机。JVM有针对不同
 
 在调优之前，我们需要记住下面的原则：
 
-> 多数的 Java 应用不需要在服务器上进行 GC 优化； 多数导致 GC 问题的 Java  应用，都不是因为我们参数设置错误，而是代码问题； 在应用上线之前，先考虑将机器的 JVM 参数设置到最优（最适合）； 减少创建对象的数量；  减少使用全局变量和大对象； GC 优化是到最后不得已才采用的手段； 在实际使用中，分析 GC 情况优化代码比优化 GC 参数要多得多。
+> 多数的 Java 应用不需要在服务器上进行 GC 优化； 
+>
+> 多数导致 GC 问题的 Java  应用，都不是因为我们参数设置错误，而是代码问题；
+>
+>  在应用上线之前，先考虑将机器的 JVM 参数设置到最优（最适合）；
+>
+>  减少创建对象的数量；  
+>
+> 减少使用全局变量和大对象；
+>
+>  GC 优化是到最后不得已才采用的手段； 
+>
+> 在实际使用中，分析 GC 情况优化代码比优化 GC 参数要多得多。
 
 ### GC 调优目的
 
