@@ -210,7 +210,7 @@
 4. [分布式ID解决方案](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8FID%E7%94%9F%E6%88%90%E6%96%B9%E6%A1%88.md)
 5. [RPC协议](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/RPC%E5%8D%8F%E8%AE%AE.md)
 6. [为什么需要分布式锁？](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/%E4%B8%BA%E4%BB%80%E4%B9%88%E9%9C%80%E8%A6%81%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81%EF%BC%9F.md)
-7. [Redis与MySQL双写一致性如何保证？]()
+7. [Redis与MySQL双写一致性如何保证？](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E5%88%86%E5%B8%83%E5%BC%8F/Redis%E4%B8%8EMySQL%E5%8F%8C%E5%86%99%E4%B8%80%E8%87%B4%E6%80%A7%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%EF%BC%9F.md)
 
 ### 数据挖掘
 
