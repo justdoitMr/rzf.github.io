@@ -1645,8 +1645,6 @@ JobConf.setNumReduceTasks(int)
 
 根据数据分布情况，自定义散列函数，将key均匀分配到不同Reducer
 
-
-
 #### 常用调优参数
 
 **资源相关参数**
