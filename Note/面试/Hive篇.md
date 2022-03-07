@@ -324,7 +324,7 @@ Hive 0.8 版本后引入 bitmap 索引处理器，这个处理器适用于去重
 >
 > 数据仓库更适合使用星型模型来构建底层数据 hive 表，通过数据冗余来减少查询次数以提高查询效率。雪花模型在关系型数据库中（MySQL/Oracle）更加常见
 
-### 为什么要对数据仓库进行分层
+### 为什么要对数据仓库进行分层？
 
 - 用空间换时间，通过大量的预处理来提升应用系统的用户体验（效率），因此数据仓库会存在大量冗余的数据。
 - 如果不分层的话，如果源业务系统的业务规则发生变化将会影响整个数据清洗过程，工作量巨大。
@@ -483,13 +483,13 @@ SequenceFile支持三种压缩选择：`NONE`，`RECORD`，`BLOCK`。Record压�
 
 - map输出数据按key Hash的分配到reduce中
 - 由于key分布不均匀
-- 业务数据本身的特
+- 业务数据本身的特性
 - 建表时考虑不周
-- 某些SQL语句本身就有数据倾斜;
 
 > 分组 注：group by 优于distinct group
 > 情形：group by 维度过小，某值的数量过多
 > 后果：处理某值的reduce非常耗时
+>
 > 去重 distinct count(distinct xx)
 > 情形：某特殊值过多
 > 后果：处理此特殊值的reduce耗时
@@ -543,18 +543,6 @@ hive.groupby.skewindata=true
 
 count distinct大量相同特殊值:count distinct 时，将值为空的情况单独处理，如果是计算count distinct，可以不用处理，直接过滤，在最后结果中加1。如果还有其他计算，需要进行group by，可以先将值为空的记录单独处理，再和其他计算结果进行union。
 
-### Fetch抓取
-
-Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce计算。例如：`SELECT * FROM employees`;在这种情况下，Hive可以简单地读取employee对应的存储目录下的文件，然后输出查询结果到控制台。
-
-在`hive-default.xml.template`文件中`hive.fetch.task.conversion`默认是more，老版本hive默认是minimal，该属性修改为more以后，在全局查找、字段查找、limit查找等都不走mapreduce。
-
-### 小表、大表Join
-
-将key相对分散，并且数据量小的表放在join的左边，这样可以有效减少内存溢出错误发生的几率；再进一步，可以使用Group让小的维度表（1000条以下的记录条数）先进内存。在map端完成reduce。
-
-实际测试发现：新版的hive已经对小表JOIN大表和大表JOIN小表进行了优化。小表放在左边和右边已经没有明显区别。
-
 ### 大表Join大表
 
 **如果空key可以过滤掉**
@@ -597,25 +585,6 @@ Fetch抓取是指，Hive中对某些情况的查询可以不必使用MapReduce�
 1. 是否在Map端进行聚合，默认为True，`hive.map.aggr = true`   
 2. 在Map端进行聚合操作的条目数目`hive.groupby.mapaggr.checkinterval = 100000`   
 3. 有数据倾斜的时候进行负载均衡（默认是false）`hive.groupby.skewindata = true`，**当选项设定为 true，生成的查询计划会有两个MR Job**。第一个MR Job中，Map的输出结果会随机分布到Reduce中，每个Reduce做部分聚合操作，并输出结果，这样处理的结果是**相同的Group By Key有可能被分发到不同的Reduce中**，从而达到负载均衡的目的；第二个MR Job再根据预处理的数据结果按照Group By Key分布到Reduce中（这个过程可以保证相同的Group By Key被分布到同一个Reduce中），最后完成最终的聚合操作。
-
-### Count(Distinct) 去重统计
-
-数据量小的时候无所谓，数据量大的情况下，由于COUNT DISTINCT操作需要用一个Reduce Task来完成，这一个Reduce需要处理的数据量太大，就会导致整个Job很难完成，一般COUNT DISTINCT使用先GROUP BY再COUNT的方式替换
-
-### 笛卡尔积
-
-尽量避免笛卡尔积，join的时候不加on条件，或者无效的on条件，Hive只能使用1个reducer来完成笛卡尔积
-
-### 行列过滤
-
-- 列处理：在SELECT中，只拿需要的列，如果有，尽量使用分区过滤，少用SELECT *。
-- 行处理：在分区剪裁中，当使用外关联时，如果将副表的过滤条件写在Where后面，那么就会先全表关联，之后再过滤。
-
-### 并行执行
-
-Hive会将一个查询转化成一个或者多个阶段。这样的阶段可以是MapReduce阶段、抽样阶段、合并阶段、limit阶段。或者Hive执行过程中可能需要的其他阶段。默认情况下，Hive一次只会执行一个阶段。不过，某个特定的job可能包含众多的阶段，而这些阶段可能并非完全互相依赖的，也就是说有些阶段是可以并行执行的，这样可能使得整个job的执行时间缩短。不过，如果有更多的阶段可以并行执行，那么job可能就越快完成。
-
-通过设置参数`hive.exec.parallel`值为true，就可以开启并发执行。不过，在共享集群中，需要注意下，如果job中并行阶段增多，那么集群利用率就会增加。
 
 ### Hive 小文件过多怎么解决
 
@@ -708,15 +677,7 @@ ALTER TABLE A UNARCHIVE PARTITION(dt='2021-05-07', hr='12');
 
 > 注意:**归档的分区可以查看不能 insert overwrite，必须先 unarchive**
 
-### Hive调优
-
-![1633141298756](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/102140-147107.png)
-
-![1633141656384](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/102738-108120.png)
-
-![1633141854445](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/103056-117747.png)
-
-#### 源码角度理解hive执行原理
+### 源码角度理解hive执行原理
 
 ![1633142184004](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/103625-164480.png)
 
@@ -730,19 +691,27 @@ ALTER TABLE A UNARCHIVE PARTITION(dt='2021-05-07', hr='12');
 8. 执行引擎返回执行的结果到驱动器
 9. 驱动器返回结果给用户
 
-#### Hive的存储格式和压缩格式
+### Hive的存储格式和压缩格式
 
 ![1633142813335](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/104654-665346.png)
 
-#### Hive中的分析函数
+### Hive中的分析函数
 
 ![1633146131360](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/114212-897226.png)
 
 ![1633146654696](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/115056-678547.png)
 
-#### 说说你对分区表和分桶表的理解
+### 说说你对分区表和分桶表的理解
 
 ![1633147155726](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/115917-71055.png)
+
+### Hive调优
+
+![1633141298756](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/102140-147107.png)
+
+![1633141656384](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/102738-108120.png)
+
+![1633141854445](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202110/02/103056-117747.png)
 
 #### Fetch抓取（Hive可以避免进行MapReduce）
 
@@ -820,7 +789,7 @@ set hive.groupby.skewindata = true;
 - 第一个MR Job中，Map的输出结果会随机分布到Reduce中，每个Reduce做部分聚合操作，并输出结果，这样处理的结果是相同的Group By Key有可能被分发到不同的Reduce中，从而达到负载均衡的目的；
 - 第二个MR Job再根据预处理的数据结果按照Group By Key分布到Reduce中（这个过程可以保证相同的Group By Key被分布到同一个Reduce中），最后完成最终的聚合操作。
 
-#### Count(distinct)
+#### Count(distinct)；
 
 数据量小的时候无所谓，数据量大的情况下，由于COUNT DISTINCT操作需要用一个Reduce Task来完成，这一个Reduce需要处理的数据量太大，就会导致整个Job很难完成，一般COUNT DISTINCT使用先GROUP BY再COUNT的方式替换，也就是在使用Count进行统计的时候，先对数据进行分组然后在统计。
 
@@ -952,7 +921,7 @@ distribute by rand();
 
  每个map任务处理大于12M（几百万记录）的数据，效率肯定会好很多。         
 
-看上去，貌似这两种有些矛盾，一个是要合并小文件，一个是要把大文件拆成小文件，这点正是重点需要关注的地方，根据实际情况，控制map数量需要遵循两个原则：`使大数据量利用合适的map数；使单个map任务处理合适的数据量`；
+> 看上去，貌似这两种有些矛盾，一个是要合并小文件，一个是要把大文件拆成小文件，这点正是重点需要关注的地方，根据实际情况，控制map数量需要遵循两个原则：`使大数据量利用合适的map数；使单个map任务处理合适的数据量`；
 
 **Reduce数量**
 

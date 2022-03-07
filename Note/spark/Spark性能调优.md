@@ -115,7 +115,7 @@ in/spark-submit \
 ```
 
 **参数配置参考值：**
- 
+
 1. --num-executors：50~100
 2. --driver-memory：1G~5G
 3. --executor-memory：6G~10G
@@ -140,7 +140,6 @@ in/spark-submit \
 
 1. RDD 的持久化是可以进行序列化的，当内存无法将 RDD  的数据完整的进行存放的时候，可以考虑使用序列化的方式减小数据体积，将数据完整存储在内存中。
 2. 如果对于数据的可靠性要求很高，并且内存充足，可以使用副本机制，对 RDD 数据进行持久化。当持久化启用了复本机制时，对于持久化的每个数据单元都存储一个副本， 放在其他节点上面，由此实现数据的容错，一旦一个副本数据丢失，不需要重新计算，还可以使用另外一个副本。
-
 
 **RDD 尽可能早的 filter 操作**
 
@@ -226,8 +225,7 @@ val conf = new SparkConf()
 
 #### 算子调优一：mapPartitions
 
-普通的 map 算子对RDD 中的每一个元素进行操作，而 mapPartitions 算子对RDD 中每一个分区进行操作。如果是普通的 map 算子，假设一个 partition 有 1 万条数据，那么 map
-算子中的 function 要执行 1 万次，也就是对每个元素进行操作。
+普通的 map 算子对RDD 中的每一个元素进行操作，而 mapPartitions 算子对RDD 中每一个分区进行操作。如果是普通的 map 算子，假设一个 partition 有 1 万条数据，那么 map算子中的 function 要执行 1 万次，也就是对每个元素进行操作。
 
 ![20211108165220](https://vscodepic.oss-cn-beijing.aliyuncs.com/pic/20211108165220.png)
 
@@ -302,9 +300,7 @@ repartition 与 coalesce 都可以用来进行重分区，其中 repartition 只
 
 在第一节的常规性能调优中我们讲解了并行度的调节策略，但是，并行度的设置对于Spark SQL 是不生效的，用户设置的并行度只对于 Spark SQL 以外的所有 Spark 的 stage 生效。
 
-Spark SQL 的并行度不允许用户自己指定，Spark SQL 自己会默认根据 hive 表对应的
-
-HDFS  文件的 split  个数自动设置 Spark SQL  所在的那个 stage  的并行度，用户自己通spark.default.parallelism 参数指定的并行度，只会在没 Spark SQL 的 stage 中生效。
+Spark SQL 的并行度不允许用户自己指定，Spark SQL 自己会默认根据 hive 表对应的HDFS  文件的 split  个数自动设置 Spark SQL  所在的那个 stage  的并行度，用户自己通spark.default.parallelism 参数指定的并行度，只会在没 Spark SQL 的 stage 中生效。
 
 由于 Spark SQL 所在 stage 的并行度无法手动设置，如果数据量较大，并且此 stage 中后续的 transformation 操作有着复杂的业务逻辑，而 Spark SQL 自动设置的 task 数量很少， 这就意味着每个 task 要处理为数不少的数据量，然后还要执行非常复杂的处理逻辑，这就可能表现为第一个有 Spark SQL 的 stage 速度很慢，而后续的没有 Spark SQL 的 stage 运行速度非常快。
 
@@ -424,7 +420,7 @@ val conf = new SparkConf()
 Executor 的堆外内存主要用于程序的共享库、Perm Space、 线程 Stack 和一些 Memory mapping 等, 或者类C 方式 allocate object。
 
 有时，如果你的 Spark 作业处理的数据量非常大，达到几亿的数据量，此时运行 Spark 作业会时不时地报错，例如 shuffle output file cannot find，executor lost，task lost，out of memory 等，这可能是Executor 的堆外内存不太够用，导致Executor 在运行的过程中内存溢出。
- 
+
 stage 的 task 在运行的时候，可能要从一些 Executor 中去拉取 shuffle map output 文件， 但是Executor 可能已经由于内存溢出挂掉了，其关联的BlockManager 也没有了，这就可能会报出 shuffle output file cannot find，executor lost，task lost，out of memory 等错误，此时， 就可以考虑调节一下 Executor 的堆外内存，也就可以避免报错，与此同时，堆外内存调节的比较大的时候，对于性能来讲，也会带来一定的提升。
 
 默认情况下，Executor 堆外内存上限大概为 300 多 MB，在实际的生产环境下，对海量数据进行处理的时候，这里都会出现问题，导致 Spark 作业反复崩溃，无法运行，此时就会去调节这个参数，到至少 1G，甚至于 2G、4G。
@@ -501,7 +497,7 @@ key 的数量增加，可能使数据倾斜更严重。
 **reduce 端并行度的设置**
 
 在大部分的 shuffle 算子中，都可以传入一个并行度的设置参数，比如 reduceByKey(500)， 这个参数会决定 shuffle 过程中 reduce 端的并行度，在进行 shuffle 操作的时候，就会对应着创建指定数量的reduce task。对于 Spark SQL 中的 shuffle 类语句，比如 group by、join 等， 需要设置一个参数，即 spark.sql.shuffle.partitions，该参数代表了 shuffle read task 的并行度， 该值默认是 200，对于很多场景来说都有点过小。
- 
+
 增加 shuffle read task 的数量，可以让原本分配给一个 task 的多个key 分配给多个 task， 从而让每个task 处理比原来更少的数据。举例来说，如果原本有 5 个 key，每个 key 对应 10 条数据，这 5 个 key 都是分配给一个 task 的，那么这个 task 就要处理 50 条数据。而增加了shuffle read task 以后，每个 task 就分配到一个key，即每个 task 就处理 10 条数据，那么自然每个 task 的执行时间都会变短了。
 
 **reduce 端并行度设置存在的缺陷**
@@ -512,7 +508,7 @@ key 的数量增加，可能使数据倾斜更严重。
 
 在理想情况下，reduce 端并行度提升后，会在一定程度上减轻数据倾斜的问题，甚至基本消除数据倾斜；但是，在一些情况下，只会让原来由于数据倾斜而运行缓慢的 task 运行速度稍有提升，或者避免了某些 task 的OOM 问题，但是，仍然运行缓慢，此时，要及时放弃方案三，开始尝试后面的方案。
 
-**解决方案四：使用随机 key 实现双重聚合**
+### **解决方案四：使用随机 key 实现双重聚合**
 
 当使用了类似于 groupByKey、reduceByKey 这样的算子时，可以考虑使用随机 key 实现双重聚合，如图所示：
 
