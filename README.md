@@ -144,12 +144,12 @@
 4. [Spark运行架构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%20%E8%BF%90%E8%A1%8C%E6%9E%B6%E6%9E%84.md)
 5. [Spark核心编程](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%A0%B8%E5%BF%83%E7%BC%96%E7%A8%8B.md)
 6. [Spark Sql原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Spark%20Sql.md)
-7. [Spark调优(一)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Spark%E8%B0%83%E4%BC%98.md)
+7. [Spark调优(一)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98.md)
 8. [Spark调优(二)](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98.md)
 9. [Spark 的 Yarn-cluster 模式和 Yarn-client 模式](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%20%E7%9A%84%20Yarn-cluster%20%E6%A8%A1%E5%BC%8F%E5%92%8C%20Yarn-client%20%E6%A8%A1%E5%BC%8F.md)
 10. [Spark内核原理](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E5%86%85%E6%A0%B8%E5%8E%9F%E7%90%86.md)
 11. [Spark是多进程还是多线程编程模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E6%98%AF%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%A8%A1%E5%9E%8B%E8%BF%98%E6%98%AF%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%A8%A1%E5%9E%8B.md)
-12. [Spark中的join操作]()
+12. [Spark中的join操作](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E4%B8%AD%E7%9A%84join%E6%93%8D%E4%BD%9C.md)
 13. [Spark面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/spark/Spark%E9%9D%A2%E8%AF%95.md)
 
 ### Spark Sql
