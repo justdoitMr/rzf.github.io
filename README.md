@@ -209,6 +209,7 @@
 8. [离线数据仓库项目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 9. [项目中遇到的问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E9%A1%B9%E7%9B%AE%E4%B8%AD%E9%81%87%E5%88%B0%E7%9A%84%E9%97%AE%E9%A2%98%E6%80%BB%E7%BB%93.md)
 10. [行式存储和列式存储](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E7%A6%BB%E7%BA%BF%E6%95%B0%E4%BB%93%E9%A1%B9%E7%9B%AE/%E5%88%97%E5%BC%8F%E5%AD%98%E5%82%A8%E5%92%8C%E8%A1%8C%E5%BC%8F%E5%AD%98%E5%82%A8.md)
+11. [离线数仓建模理论](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%95%B0%E6%8D%AE%E4%BB%93%E5%BA%93/%E6%95%B0%E4%BB%93%E5%BB%BA%E6%A8%A1%E7%90%86%E8%AE%BA.md)
 
 
 ### 分布式
