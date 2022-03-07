@@ -194,6 +194,7 @@
 5. [数仓 DWM 层业务实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E6%95%B0%E4%BB%93%20DWM%20%E5%B1%82%E4%B8%9A%E5%8A%A1%E5%AE%9E%E7%8E%B0.md)
 6. [实时数仓DWS 层业务实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E6%95%B0%E4%BB%93DWS%20%E5%B1%82%E4%B8%9A%E5%8A%A1%E5%AE%9E%E7%8E%B0.md)
 7. [实时项目优化](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E5%AE%9E%E6%97%B6%E9%A1%B9%E7%9B%AE%E4%BC%98%E5%8C%96.md)
+8. [实时数仓项目总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink%E9%A1%B9%E7%9B%AE/%E9%A1%B9%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 
 
 #### 离线数仓
