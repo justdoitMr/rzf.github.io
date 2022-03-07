@@ -237,7 +237,7 @@
 3. [Java集合面试高频](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Java%E9%9B%86%E5%90%88%E9%9D%A2%E8%AF%95%E9%AB%98%E9%A2%91%E8%80%83%E7%82%B9.md)
 4. [并发编程](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E5%B9%B6%E5%8F%91.md)
 5. [多线程高频面试](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E5%A4%9A%E7%BA%BF%E7%A8%8B%E9%AB%98%E9%A2%91%E9%9D%A2%E8%AF%95%E8%80%83%E7%82%B9.md)
-6. [虚拟机一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E8%99%9A%E6%8B%9F%E6%9C%BA.md)
+6. [JVM一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E8%99%9A%E6%8B%9F%E6%9C%BA.md)
 7. [JVM二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/jvm/JVM%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE%E6%80%BB%E7%BB%93.md)
 8. [数据库](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E6%95%B0%E6%8D%AE%E5%BA%93.md)
 9. [网络](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E7%BD%91%E7%BB%9C.md)
@@ -254,6 +254,7 @@
 6. [Flink](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/Flink/Flink%E4%B8%93%E9%A2%98.md)
 7. [Rides面试一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Rides.md)
 8. [Rides面试二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Rides%E9%9D%A2%E8%AF%95.md)
+9. [项目中用到的设计模式](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E9%A1%B9%E7%9B%AE%E4%B8%AD%E9%83%BD%E7%94%A8%E5%88%B0%E9%82%A3%E4%BA%9B%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F.md)
 
 ---
 
