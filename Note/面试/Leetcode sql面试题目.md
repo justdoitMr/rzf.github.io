@@ -227,3 +227,136 @@ from num
 ![1646124689362](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/01/165130-457268.png)
 
 > 注意，ntile()里面的参数2表示数据分两组。
+
+### [181. 超过经理收入的员工](https://leetcode-cn.com/problems/employees-earning-more-than-their-managers/)
+
+~~~sql
+select a.Name as Employee
+from Employee as a
+inner join Employee as b
+on a.managerId = b.id
+where  a.salary > b.salary;
+~~~
+
+- 单表进行内连接
+
+### [182. 查找重复的电子邮箱](https://leetcode-cn.com/problems/duplicate-emails/)
+
+~~~sql
+select
+    Email as Email
+from Person
+group by Email
+having count(Email)>=2;
+~~~
+
+- 本质是查找重复项，首先分组，然后判断每一组内容的数量
+
+### [183. 从不订购的客户](https://leetcode-cn.com/problems/customers-who-never-order/)
+
+~~~sql
+select
+    Name as Customers 
+from Customers
+where id not in
+(
+    select
+        CustomerId 
+    from Orders
+    group by CustomerId
+);
+~~~
+
+### [184. 部门工资最高的员工](https://leetcode-cn.com/problems/department-highest-salary/)
+
+#### 方法一
+
+重点方法，可以保证相同的工资也可以选出来。
+
+~~~sql
+select 
+    Department.name as Department , 
+    Employee.name as Employee , 
+    salary as Salary 
+from Employee
+inner join Department 
+on Employee.departmentId = Department.id
+where (departmentId, salary) 
+in (
+	select 
+        departmentId, 
+        max(salary) 
+    from Employee 
+    group by departmentId
+);
+~~~
+
+#### 方法二
+
+~~~sql
+-- 使用窗口函数
+
+with temp as (
+    select 
+        Department.name as Department, 
+        Employee.name as Employee, 
+        dense_rank() over(partition by Department.id order by Employee.salary desc) as rank
+    from Employee
+    inner join Department 
+    on Employee.departmentId = Department.id
+)select Department,Employee,salary from temp where rank = 1;
+~~~
+
+- 使用 with 建立临
+- 连接两表 department 和 employee 使用 dense_rank() 对 salary 进行排序。partition by 的作用是分区
+
+**第二种写法**
+
+~~~sql
+select
+    d.Name as Department,
+    m.Name as Employee,
+    Salary
+from (
+    select
+        Name,
+        DepartmentId,
+        Salary,
+        rank() over( partition by DepartmentId order by Salary desc) as rk 
+    from Employee
+) as m left join Department d on m.DepartmentId = d.Id
+where m.rk = 1
+~~~
+
+利用开窗函数可以取每个部门最高，也可以取前二高，前三高，也可以只取第一第三，都OK的
+
+每一个部门前两高
+
+~~~sql
+-- 每个部门前2高
+SELECT S.NAME, S.EMPLOYEE, S.SALARY
+  FROM (SELECT D.NAME,
+               T.NAME EMPLOYEE,
+               T.SALARY,
+               ROW_NUMBER() OVER(PARTITION BY T.DEPARTMENTID ORDER BY T.SALARY DESC) RN
+          FROM EMPLOYEE T
+          LEFT JOIN DEPARTMENT D
+            ON T.DEPARTMENTID = D.ID) S
+ WHERE S.RN <= 2
+~~~
+
+每一个部门第三稿
+
+~~~sql
+-- 每个部门第一第三高
+SELECT S.NAME, S.EMPLOYEE, S.SALARY
+  FROM (SELECT D.NAME,
+               T.NAME EMPLOYEE,
+               T.SALARY,
+               ROW_NUMBER() OVER(PARTITION BY T.DEPARTMENTID ORDER BY T.SALARY DESC) RN
+          FROM EMPLOYEE T
+          LEFT JOIN DEPARTMENT D
+            ON T.DEPARTMENTID = D.ID) S
+ WHERE S.RN = 1 OR S.RN = 3
+~~~
+
