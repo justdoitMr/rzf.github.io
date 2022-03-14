@@ -33,6 +33,7 @@
 4. [IO模型](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/IO%E6%A8%A1%E5%9E%8B.md)
 5. [排序](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/%E6%8E%92%E5%BA%8F.md)
 6. [接口和抽象类的区别](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/%E6%8E%A5%E5%8F%A3%E5%92%8C%E6%8A%BD%E8%B1%A1%E7%B1%BB%E7%9A%84%E5%8C%BA%E5%88%AB.md)
+7. [jAVA 8新特性](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/java/java8-common-new-features.md)
 
 #### 集合:(重难点👍)
 
