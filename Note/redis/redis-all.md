@@ -188,7 +188,7 @@ OK
 
 我专门花了一个图方便小伙伴们来理解：
 
-![redis list](./images/redis-all/redis-list.png)
+![redis list](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/14/195142-328671.png)
 
 **通过 `lrange` 查看对应下标范围的列表元素：**
 

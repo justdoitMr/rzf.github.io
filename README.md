@@ -124,6 +124,7 @@
 
 1. [Redis基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Redis.md)
 2. [Redis数据结构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Rides%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.md)
+3. [布隆过滤器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/bloom-filter.md)
 
 ### Zookeeper
 
