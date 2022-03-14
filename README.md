@@ -77,9 +77,13 @@
 #### Mysql
 
 1. [Mysql基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E5%9F%BA%E7%A1%80.md)
-2. [Mysql高级](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E9%AB%98%E7%BA%A7.md)
-3. [Mysql主从复制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8E%9F%E7%90%86.md)
-4. [sql Top N问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/sql%20Top%20N%E9%97%AE%E9%A2%98.md)
+2. [Mysql基础总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/%E4%B8%80%E5%8D%83%E8%A1%8CMySQL%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md)
+3. [Mysql高级](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E9%AB%98%E7%BA%A7.md)
+4. [Mysql主从复制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8E%9F%E7%90%86.md)
+5. [sql Top N问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/sql%20Top%20N%E9%97%AE%E9%A2%98.md)
+6. [Mysql三大日志](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97.md)
+7. [InnoDB对MVCC的实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/InnoDB%E5%AF%B9MVCC%E7%9A%84%E5%AE%9E%E7%8E%B0.md)
+8. [一条sql语句在mysql中如何执行的](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E5%9C%A8mysql%E4%B8%AD%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84.md)
 
 #### 设计模式
 
@@ -125,6 +129,8 @@
 1. [Redis基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Redis.md)
 2. [Redis数据结构](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/Rides%E5%BA%95%E5%B1%82%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84.md)
 3. [布隆过滤器](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/bloom-filter.md)
+4. [Rides常见问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/redis-all.md)
+5. [3种常用的缓存读写策略](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/redis/3%E7%A7%8D%E5%B8%B8%E7%94%A8%E7%9A%84%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5.md)
 
 ### Zookeeper
 
