@@ -57,7 +57,7 @@ AQS 核心思想是，如果被请求的共享资源空闲，则将当前请求�
 
 ![1630649762942](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202109/03/141603-27114.png)
 
-AQS 使用一个 int 成员变量来表示同步状态，通过内置的 FIFO 队列来完成获取资源线程的排队工作。AQS 使用 CAS 对该同步状态进行原子操作实现对其值的修改。
+AQS 使用一个 int 成员变量来表示**同步状态**，通过内置的 FIFO 队列来完成获取资源线程的排队工作。AQS 使用 CAS 对该同步状态进行原子操作实现对其值的修改。
 
 ```java
 private volatile int state;//共享变量，使用volatile修饰保证线程可见性
@@ -79,6 +79,12 @@ protected final boolean compareAndSetState(int expect, int update) {
         return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
 }
 ```
+
+**加锁解锁流程展示**
+
+![1647310700306](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/15/101822-631509.png)
+
+![1647310761283](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/15/101923-277006.png)
 
 ### AQS 对资源的共享方式
 
@@ -327,6 +333,7 @@ semaphore.release(5);// 释放5个许可
 **这两个构造方法，都必须提供许可的数量，第二个构造方法可以指定是公平模式还是非公平模式，默认非公平模式。**
 
 [issue645 补充内容](https://github.com/Snailclimb/JavaGuide/issues/645) ：`Semaphore` 与 `CountDownLatch` 一样，也是共享锁的一种实现。它默认构造 AQS 的 state 为 `permits`。当执行任务的线程数量超出 `permits`，那么多余的线程将会被放入阻塞队列 Park,并自旋判断 state 是否大于 0。只有当 state 大于 0 的时候，阻塞的线程才能继续执行,此时先前执行任务的线程继续执行 `release()` 方法，`release()` 方法使得 state 的变量会加 1，那么自旋的线程便会判断成功。
+
 如此，每次只有最多不超过 `permits` 数量的线程能自旋成功，便限制了执行任务线程的数量。
 
 ## CountDownLatch （倒计时器）
@@ -339,7 +346,9 @@ semaphore.release(5);// 释放5个许可
 
 **1、某一线程在开始运行前等待 n 个线程执行完毕。**
 
-将 `CountDownLatch` 的计数器初始化为 n （`new CountDownLatch(n)`），每当一个任务线程执行完毕，就将计数器减 1 （`countdownlatch.countDown()`），当计数器的值变为 0 时，在 `CountDownLatch 上 await()` 的线程就会被唤醒。一个典型应用场景就是启动一个服务时，主线程需要等待多个组件加载完毕，之后再继续执行。
+将 `CountDownLatch` 的计数器初始化为 n （`new CountDownLatch(n)`），每当一个任务线程执行完毕，就将计数器减 1 （`countdownlatch.countDown()`），当计数器的值变为 0 时，在 `CountDownLatch 上 await()` 的线程就会被唤醒。
+
+> 一个典型应用场景就是启动一个服务时，主线程需要等待多个组件加载完毕，之后再继续执行。
 
 **2、实现多个线程开始执行任务的最大并行性。**
 
@@ -394,7 +403,9 @@ public class CountDownLatchExample1 {
 
 与 `CountDownLatch` 的第一次交互是主线程等待其他线程。主线程必须在启动其他线程后立即调用 `CountDownLatch.await()` 方法。这样主线程的操作就会在这个方法上阻塞，直到其他线程完成各自的任务。
 
-其他 N 个线程必须引用闭锁对象，因为他们需要通知 `CountDownLatch` 对象，他们已经完成了各自的任务。这种通知机制是通过 `CountDownLatch.countDown()`方法来完成的；每调用一次这个方法，在构造函数中初始化的 count 值就减 1。所以当 N 个线程都调 用了这个方法，count 的值等于 0，然后主线程就能通过 `await()`方法，恢复执行自己的任务。
+其他 N 个线程必须引用闭锁对象，因为他们需要通知 `CountDownLatch` 对象，他们已经完成了各自的任务。这种通知机制是通过 `CountDownLatch.countDown()`方法来完成的；
+
+每调用一次这个方法，在构造函数中初始化的 count 值就减 1。所以当 N 个线程都调 用了这个方法，count 的值等于 0，然后主线程就能通过 `await()`方法，恢复执行自己的任务。
 
 再插一嘴：`CountDownLatch` 的 `await()` 方法使用不当很容易产生死锁，比如我们上面代码中的 for 循环改为：
 
