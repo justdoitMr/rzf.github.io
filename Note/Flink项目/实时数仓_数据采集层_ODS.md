@@ -199,7 +199,7 @@ Niginx可以将我们的web页面产生的数据进行负载均衡，**如果是
 - kafkachannel:将数据直接传入kafka，省了一层sink。
 - 在kafka中即相当于生产者，有相当于消费者。
 - 用法：
-  - Source-kafkaChannel-Sink
+  - Source-kafkaChannel
   - Source-kafkaChannel
   - kafkaChannel-Sink
 
@@ -607,9 +607,9 @@ update tt set create_date=now()
 
 如果用 binlog 日志进行恢复，由于执行时间不同可能产生的数据就不同。
 
-优点： 节省空间
+- 优点： 节省空间
 
-缺点： 有可能造成数据不一致。
+- 缺点： 有可能造成数据不一致。
 
 **row行级**
 

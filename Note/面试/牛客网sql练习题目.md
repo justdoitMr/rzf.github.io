@@ -14,9 +14,170 @@ on tb_user_video_log.video_id = tb_video_info.video_id
 WHERE year(start_time)=2021
 group by tb_user_video_log.video_id
 order by avg_ratio desc;
+
+--使用timediff函数
+SELECT 
+    tb_user_video_log.video_id,
+  round(sum(if(TIMEDIFF(end_time,start_time)>=tb_video_info.duration,1,0))/count(tb_user_video_log.video_id),3) as avg_ratio
+from tb_user_video_log 
+LEFT join tb_video_info 
+on tb_user_video_log.video_id = tb_video_info.video_id
+WHERE year(start_time)=2021
+group by tb_user_video_log.video_id
+order by avg_ratio desc;
 ~~~
 
-round()函数：保留几位小数使用，本题目设置保留三位小数。
+> round()函数：保留几位小数使用，本题目设置保留三位小数。
+
+#### **SQL2** **平均播放进度大于60%的视频类别**
+
+~~~sql
+
+SELECT 
+    tag,
+    CONCAT(avg_process,'%')
+FROM
+(
+     SELECT
+        video_id,
+        tag,
+        ROUND(SUM(video_process)/COUNT(video_id),2) AS avg_process
+    FROM
+    (
+	SELECT
+		tb_user_video_log.video_id,
+		tb_video_info.tag,
+		ROUND(IF(TIMESTAMPDIFF(MINUTE,start_time,end_time)>tb_video_info.`duration`,100,TIMESTAMPDIFF(SECOND,start_time,end_time))/tb_video_info.duration,2)*100 AS video_process
+	FROM tb_user_video_log
+	LEFT JOIN tb_video_info
+	ON tb_user_video_log.video_id = tb_video_info.video_id
+    )t1
+    GROUP BY video_id
+)t1
+WHERE avg_process > 60
+ORDER BY avg_process DESC;
+
+~~~
+
+> 学会TIMESTAMPDIFF(SECOND,start_time,end_time)函数的使用，second表示返回两个时间相差的分钟数。
+>
+> 学会concat()拼接函数
+
+#### ==SQL4每个创作者每月的涨粉率及截止当前的总粉丝量==
+
+**使用case-when**
+
+~~~sql
+select author, month,
+round(add_fans/counts,3) fans_growth_rate, 
+sum(add_fans)over(partition by author order by month) total_fans
+from (select author, 
+      DATE_FORMAT(start_time,'%Y-%m') month, 
+     sum(case when if_follow=2 then -1 else if_follow end) add_fans,
+     count(*) counts
+     from tb_user_video_log t1
+     join tb_video_info t2 
+     on t1.video_id=t2.video_id
+     where year(start_time)=2021
+     group by author, month) a
+ORDER BY author, total_fans
+~~~
+
+> 每一个作者，每一个月，也就是说分组条件有两个：作者，月份
+
+**第二种写法**
+
+~~~sql
+round(avg(case when u.if_follow = 1 then 1
+         when u.if_follow = 2 then -1
+         else 0 end),3) fans_growth_rate,
+sum(sum(case when u.if_follow = 1 then 1
+         when u.if_follow = 2 then -1
+         else 0 end) ) over (partition by v.author order by date_format(u.start_time,'%Y-%m')) fans_total
+from tb_user_video_log u 
+inner join tb_video_info v on v.video_id=u.video_id
+where year(u.start_time)=2021
+and year(u.end_time)=2021
+group by v.author,month
+order by v.author,fans_total
+~~~
+
+#### **SQL7** **2021年11月每天的人均浏览文章时长**
+
+~~~sql
+SELECT
+	dt,
+	ROUND(SUM(lengthTime)/COUNT(DISTINCT(uid)),1) AS avg_viiew_len_sec
+FROM 
+(
+	SELECT
+	    uid,
+	    DATE_FORMAT(in_time,'%Y-%m-%d') AS dt,
+	    TIMESTAMPDIFF(SECOND,in_time,out_time) AS lengthTime
+	FROM tb_user_log
+	WHERE artical_id != 0 AND in_time LIKE '2021-11%'
+)t
+GROUP BY dt
+order by avg_viiew_len_sec;
+~~~
+
+> `DATE_FORMAT(in_time,'%Y-%m-%d')`
+>
+> - 如果使用%Y：输出的是2022四位
+> - 如果使用的是%y：输出的是22后两位
+
+#### 学会使用窗口函数
+
+##### **SQL66** **牛客每个人最近的登录日期(一)**
+
+~~~sql
+select 
+    user_id,
+    date as id
+from 
+(
+    select
+        user_id,
+        date ,
+        row_number() over(partition by user_id order by date desc) as rk
+    from login
+)t1
+where rk =1;
+~~~
+
+##### ==SQL27 每类试卷得分前3名==
+
+~~~sql
+select *
+from
+    (
+    select
+    tag
+    ,uid
+    ,rank() over(partition by tag order by max_score desc,min_score desc,uid desc) rk
+    from
+    (
+        select
+        tag
+        ,uid
+        ,max(score) max_score
+        ,min(score) min_score
+        from exam_record er
+        left join examination_info ei
+        on er.exam_id = ei.exam_id
+        group by tag,uid
+    ) t
+    group by tag,uid
+    ) tt
+where rk <= 3
+
+#如果查询的其他部分（WHERE，GROUP BY，HAVING）需要窗口函数，
+#请使用子查询，然后在子查询中在使用窗口函数
+#1、专用窗口函数，包括后面要讲到的rank, dense_rank, row_number等专用窗口函数。
+#2、聚合函数，如sum. avg, count, max, min等
+~~~
+
+
 
 ### Mysql开窗函数使用
 
