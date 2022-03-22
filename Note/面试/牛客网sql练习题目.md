@@ -126,6 +126,121 @@ order by avg_viiew_len_sec;
 > - 如果使用%Y：输出的是2022四位
 > - 如果使用的是%y：输出的是22后两位
 
+#### SQL2查找入职员工时间排名倒数第三的员工所有信息
+
+**使用窗口函数**
+
+~~~java
+select
+    emp_no,
+    birth_date,
+    first_name,
+    last_name,
+    gender,
+    hire_date,
+from
+(
+    select
+        *,
+        dense_rank() over(order by hire_date desc) as rk
+    from employees
+)tmp
+where rk = 3;
+~~~
+
+**使用limit子句**
+
+首先窜则排名第三的日期，然后从雇员表中选择日期等于第三的。
+
+~~~java
+select * 
+from employees 
+where 
+    hire_date = 
+    (
+        select distinct hire_date
+        from employees
+        order by hire_date desc 
+        limit 2,1
+    )
+~~~
+
+>   LIMIT m,n : 表示从第m+1条开始，取n条数据； 
+>
+>   LIMIT n ： 表示从第0条开始，取n条数据，是limit(0,n)的缩写。 
+
+#### SQL3查找当前薪水详情以及部门编号dept_no
+
+~~~sql
+select
+    t1.emp_no,
+    t2.salary,
+    t2.from_date,
+    t2.to_date,
+    t1.dept_no
+from dept_manager t1
+left join salaries t2
+on t1.emp_no = t2.emp_no;
+~~~
+
+> 使用left join
+
+#### SQL13计算商城中2021年每月的GMV
+
+~~~sql
+select    
+    date_format(event_time,'%Y-%m')as month,
+    round(sum(total_amount),0) as GMV
+from tb_order_overall
+where status in (0,1)
+group by date_format(event_time,'%Y-%m')
+having GMV> 100000
+order by GMV;
+~~~
+
+**第二种思路**
+
+~~~sql
+select
+	substring(event_time,1,7)as month,
+	round(sum(total_amount),0)as-GMV
+from.tb_order_overall
+	whereevent_time.like."2021%"and.status.!='2'
+group by month;
+~~~
+
+> substring(event_time,1,7)：截取日期的年和月，表示截取1-7位，闭区间。
+
+#### SQL4查找所有已经分配部门的员工的last_name和first_name以及dept_no             
+
+ ~~~sql
+select
+    last_name,
+    first_name,
+     dept_no
+from employees as e
+inner join dept_emp as d
+on e.emp_no = d.emp_no; 
+ ~~~
+
+> 找出两张表的公共部分，使用内连接。
+
+#### SQL5查找所有员工的last_name和first_name以及对应部门编号dept_no             
+
+~~~sql
+select
+    last_name,
+    first_name,
+     dept_no
+from employees as e
+left join dept_emp as d
+on e.emp_no = d.emp_no; 
+~~~
+
+> 使用左外连接
+
+ 
+
 #### 学会使用窗口函数
 
 ##### **SQL66** **牛客每个人最近的登录日期(一)**

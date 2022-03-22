@@ -751,7 +751,229 @@ HashMap是实现了Map接口，存储的是键值对；HashSet 是实现了Set�
 
 ## HashMap(jdk1.8)
 
+### Hashmap特点
+
+- hashmap存取是无序的
+- 键和值位置都可以是null，但是键位置只能是一个null
+- 键位置是唯一的，底层的数据结构是控制键的
+- jdk1.8前数据结构是：链表+数组jdk1.8之后是：数组+链表+红黑树
+- 阈值（边界值）>8并且数组长度大于64，才将链表转换成红黑树，变成红黑树的目的是提高搜索速度，高效查询
+
+### **解决hash冲突的办法有哪些?HashMap用的哪种？**
+
+- 开放地址发
+  - 线性探测法
+  - 二次探测法
+- 在哈希法
+- 连地址法
+- 建立公共溢出区域
+
+> 开放定址法只能使用同一种hash函数进行再次hash，再哈希法可以调用多种不同的hash函数进行再次hash
+
+### **为什么要在数组长度大于64之后，链表才会进化为红黑树**
+
+在数组比较小时如果出现红黑树结构，反而会降低效率，而红黑树需要进行左旋右旋，变色，这些操作来保持平衡，同时数组长度小于64时，搜索时间相对要快些，总之是为了加快搜索速度，提高性能
+
+JDK1.8以前HashMap的实现是数组+链表，即使哈希函数取得再好，也很难达到元素百分百均匀分布。当HashMap中有大量的元素都存放在同一个桶中时，这个桶下有一条长长的链表，此时HashMap就相当于单链表，假如单链表有n个元素，遍历的时间复杂度就从`O（1）`退化成`O（n）`，完全失去了它的优势，为了解决此种情况，JDK1.8中引入了红黑树（查找的时间复杂度为`O（logn）`）来优化这种问题
+
+### **哈希表底层采用何种算法计算hash值？还有哪些算法可以计算出hash值？**
+
+hashCode方法是Object中的方法，所有的类都可以对其进行使用，首先底层通过调用hashCode方法生成初始hash值h1，然后将h1无符号右移16位得到h2，之后将h1与h2进行按位异或（`^`）运算得到最终hash值h3，之后将h3与(`length-1`)进行按位与（`&`）运算得到hash表索引
+
+其他可以计算出hash值的算法有
+
+- 平方取中法
+- 取余数
+- 伪随机数法
+
+### **当两个对象的hashCode相等时会怎样**
+
+hashCode相等产生hash碰撞，hashCode相等会调用equals方法比较内容是否相等，内容如果相等则会进行覆盖，内容如果不等则会连接到链表后方，链表长度超过8且数组长度超过64，会转变成红黑树节点。
+
+### **何时发生哈希碰撞和什么是哈希碰撞，如何解决哈希碰撞？**
+
+只要两个元素的key计算的hash码值相同就会发生hash碰撞，jdk8之前使用链表解决哈希碰撞，jdk8之后使用链表+红黑树解决哈希碰撞
+
+### ==HashMap的put方法流程==
+
+以jdk8为例，简要流程如下：
+
+1. 首先根据key的值计算hash值，找到该元素在数组中存储的下标
+2. 如果数组是空的，则调用resize进行初始化；
+3. 如果没有哈希冲突直接放在对应的数组下标里
+4. 如果冲突了，且key已经存在，就覆盖掉value
+5. 如果冲突后是链表结构，就判断该链表是否大于8，如果大于8并且数组容量小于64，就进行扩容；如果链表节点数量大于8并且数组的容量大于64，则将这个结构转换成红黑树；否则，链表插入键值对，若key存在，就覆盖掉value
+6. 如果冲突后，发现该节点是红黑树，就将这个节点挂在树上
+
+**图示**
+
 ![1644380207165](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202202/09/121648-309480.png)
+
+### ==HashMap的扩容方式==
+
+HashMap在容量超过负载因子所定义的容量之后，就会扩容。java里的数组是无法自己扩容的，将HashMap的大小扩大为原来数组的**两倍**
+
+我们来看jdk1.8扩容的源码
+
+~~~java
+ final Node<K,V>[] resize() {  
+        //oldTab：引用扩容前的哈希表  
+        Node<K,V>[] oldTab = table;  
+        //oldCap：表示扩容前的table数组的长度  
+        int oldCap = (oldTab == null) ? 0 : oldTab.length;  
+        //获得旧哈希表的扩容阈值  
+        int oldThr = threshold;  
+        //newCap:扩容之后table数组大小  
+        //newThr:扩容之后下次触发扩容的条件  
+        int newCap, newThr = 0;  
+        //条件成立说明hashMap中的散列表已经初始化过了，是一次正常扩容  
+        if (oldCap > 0) {  
+            //判断旧的容量是否大于等于最大容量，如果是，则无法扩容，并且设置扩容条件为int最大值，  
+            //这种情况属于非常少数的情况  
+            if (oldCap >= MAXIMUM_CAPACITY) {  
+                threshold = Integer.MAX_VALUE;  
+                return oldTab;  
+            }//设置newCap新容量为oldCap旧容量的二倍（<<1）,并且<最大容量，而且>=16，则新阈值等于旧阈值的两倍  
+            else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&  
+                     oldCap >= DEFAULT_INITIAL_CAPACITY)  
+                newThr = oldThr << 1; // double threshold  
+        }  
+        //如果oldCap=0并且边界值大于0，说明散列表是null，但此时oldThr>0  
+        //说明此时hashMap的创建是通过指定的构造方法创建的,新容量直接等于阈值  
+        //1.new HashMap(intitCap,loadFactor)  
+        //2.new HashMap(initCap)  
+        //3.new HashMap(map)  
+        else if (oldThr > 0) // initial capacity was placed in threshold  
+            newCap = oldThr;  
+        //这种情况下oldThr=0;oldCap=0，说明没经过初始化，创建hashMap  
+        //的时候是通过new HashMap()的方式创建的  
+        else {               // zero initial threshold signifies using defaults  
+            newCap = DEFAULT_INITIAL_CAPACITY;  
+            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);  
+        }  
+        //newThr为0时，通过newCap和loadFactor计算出一个newThr  
+        if (newThr == 0) {  
+            //容量*0.75  
+            float ft = (float)newCap * loadFactor;  
+            newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?  
+                      (int)ft : Integer.MAX_VALUE);  
+        }  
+        threshold = newThr;  
+        @SuppressWarnings({"rawtypes","unchecked"})  
+                //根据上面计算出的结果创建一个更长更大的数组  
+            Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];  
+        //将table指向新创建的数组  
+        table = newTab;  
+        //本次扩容之前table不为null  
+        if (oldTab != null) {  
+            //对数组中的元素进行遍历  
+            for (int j = 0; j < oldCap; ++j) {  
+                //设置e为当前node节点  
+                Node<K,V> e;  
+                //当前桶位数据不为空，但不能知道里面是单个元素，还是链表或红黑树，  
+                //e = oldTab[j]，先用e记录下当前元素  
+                if ((e = oldTab[j]) != null) {  
+                    //将老数组j桶位置为空，方便回收  
+                    oldTab[j] = null;  
+                    //如果e节点不存在下一个节点，说明e是单个元素，则直接放置在新数组的桶位  
+                    if (e.next == null)  
+                        newTab[e.hash & (newCap - 1)] = e;  
+                    //如果e是树节点，证明该节点处于红黑树中  
+                    else if (e instanceof TreeNode)  
+                        ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);  
+                    //e为链表节点，则对链表进行遍历  
+                    else { // preserve order  
+                        //低位链表：存放在扩容之后的数组的下标位置，与当前数组下标位置一致  
+                        //loHead：低位链表头节点  
+                        //loTail低位链表尾节点  
+                        Node<K,V> loHead = null, loTail = null;  
+                        //高位链表，存放扩容之后的数组的下标位置，=原索引+扩容之前数组容量  
+                        //hiHead:高位链表头节点  
+                        //hiTail:高位链表尾节点  
+                        Node<K,V> hiHead = null, hiTail = null;  
+                        Node<K,V> next;  
+                        do {  
+                            next = e.next;  
+                            //oldCap为16:10000，与e.hsah做&运算可以得到高位为1还是0  
+                            //高位为0，放在低位链表  
+                            if ((e.hash & oldCap) == 0) {  
+                                if (loTail == null)  
+                                    //loHead指向e  
+                                    loHead = e;  
+                                else  
+                                    loTail.next = e;  
+                                loTail = e;  
+                            }  
+                            //高位为1，放在高位链表  
+                            else {  
+                                if (hiTail == null)  
+                                    hiHead = e;  
+                                else  
+                                    hiTail.next = e;  
+                                hiTail = e;  
+                            }  
+                        } while ((e = next) != null);  
+                        //低位链表已成，将头节点loHead指向在原位  
+                        if (loTail != null) {  
+                            loTail.next = null;  
+                            newTab[j] = loHead;  
+                        }  
+                        //高位链表已成，将头节点指向新索引  
+                        if (hiTail != null) {  
+                            hiTail.next = null;  
+                            newTab[j + oldCap] = hiHead;  
+                        }  
+                    }  
+                }  
+            }  
+        }  
+        return newTab;  
+    }  
+~~~
+
+**过程**
+
+1. 首先拿到原始数组得容量，然后判断数组是否进行初始化，
+2. 如果是空数组，那么说明没有初始化，就开始初始化工作，大小为16.
+3. 如果已经初始化过，那么判断原始容量是否是允许得最大值，如果是，那么不能完成扩容工作。
+4. 否则那么就将原始得容量扩大为原来得两倍大小，重新计算阈值。
+5. 然后开始迁移元素，采用得是尾插法方法。
+
+扩容之后原位置的节点只有两种调整
+
+- 保持原位置不动（新bit位为0时）
+- 散列原索引+扩容大小的位置去（新bit位为1时）
+
+扩容之后元素的散列设置的非常巧妙，节省了计算hash值的时间，我们来看一 下具体的实现。
+
+> 这样的扩容方式不仅节省了重新计算hash的时间，而且保证了当前桶中的元素总数一定小于等于原来桶中的元素数量，避免了更严重的hash冲突，均匀的把之前冲突的节点分散到新的桶中去
+
+### **一般用什么作为HashMap的key？**
+
+一般用Integer、String这种不可变类当HashMap当key
+
+- 因为String是不可变的，当创建字符串时，它的hashcode被缓存下来，不需要再次计算，相对于其他对象更快
+- 因为获取对象的时候要用到`equals()`和`hashCode()`方法，那么键对象正确的重写这两个方法是非常重要的，这些类很规范的重写了`hashCode()`以及`equals()`方法
+
+### **为什么Map桶中节点个数超过8才转为红黑树？**
+
+8作为阈值作为HashMap的成员变量，在源码的注释中并没有说明阈值为什么是8。
+
+因为树节点的大小大约是普通节点的两倍，所以我们只在箱子包含足够的节点时才使用树节点。
+
+当他们边的太小（由于删除或调整大小）时，就会被转换回普通的桶，在使用分布良好的hashcode时，很少使用树箱。
+理想情况下，在随机哈希码下，箱子中节点的频率服从泊松分布。
+
+树节点占用空间是普通Node的两倍，如果链表节点不够多却转换成红黑树，无疑会耗费大量的空间资源，并且在随机hash算法下的所有bin节点分布频率遵从泊松分布，链表长度达到8的概率只有0.00000006，几乎是不可能事件，所以8的计算是经过重重科学考量的
+
+- 从平均查找长度来看，红黑树的平均查找长度是logn，如果长度为8，则`logn=3`，而链表的平均查找长度为`n/4`，长度为8时，`n/2=4`，所以阈值8能大大提高搜索速度
+- 当长度为6时红黑树退化为链表是因为logn=log6约等于2.6，而`n/2=6/2=3`，两者相差不大，而红黑树节点占用更多的内存空间，所以此时转换最为友好。
+
+### **HashMap为什么线程不安全？**
+
+- 多线程下扩容死循环。JDK1.7中的HashMap使用头插法插入元素，在多线程的环境下，扩容的时候有可能导致环形链表的出现，形成死循环。因此JDK1.8使用尾插法插入元素，在扩容时会保持链表元素原本的顺序，不会出现环形链表的问题
+- 多线程的put可能导致元素的丢失。多线程同时执行put操作，如果计算出来的索引位置是相同的，那会造成前一个key被后一个key覆盖，从而导致元素的丢失。此问题在JDK1.7和JDK1.8中都存在
+- put和get并发时，可能导致get为null。线程1执行put时，因为元素个数超出threshold而导致rehash，线程2此时执行get，有可能导致这个问题，此问题在JDK1.7和JDK1.8中都存在
 
 ### get流程 
 
@@ -764,10 +986,11 @@ Put流程
    1.先判断当前数组是否为空，如果为空调用resize方法扩容为16  
 
 2. hashcode值经过一个扰动函数（高八位和低八位进行异或，加大低位的随机性，减小碰撞概率），然后进行取模，取得下标 
-
 3. 判断数组元素是否为空，为空直接插入，不为空调用equal方法查找key，key存在就进行覆盖；不存在的话1.7采用头插法插入[链表]()中，1.8采用尾插法插入[链表]()中，如果[链表]()长度超过8而且数组长度大于64，会转化成[红黑树]()（O(logn)）； 
-
 4. 然后判断当前数组元素个数是否大于数组长度*0.75的负载因子，然后新建一个数组长度2倍的数组，重新计算hash值；1.8的时候会先判断扩容后的hash值新增的位是0还是1，是0的话下标不变，是1的话下标会增加扩容的长度
+
+> - 当链表超过8且数组长度(数据总量)超过64才会转为红黑树
+> - 将链表转换成红黑树前会判断，如果当前数组的长度小于64，那么会选择先进行数组扩容，而不是转换为红黑树，以减少搜索时间。
 
 扩展： 
 
