@@ -20,7 +20,7 @@
 5. [死锁](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E6%AD%BB%E9%94%81%E7%AF%87.md)
 6. [进程和线程](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%BF%9B%E7%A8%8B%E5%92%8C%E7%BA%BF%E7%A8%8B%E7%AF%87.md)
 7. [linux](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Linux.md)
-8. [进程间通信的几种方式的介绍及比较]()
+8. [进程间通信的几种方式的介绍及比较](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%BF%9B%E7%A8%8B%E9%97%B4%E9%80%9A%E4%BF%A1%E7%9A%84%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F%E7%9A%84%E4%BB%8B%E7%BB%8D%E5%8F%8A%E6%AF%94%E8%BE%83.md)
 
 ---
 
