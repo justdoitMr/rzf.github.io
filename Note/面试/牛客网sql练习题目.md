@@ -239,7 +239,103 @@ on e.emp_no = d.emp_no;
 
 > 使用左外连接
 
- 
+####  SQL16得分不小于平均分的最低分
+
+- 先计算平均分，
+
+~~~sql
+SELECT avg(er.score) from exam_record er
+left join examination_info ei
+on er.exam_id=ei.exam_id
+where ei.tag='SQL')
+~~~
+
+- 然后选择分数大于平均分的学生的分数的最小值
+
+~~~sql
+SELECT min(er.score) min_score_over_avg  from exam_record er
+left join examination_info ei
+on er.exam_id=ei.exam_id
+where ei.tag='SQL'
+and er.score>=
+(SELECT avg(er.score) from exam_record er
+left join examination_info ei
+on er.exam_id=ei.exam_id
+where ei.tag='SQL');
+~~~
+
+#### SQL17平均活跃天数和月活人数
+
+~~~sql
+select date_format(submit_time,'%Y%m') month,
+       round(count(distinct uid, DATE_FORMAT(submit_time,'%Y%m%d'))/count(distinct uid),2) avg_active_days,
+       count(distinct uid) mau
+from exam_record
+where year(submit_time) = 2021
+group by month;
+~~~
+
+> 有人一天内可能答题好几次，故计算活跃天数需要去重:
+> count(distinct uid,date_format(submit_time,'%Y%m%d'))
+>
+> 当distinct应用到多个字段的时候，其应用的范围是其后面的所有字段，而不只是紧挨着它的一个
+> 字段，而且distinct只能放到所有字段的前面。
+>
+> 误：ONLY_FULL_GROUP_BY，意思是：对于GROUP BY聚合操作，如果在SELECT中的列，没有在GROUP  BY中出现，那么这个SQL是不合法的，因为列不在GROUP BY从句中，也就是说查出来的列必须在group  by后面出现否则就会报错，或者这个字段出现在聚合函数里面。
+
+
+
+**第一种写法**
+
+~~~sql
+select submit_month,count(submit_time) as month_q_cnt,round((count(submit_time)/m_day),3) as avg_day_q_cnt
+from 
+(select *,date_format(submit_time,'%Y%m') as submit_month
+,day(last_day(submit_time)) as m_day
+from practice_record) t 
+where year(submit_time)='2021'
+group by submit_month 
+union all 
+select "2021汇总" as submit_month,count(submit_time) as month_q_cnt,round(count(submit_time)/31,3) as avg_day_q_cnt
+from 
+(select *,date_format(submit_time,'%Y%m') as submit_month
+,day(last_day(submit_time)) as m_day
+from practice_record) t 
+where year(submit_time)='2021'
+order by submit_month;
+
+~~~
+
+  考察了两个知识点： 
+
+  1.怎么样获取对应月份的天数，通过last_day()函数获取对应月的最后一天，再利用day()函数取出天数； 
+
+  2.汇总行的构建，通过union all 可以添加汇总行，其中汇总行的名字可以利用select "xxxx" as submit_month 来解决（with rollup 也能自动加总，但是汇总行的名字怎么解决一下没想到，同时平均值也没法算） 
+
+**第二种写法**
+
+~~~sql
+
+select    
+    date_format(submit_time,'%Y%m') as submit_month,
+    count(question_id) as month_q_cnt,
+    round(count(question_id)/day(last_day(submit_time)),3) as avg_day_q_cnt
+from practice_record
+where year(submit_time)='2021'
+group by submit_month
+union all
+select '2021汇总'  as submit_month,
+count(question_id) month_q_cnt,
+round(count(id)/31,3) avg_day_q_cnt
+from practice_record
+where DATE_FORMAT(submit_time,'%Y')='2021'
+order by submit_month
+    
+~~~
+
+
+
+
 
 #### 学会使用窗口函数
 

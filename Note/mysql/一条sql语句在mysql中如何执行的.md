@@ -1,5 +1,3 @@
-本文来自[木木匠](https://github.com/kinglaw1204)投稿。
-
 <!-- TOC -->
 
 - [一 MySQL 基础架构分析](#一-mysql-基础架构分析)

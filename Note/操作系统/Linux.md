@@ -219,8 +219,6 @@ shift+g到文件末尾
 打印JAVA_HOME环境变量：echo $JAVA_HOME
 
 在配置环境变量中：export标示是全局变量。
-
-
 ~~~
 
 ## 正则表达式
