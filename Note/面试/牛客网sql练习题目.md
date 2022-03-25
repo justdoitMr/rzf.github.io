@@ -239,7 +239,33 @@ on e.emp_no = d.emp_no;
 
 > 使用左外连接
 
+#### SQL15统计作答次数
+
+##### 使用if
+
+~~~sql
+select    
+    count(*) as total_pv,
+    sum(if(submit_time is not null,1,0)) as complete_pv,
+    count(distinct if(score is not null,exam_id,null)) as complete_exam_cnt
+from exam_record;
+~~~
+
+> 学会使用if函数或者case when函数，并且判断某一列不是空，然后对另外一个列进行去重操作。
+
+##### **使用case when语句**
+
+~~~sql
+select    
+    count(*) as total_pv,
+    sum(case when score is not null then 1 else 0 end) as complete_pv,
+    count(distinct if(score is not null,exam_id,null)) as complete_exam_cnt
+from exam_record;
+~~~
+
 ####  SQL16得分不小于平均分的最低分
+
+##### 使用子查询
 
 - 先计算平均分，
 
@@ -253,15 +279,57 @@ where ei.tag='SQL')
 - 然后选择分数大于平均分的学生的分数的最小值
 
 ~~~sql
-SELECT min(er.score) min_score_over_avg  from exam_record er
-left join examination_info ei
-on er.exam_id=ei.exam_id
-where ei.tag='SQL'
-and er.score>=
-(SELECT avg(er.score) from exam_record er
-left join examination_info ei
-on er.exam_id=ei.exam_id
-where ei.tag='SQL');
+-- 然后查找大于平均分的最小分数
+
+SELECT
+	MIN(score) AS min_score_over_avg
+FROM exam_record AS e1
+INNER JOIN examination_info AS e2
+ON e1.exam_id = e2.exam_id
+WHERE score >(
+	SELECT 
+	    AVG(score)
+	FROM exam_record AS e1
+	INNER JOIN examination_info AS e2
+	ON e1.exam_id = e2.exam_id
+	WHERE tag='SQL'
+);
+~~~
+
+##### 使用窗口函数
+
+- 首先计算sqsl的分数，然后对sql分数进行开窗，计算窗口内的平均值
+
+~~~sql
+-- 使用窗口函数，计算平均值,一列是分数，一列是平均值
+
+SELECT
+	score,
+	AVG(score) over() AS avg_score
+FROM exam_record AS e1
+INNER JOIN examination_info AS e2
+ON e1.exam_id = e2.exam_id
+WHERE tag='SQL' AND score IS NOT NULL;
+
+--计算的结果有两列，一列分数，一列均值
+~~~
+
+- 然后比较分数和均值
+
+~~~sql
+SELECT
+	MIN(score) AS min_score_over_avg
+FROM
+(
+	SELECT
+		score,
+		AVG(score) over() AS avg_score
+	FROM exam_record AS e1
+	INNER JOIN examination_info AS e2
+	ON e1.exam_id = e2.exam_id
+	WHERE tag='SQL' AND score IS NOT NULL
+) AS tmp
+WHERE avg_score > score;
 ~~~
 
 #### SQL17平均活跃天数和月活人数
@@ -283,7 +351,7 @@ group by month;
 >
 > 误：ONLY_FULL_GROUP_BY，意思是：对于GROUP BY聚合操作，如果在SELECT中的列，没有在GROUP  BY中出现，那么这个SQL是不合法的，因为列不在GROUP BY从句中，也就是说查出来的列必须在group  by后面出现否则就会报错，或者这个字段出现在聚合函数里面。
 
-
+#### ==SQL18月总刷题数和日均刷题数==
 
 **第一种写法**
 
@@ -306,11 +374,11 @@ order by submit_month;
 
 ~~~
 
-  考察了两个知识点： 
-
-  1.怎么样获取对应月份的天数，通过last_day()函数获取对应月的最后一天，再利用day()函数取出天数； 
-
-  2.汇总行的构建，通过union all 可以添加汇总行，其中汇总行的名字可以利用select "xxxx" as submit_month 来解决（with rollup 也能自动加总，但是汇总行的名字怎么解决一下没想到，同时平均值也没法算） 
+>  考察了两个知识点： 
+>
+>   1.怎么样获取对应月份的天数，通过last_day()函数获取对应月的最后一天（获取的是一个日期，天数是最后一天的日期），再利用day()函数取出天数； 需要爱玲不操作
+>
+>   2.汇总行的构建，通过union all 可以添加汇总行，其中汇总行的名字可以利用select "xxxx" as submit_month 来解决（with rollup 也能自动加总，但是汇总行的名字怎么解决一下没想到，同时平均值也没法算） 
 
 **第二种写法**
 
@@ -331,6 +399,139 @@ from practice_record
 where DATE_FORMAT(submit_time,'%Y')='2021'
 order by submit_month
     
+~~~
+
+#### SQL21试卷发布当天作答人数和平均分
+
+
+
+~~~sql
+-- 首先计算
+
+SELECT
+	*
+FROM examination_info AS e1
+INNER JOIN exam_record e2
+ON e1.`exam_id` = e2.`exam_id`
+WHERE DATE_FORMAT(release_time,'%Y-%m-%d')=DATE_FORMAT(submit_time,'%Y-%m-%d') AND e1.tag='SQL';	
+
+-- 然后查询用户等级大于5的
+
+SELECT
+	uid
+FROM user_info
+WHERE LEVEL>5
+
+-- 联合两张表
+
+SELECT
+	exam_id,
+	COUNT( DISTINCT tmp1.uid) uv,
+	SUM(score)/COUNT(*)
+FROM
+(
+	SELECT
+		uid
+	FROM user_info
+	WHERE LEVEL>5
+)AS tmp1
+INNER JOIN
+(
+	SELECT
+		e1.exam_id,
+		e2.uid,
+		e2.score
+	FROM examination_info AS e1
+	INNER JOIN exam_record e2
+	ON e1.`exam_id` = e2.`exam_id`
+	WHERE DATE_FORMAT(release_time,'%Y-%m-%d')=DATE_FORMAT(submit_time,'%Y-%m-%d') AND e1.tag='SQL'
+)AS tmp2
+ON tmp1.uid = tmp2.uid;
+~~~
+
+#### SQL22作答试卷得分大于过80的人的用户等级分布
+
+~~~sql
+
+SELECT
+	u.`level`,
+	COUNT(*) AS level_cnt
+FROM user_info AS u
+INNER JOIN exam_record e1
+ON u.`uid` = e1.`uid`
+INNER JOIN examination_info AS e2
+ON e1.`exam_id` = e2.`exam_id`
+WHERE e2.`tag`='SQL' AND score >80
+GROUP BY u.`level`
+ORDER BY level_cnt DESC;
+~~~
+
+> 三张表关联，然后分组查询统计
+
+#### SQL23每个题目和每份试卷被作答的人数和次数
+
+~~~sql
+select * from (select exam_id as tid,count(distinct er.uid)as uv,count(exam_id)as pv
+ from exam_record as er
+ group by tid
+ order by uv desc,pv desc)as a
+ union
+ select * from (select question_id as tid,count(distinct pr.uid)as uv,count(question_id)as pv
+ from practice_record as pr
+ group by tid
+ order by uv desc,pv desc)as b;
+~~~
+
+> 学会使用union操作
+
+#### SQL24分别满足两个活动的人
+
+~~~sql
+SELECT
+	uid,
+	'activity1' AS activity
+FROM exam_record
+WHERE YEAR(submit_time)=2021
+GROUP BY uid
+HAVING MIN(score)>=85
+UNION ALL 
+SELECT
+	DISTINCT uid,
+	'activity2' AS activity
+FROM exam_record AS t1
+INNER JOIN examination_info AS t2
+ON t1.`exam_id` = t2.exam_id
+WHERE 
+	YEAR(submit_time)='2021'
+	AND
+	t2.difficulty='hard'
+	AND
+	t2.duration/2>TIMESTAMPDIFF(MINUTE,start_time,submit_time)
+	AND 
+	score >80
+ORDER BY uid;
+~~~
+
+> 注意23，24题目，都是用union合并结果计算
+
+#### SQL27每类试卷得分前3名
+
+~~~SQL
+select
+    tid,
+    uid,
+    ranking
+from
+(
+    SELECT
+        tag as tid,
+        uid,
+        row_numer() over(partition by tag order by score,max(score) desc,min(score) desc,uid desc) as ranking
+    FROM examination_info AS e1
+    INNER JOIN exam_record AS e2
+    ON e1.`exam_id` = e2.`exam_id`
+)
+where ranking <=3;
 ~~~
 
 
