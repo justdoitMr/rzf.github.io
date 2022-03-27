@@ -239,6 +239,66 @@ on e.emp_no = d.emp_no;
 
 > 使用左外连接
 
+#### SQL1插入记录（一）
+
+~~~sql
+insert into  exam_record values
+(null,1001,9001,'2021-09-01 22:11:12',date_add('2021-09-01 22:11:12',interval 50 minute),90),
+(null,1002,9002,'2021-09-04 07:01:02',null,null);
+~~~
+
+> insert  into 表名（列名） VALUES （对应列数值）【,(对应列数值)】 
+>
+>  注意：即使是Null也不能空着哦  
+
+#### SQL2插入记录（二）
+
+~~~sql
+insert into exam_record_before_2021 (uid,exam_id,start_time,submit_time,score)
+select 
+    uid,
+    exam_id,
+    start_time,
+    submit_time,
+    score
+from exam_record
+where date_format(submit_time,'%Y')<2021;
+~~~
+
+> 不能像下面这样写：牛客网不用复制原数据表中的id，新表中有自增的id
+>
+> ```sql
+> insert into exam_record_before_2021
+> select *
+> from exam_record
+> where year(submit_time)<2021
+> ```
+
+#### SQL3插入记录（三）
+
+~~~sql
+replace into examination_info values(
+    null,9003,"SQL","hard",90,"2021-01-01 00:00:00"
+);
+~~~
+
+> 考察replace的用法，不管表里有没有数据，都可以插入数据成功：
+>
+> replace into 语句考察，语法就是insert换成replace其他都不变 
+
+#### SQL14SQL类别高难度试卷得分的截断平均值
+
+~~~sql
+select
+    e1.tag,
+    e1.difficulty,
+    round((sum(e2.score)-max(e2.score)-min(e2.score))/(count(e2.score)-2),1) as clip_avg_score 
+from examination_info as e1
+inner join exam_record as e2
+on e1.exam_id = e2.exam_id
+where e1.tag='SQL' and e1.difficulty = 'hard' and e2.score is not null;
+~~~
+
 #### SQL15统计作答次数
 
 ##### 使用if
@@ -252,8 +312,18 @@ from exam_record;
 ~~~
 
 > 学会使用if函数或者case when函数，并且判断某一列不是空，然后对另外一个列进行去重操作。
+>
+> l另外需要注意的是：count函数会自动忽略null值，所以if条件不成立直接返回null就可以不统计
+>
+> sum();
+>
+> 必须只有有一行不为null的数值，结果才不为null
 
-##### **使用case when语句**
+![1648280905075](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/26/154828-103135.png)
+
+![1648280917439](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/26/154841-798994.png)
+
+##### 使用case when语句
 
 ~~~sql
 select    
@@ -280,25 +350,28 @@ where ei.tag='SQL')
 
 ~~~sql
 -- 然后查找大于平均分的最小分数
-
-SELECT
-	MIN(score) AS min_score_over_avg
-FROM exam_record AS e1
-INNER JOIN examination_info AS e2
-ON e1.exam_id = e2.exam_id
-WHERE score >(
-	SELECT 
-	    AVG(score)
-	FROM exam_record AS e1
-	INNER JOIN examination_info AS e2
-	ON e1.exam_id = e2.exam_id
-	WHERE tag='SQL'
-);
+select   
+    min(score) as min_score_over_avg
+from examination_info as e1
+inner join exam_record as e2
+on e1.exam_id = e2.exam_id
+where e1.tag='SQL' and score >=
+(
+    select
+        avg(score)
+    from examination_info as e1
+    inner join exam_record as e2
+    on e1.exam_id = e2.exam_id
+    where e1.tag = 'SQL'
+)
+--这里需要使用>=，否则执行不成功
 ~~~
+
+> 另外注意，再from后面的子查询，草需要临时表的别名，where后的子查询，不需要别名
 
 ##### 使用窗口函数
 
-- 首先计算sqsl的分数，然后对sql分数进行开窗，计算窗口内的平均值
+- 首先计算sqs的分数，然后对sql分数进行开窗，计算窗口内的平均值
 
 ~~~sql
 -- 使用窗口函数，计算平均值,一列是分数，一列是平均值
@@ -317,6 +390,7 @@ WHERE tag='SQL' AND score IS NOT NULL;
 - 然后比较分数和均值
 
 ~~~sql
+-- 使用min函数更加的简洁
 SELECT
 	MIN(score) AS min_score_over_avg
 FROM
@@ -329,8 +403,29 @@ FROM
 	ON e1.exam_id = e2.exam_id
 	WHERE tag='SQL' AND score IS NOT NULL
 ) AS tmp
-WHERE avg_score > score;
+WHERE score>=avg_score;
+
+-- 也可以按照分数排序，然后选择第一个输出
+select    
+    score
+from
+(
+    select   
+        e1.exam_id,
+        e1.tag,
+        e2.score,
+        avg(score) over() as sql_avg
+    from examination_info as e1
+    inner join exam_record as e2
+    on e1.exam_id = e2.exam_id
+    where e1.tag = 'SQL' 
+)t1
+where score >= sql_avg
+order by score asc
+limit 1;
 ~~~
+
+> 最后的分数必须使用>=输出
 
 #### SQL17平均活跃天数和月活人数
 
@@ -350,6 +445,8 @@ group by month;
 > 字段，而且distinct只能放到所有字段的前面。
 >
 > 误：ONLY_FULL_GROUP_BY，意思是：对于GROUP BY聚合操作，如果在SELECT中的列，没有在GROUP  BY中出现，那么这个SQL是不合法的，因为列不在GROUP BY从句中，也就是说查出来的列必须在group  by后面出现否则就会报错，或者这个字段出现在聚合函数里面。
+>
+> ==在select 子句后面的别名，在where和group by后面可以使用，但是不能在selkect和后面的计算列中使用==
 
 #### ==SQL18月总刷题数和日均刷题数==
 
@@ -401,12 +498,67 @@ order by submit_month
     
 ~~~
 
-#### SQL21试卷发布当天作答人数和平均分
+#### SQL20月均完成试卷数不小于3的用户爱作答的类别
 
+##### 使用in操作
 
+首先计算月完成度大于3的用户,注意，这里分组字段是uid和月份因为球的是**月均**
 
 ~~~sql
--- 首先计算
+    select 
+        uid
+    from exam_record
+    where score is not null
+    group by uid,month(start_time)
+    having count(*)>=3
+~~~
+
+然后在将两张表进行join操作，赛选出uid在上面计算的集合中的数据，按照tag进行分组操作。
+
+~~~sql
+select
+    e2.tag as tag,
+    count(*) as tag_cnt
+from exam_record as e1
+inner join examination_info as e2
+on e1.exam_id = e2.exam_id
+where uid in(
+    select 
+        uid
+    from exam_record
+    where score is not null
+    group by uid,month(start_time)
+    having count(*)>=3
+)
+group by e2.tag
+order by tag_cnt desc;
+~~~
+
+#### SQL21试卷发布当天作答人数和平均分
+
+##### 使用内连接
+
+关联三张表，然后使用where子句进行过滤。
+
+~~~sql
+select
+    e2.exam_id,
+    count(distinct e2.uid) as uv,
+    round(avg(e2.score),1) as avg_score
+from user_info as e1
+inner join exam_record as e2
+on e1.uid = e2.uid
+inner join examination_info as e3
+on e2.exam_id = e3.exam_id
+where e3.tag = 'SQL' and date_format(start_time,'%Y-%m-%d') = date_format(release_time,'%Y-%m-%d') and e1.level>5
+group by e2.exam_id
+order by uv desc,avg_score asc;
+~~~
+
+##### 使用子查询
+
+~~~sql
+-- 首先计算发布当天做卷子的人的信息
 
 SELECT
 	*
@@ -452,7 +604,6 @@ ON tmp1.uid = tmp2.uid;
 #### SQL22作答试卷得分大于过80的人的用户等级分布
 
 ~~~sql
-
 SELECT
 	u.`level`,
 	COUNT(*) AS level_cnt
@@ -514,7 +665,7 @@ ORDER BY uid;
 
 > 注意23，24题目，都是用union合并结果计算
 
-#### SQL27每类试卷得分前3名
+#### ==SQL27每类试卷得分前3名==
 
 ~~~SQL
 select
@@ -533,6 +684,157 @@ from
 )
 where ranking <=3;
 ~~~
+
+#### ==SQL30近三个月未完成试卷数为0的用户完成情况==
+
+~~~sql
+select
+    uid,
+    count(score)as exam_complete_cnt
+from
+(
+    select
+        *,
+        dense_rank() over(partition by uid order by date_format(start_time,'%Y%m') desc) as ranking
+    from exam_record
+)t1
+where ranking<=3
+group by uid
+having count(ranking)=count(score)
+order by exam_complete_cnt desc,uid desc;
+~~~
+
+> count对null值不会记录
+
+#### SQL34每份试卷每月作答数和截止当月的作答总数。
+
+~~~sql
+select    
+    exam_id,
+    date_format(start_time,'%Y%m') as start_month,
+    count(*) over(partition by exam_id,date_format(start_time,'%Y%m')) as month_cnt,
+    count(*) over(partition by exam_id order by date_format(start_time,'%Y%m')) as cum_exam_cnt
+from exam_record
+order by exam_id,start_month;
+~~~
+
+> `部分和想让以哪个下标递增就以哪个为``order` `by`
+>
+> 聚合窗口函数中，over()的括号中有order by 时，即为计算到当前时间为止的累计数量
+>
+>   当窗口函数中ORDER BY后面缺少窗口从句条件，默认取本行及之前所有行； 
+>
+>   当无ORDER BY时，默认取所有行。 
+>
+> ==group by和having后可以使用前面已起别名的别名，但同一个select中后面的查询列不能引用同级select前面定义的别名，要直接写原公式==
+> =注意是作答次数，故需要用作答时间来计数
+
+#### SQL36统计有未完成状态的试卷的未完成数和未完成率
+
+~~~sql
+    select    
+        exam_id,
+        sum(if(submit_time is null,1,0))as incomplete_cnt,
+        round(sum(if(submit_time is null,1,0))/count(*),3) as complete_rate
+    from exam_record
+    group by exam_id
+    having complete_rate>0;
+~~~
+
+> **select** [distinct] *| **分组字段1**[别名] [,分组字段2[别名],...] | 统计函数
+>
+> **from** 表名 [别名]
+>
+> [**where** 条件(s)]
+>
+> [**group by** **分组字段1**[,分组字段2]]
+>
+> [**having** 分组后的过滤条件(**可以使用统计函数**)]
+>
+> [order by 排序字段 asc|desc[,排序字段 asc|desc]];
+>
+> 分组查询：select 后的字段必须是**`分组字段`**(**跟在group by 后面的字段**) 或 `**统计函数字段**`
+
+**分组后常用的聚合函数**
+
+- count(col): 表示求指定列的总行数 
+- max(col): 表示求指定列的最大值 
+- min(col): 表示求指定列的最小值 
+- sum(col): 表示求指定列的和 
+- avg(col): 表示求指定列的平均值
+
+只有分组后才可以使用聚合函数，没有分组不可以使用聚合函数。
+
+#### SQL370级用户高难度试卷的平均用时和平均得分
+
+##### 聚合函数计算
+
+~~~sql
+SELECT
+    u.uid,
+    ROUND(SUM(IF(score IS NOT NULL,score,0))/COUNT(*),0) AS avg_score,
+    ROUND(SUM(IF(submit_time IS NULL,duration,TIMESTAMPDIFF(MINUTE,start_time,submit_time)))/COUNT(*),1)AS avg_time_took
+FROM user_info AS u
+INNER JOIN exam_record AS e1
+ON u.uid = e1.uid
+INNER JOIN examination_info AS e2
+ON e1.exam_id = e2.exam_id
+WHERE u.level = 0 AND e2.difficulty='hard'
+GROUP BY uid;
+~~~
+
+##### 使用avg函数
+
+~~~sql
+select
+    u.uid,
+    round(avg(if(score is not null,score,0)),0) as avg_score,
+    round(avg(if(submit_time is null,duration,TIMESTAMPDIFF(minute,start_time,submit_time))),1)as avg_time_took
+from user_info as u
+inner join exam_record as e1
+on u.uid = e1.uid
+inner join examination_info as e2
+on e1.exam_id = e2.exam_id
+where u.level = 0 and e2.difficulty='hard'
+group by uid;
+~~~
+
+#### SQL42注册时间最早的三个人
+
+##### 使用limit子句
+
+~~~sql
+select   
+    uid,
+    nick_name,
+    register_time
+from user_info
+order by register_time
+limit 3;
+
+--取三条数据，从第0跳开始
+select   
+    uid,
+    nick_name,
+    register_time
+from user_info
+order by register_time
+limit 3 offset 0;
+~~~
+
+##### 使用窗口函数
+
+~~~sql
+SELECT uid,nick_name,register_time
+FROM (
+    SELECT uid,nick_name,register_time,
+    ROW_NUMBER() OVER(ORDER BY register_time) AS ranks
+    FROM user_info
+) t1
+WHERE ranks<=3;
+~~~
+
+
 
 
 
