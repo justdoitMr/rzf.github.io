@@ -2,6 +2,8 @@
 
 ### [175. 组合两个表](https://leetcode-cn.com/problems/combine-two-tables/)
 
+使用左外连接。
+
 ~~~sql
 # Write your MySQL query statement below
 select
@@ -28,7 +30,7 @@ on Person.PersonId = Address.PersonId;
 
 ### [176. 第二高的薪水](https://leetcode-cn.com/problems/second-highest-salary/)
 
-**使用排序+limit方法**
+#### **使用排序+limit方法**
 
 ~~~sql
 # Write your MySQL query statement below
@@ -42,7 +44,7 @@ limit 1,1),null
 --注意列的别名，不按要求无法通过
 ~~~
 
-**使用max()方法**
+#### **使用max()方法**
 
 ~~~sql
 select ifNull(
@@ -57,6 +59,28 @@ select ifNull(
         )
     ),null
 )as SecondHighestSalary;
+~~~
+
+#### ==使用开窗函数==(扩展性强)
+
+使用dense_rank() over（）排序得到薪水排序 ,一层select判断排名 一层判空
+扩展性较强 可以得到第三 第四高薪水 也可以得到前n名薪水
+
+~~~sql
+select ifnull(
+    (
+        select
+            distinct salary
+        from
+        (
+            select 
+                salary,
+                dense_rank() over(order by salary desc) as ranking
+            from Employee
+        )tmp
+        where ranking =2
+    )
+,null)as SecondHighestSalary ;
 ~~~
 
 #### 如何查询第N高的数据
@@ -147,14 +171,42 @@ and 课程='语文')
 > 这种解法没有完全通过
 
 ~~~sql
-select ifnull(
-    (
-        select
-      distinct salary
-      from Employee
-      order by salary limit n,1
-    ),null
-)
+CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT
+BEGIN
+    set N=n-1;
+  RETURN (
+      # Write your MySQL query statement below.
+      select ifnull(
+          (select 
+          distinct salary 
+          from Employee 
+          order by salary desc 
+          limit N,1)
+           ,null)
+  );
+END
+-- limit是从下表0开始的，所以需要找到n-1即可
+~~~
+
+#### ==使用dense_rnak()函数==（可以求第n大）
+
+> 首先按照薪水排名，注意这里使用dense函数，因为薪水可能是一样的，所以排名也应该一样，dense_rank()函数排名是：1 1 2 ,总数会减少。
+
+~~~sql
+      select ifnull(
+          (
+            select  
+                 distinct salary
+            from
+            (
+                select    
+                    salary,
+                    dense_rank() over(order by salary desc) as ranking
+                from Employee as e1
+            ) as t1
+            where ranking = n
+          )
+      ,null) as getNthHighestSalary
 ~~~
 
 ### [178. 分数排名](https://leetcode-cn.com/problems/rank-scores/)
@@ -164,6 +216,8 @@ select
     score,
     dense_rank()  over(order by score desc) as 'rank'
 from Scores;
+
+-- 在leetcode中使用rank需要添加引号
 ~~~
 
 #### ROW_NUMBER()
@@ -175,11 +229,11 @@ select *,row_number() OVER(order by number ) as row_num
 from num 
 ~~~
 
-![1646124409797](C:\Users\MrR\AppData\Roaming\Typora\typora-user-images\1646124409797.png)
+![1646124409797](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/28/194202-939106.png)
 
 > 记住row_numer就是进行编号操作。
 
-注意：在使用row_number() 实现分页时需要特别注意一点，over子句中的order by 要与SQL排序记录中的order by保持一致，否则得到的序号可能不是连续的
+> 注意：在使用row_number() 实现分页时需要特别注意一点，over子句中的order by 要与SQL排序记录中的order by保持一致，否则得到的序号可能不是连续的
 
 ~~~sql
 select *,row_number() OVER(order by number ) as row_num
@@ -228,7 +282,105 @@ from num
 
 > 注意，ntile()里面的参数2表示数据分两组。
 
-### [181. 超过经理收入的员工](https://leetcode-cn.com/problems/employees-earning-more-than-their-managers/)
+### [180. 连续出现的数字](https://leetcode-cn.com/problems/consecutive-numbers/)
+
+#### 通用解法
+
+~~~sql
+select
+    distinct Id as ConsecutiveNums 
+from 
+(
+    select
+        Id,
+        Num,
+        row_number() over(partition by Num order by Id) as rk
+    from Logs
+) as t1
+group by (Id-rk),Num
+having count(*)>=3;
+
+SELECT DISTINCT Num ConsecutiveNums
+FROM(
+SELECT *,
+      ROW_NUMBER() OVER (PARTITION BY Num ORDER BY Id) rownum
+FROM LOGS
+) t
+GROUP BY (Id+1-rownum),Num 
+HAVING COUNT(*)>=3
+~~~
+
+#### 使用lead函数和lag函数
+
+- mysql 8.0可以使用窗口函数
+- 前后函数：LAG(expr,n)、LEAD(expr,n)
+- 只需要获取前一行和后一行都相等的所有数据去重即可
+
+~~~sql
+# Write your MySQL query statement below
+select distinct num as ConsecutiveNums 
+from (select num, 
+             lag(num, 1, null) over (order by id) lag_num, 
+             lead(num, 1, null) over (order by id) lead_num
+      from logs) l
+where l.Num = l.lag_num
+  and l.Num = l.lead_num
+~~~
+
+#### ==如何找出连续的数字==
+
+> 如何解决出现连续n次相同数字问题？ 构造新属性id-rownum。
+
+![1648468135676](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/28/194857-956002.png)
+
+1. 构造新属性rownum，且rownum所实现的需求为分组排序：
+
+~~~sql
+SELECT
+			*,
+      ROW_NUMBER() OVER (PARTITION BY Num ORDER BY Id) rownum
+FROM LOGS
+~~~
+
+![1648468172876](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/28/194933-123606.png)
+
+从这里可以看出Id是恒大于rownum的，因此我们可以构建一个变量Id-rownum。
+
+2. 构造新属性Id-rownum
+
+~~~sql
+SELECT *,Id-rownum
+FROM(
+SELECT *,
+      ROW_NUMBER() OVER (PARTITION BY Num ORDER BY Id) rownum
+FROM LOGS
+) t
+~~~
+
+![1648468218536](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/28/195020-480530.png)由上图的结果，我们可以看出当数字是连续出现时，Id-rownum的值是一致的，我们可以利用这一特性来判断当前数字的最大连续次数。
+
+3. 进行分组查询
+
+~~~sql
+SELECT DISTINCT Num ConsecutiveNums
+FROM(
+SELECT *,
+      ROW_NUMBER() OVER (PARTITION BY Num ORDER BY Id) rownum
+FROM LOGS
+) t
+GROUP BY (Id-rownum)，Num
+HAVING COUNT(*)>=3 #3可以换位任意数字
+~~~
+
+![1648468576121](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/28/195617-599080.png)
+
+![1648468617210](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/28/195658-738320.png)
+
+> 我们构造的变量应该为Id+1-rownum，而非Id-rownum来避免主键的起始值为0的情况
+> 选择分组变量时，应该同时筛选需求中的连续对象和我们构造的Id+1-rownum两个属性
+> 最后的答题模板应该总结为
+
+### ==[181. 超过经理收入的员工](https://leetcode-cn.com/problems/employees-earning-more-than-their-managers/)==
 
 ~~~sql
 select a.Name as Employee
@@ -238,7 +390,7 @@ on a.managerId = b.id
 where  a.salary > b.salary;
 ~~~
 
-- 单表进行内连接
+> 单表进行内连接
 
 ### [182. 查找重复的电子邮箱](https://leetcode-cn.com/problems/duplicate-emails/)
 
@@ -269,7 +421,7 @@ where id not in
 
 ### [184. 部门工资最高的员工](https://leetcode-cn.com/problems/department-highest-salary/)
 
-#### 方法一
+#### 使用in子句
 
 重点方法，可以保证相同的工资也可以选出来。
 
@@ -291,24 +443,24 @@ in (
 );
 ~~~
 
-#### 方法二
+#### 使用开窗
 
 ~~~sql
--- 使用窗口函数
-
 with temp as (
     select 
         Department.name as Department, 
         Employee.name as Employee, 
-        dense_rank() over(partition by Department.id order by Employee.salary desc) as rank
+        salary,
+        dense_rank() over(partition by Department.id order by Employee.salary desc) as rk
     from Employee
     inner join Department 
     on Employee.departmentId = Department.id
-)select Department,Employee,salary from temp where rank = 1;
+)select Department,Employee,salary from temp where rk = 1;
 ~~~
 
-- 使用 with 建立临时表
-- 连接两表 department 和 employee 使用 dense_rank() 对 salary 进行排序。partition by 的作用是分区
+> 使用 with 建立临时表
+>
+> 连接两表 department 和 employee 使用 dense_rank() 对 salary 进行排序。partition by 的作用是分区
 
 **第二种写法**
 
@@ -330,7 +482,7 @@ where m.rk = 1
 
 利用开窗函数可以取每个部门最高，也可以取前二高，前三高，也可以只取第一第三，都OK的
 
-每一个部门前两高
+#### 每一个部门前两高
 
 ~~~sql
 -- 每个部门前2高
@@ -345,7 +497,7 @@ SELECT S.NAME, S.EMPLOYEE, S.SALARY
  WHERE S.RN <= 2
 ~~~
 
-每一个部门第三稿
+#### 每一个部门第三稿
 
 ~~~sql
 -- 每个部门第一第三高
@@ -359,8 +511,6 @@ SELECT S.NAME, S.EMPLOYEE, S.SALARY
             ON T.DEPARTMENTID = D.ID) S
  WHERE S.RN = 1 OR S.RN = 3
 ~~~
-
-
 
 **使用dense_rank()窗口函数**
 
@@ -401,7 +551,7 @@ with temp as
 )select Department,Employee,salary from temp where rank <=3;
 ~~~
 
-### 求topn问题
+### ==求topn问题==
 
 top n问题又要分组，有需要进行排序操作，所以可以使用开窗操作，按照某一个字段进行开窗操作，相当于分组，然后按照某一个字段进行排序操作，然后取出序号小于某个值的前几个数据即可。
 
@@ -417,6 +567,49 @@ from (
    from 表名) as a
 where 排名 <= N;
 ~~~
+
+### [185. 部门工资前三高的所有员工](https://leetcode-cn.com/problems/department-top-three-salaries/)
+
+~~~sql
+# Write your MySQL query statement below、
+
+-- 首先按照部门进行开窗，然后按照工资进行排序
+
+# SELECT 
+#     Department, 
+#     Employee, 
+#     salary
+# FROM(
+#     SELECT 
+#     b.Name as 'Department',
+#     a.Name as 'Employee', 
+#     a.salary,
+#     dense_rank() over(partition by b.Name ORDER by a.salary DESC) as 'rank'
+# FROM Employee a 
+# left join Department b 
+# ON a.DepartmentId = b.Id
+# ) temp
+# WHERE temp.rank <= 3
+
+SELECT
+    dname as Department ,
+    pname as Employee ,
+    salary as Salary 
+FROM
+(
+    SELECT
+        e1.salary,
+        e1.name as pname,
+        e2.name as dname,
+        dense_rank() over(partition by e2.id ORDER by e1.salary desc) as rk
+    from Employee as e1
+    inner join Department as e2
+    on e1.departmentId = e2.id
+)as temp
+where rk <=3
+~~~
+
+> 使用dense_rank()进行排序。
 
 ### [196. 删除重复的电子邮箱](https://leetcode-cn.com/problems/delete-duplicate-emails/)
 
@@ -490,7 +683,7 @@ from
 
 ### [197. 上升的温度](https://leetcode-cn.com/problems/rising-temperature/)
 
-**思路一：使用内连接**
+#### **思路一：使用内连接**
 
 只有一张表，现在要找出今天温度比昨天温度高的日期 id 。
 
@@ -512,7 +705,9 @@ on datediff(w1.recordDate,w2.recordDate)=1
 and w1.Temperature > w2.Temperature;
 ~~~
 
-**思路二：使用date_add()函数**
+> datediff(date1,date2)：用date1日期减去date2日期。
+
+#### 思路二：使用date_add()函数
 
 思路和方法一的思路是一样的，区别在于计算今天和昨天的方法不一样。
 
@@ -536,7 +731,7 @@ and w1.Temperature > w2.Temperature;
 
 这样的话，w2表中如果有一条数据+1和w1表中的时间一样，那么说明w2中 的这一条数据是w1表中的前一条数据。
 
-**方法三**
+#### **方法三**
 
 使用lead()函数。使用窗口函数 `lead` ，它是从后往前偏移，偏移量为 `1` 天。
 
@@ -576,6 +771,24 @@ from weather;
 然后查询出来的数据作为一个临时表 temp 。
 
 筛选条件就是 nextTemp > temperature ，最后使用 datediff 比较两个日期差可写可不写，因为这里日期是连续的。
+
+**使用lag函数**
+
+~~~sql
+select
+    id
+from
+(
+    select
+        id,
+        recordDate,
+        temperature,
+        lag(recordDate,1) over(order by recordDate) as 'predate',
+        lag(temperature, 1) over(order by recordDate) as 'pretemp'
+    from Weather
+) as temp
+where temperature > pretemp and datediff(recordDate,predate)=1;
+~~~
 
 ### mysql中的lead()函数和lag()函数
 
