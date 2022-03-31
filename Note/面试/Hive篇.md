@@ -505,7 +505,7 @@ SequenceFile支持三种压缩选择：`NONE`，`RECORD`，`BLOCK`。Record压�
 
 ```java
 hive.map.aggr = true //首先在map端进行聚合
-hive.groupby.skewindata=true
+hive.groupby.skewindata=true--开启负载均衡
 ```
 
 有数据倾斜的时候进行负载均衡，当选项设定位true,生成的查询计划会有两个MR Job。

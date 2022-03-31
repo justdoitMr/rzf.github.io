@@ -667,6 +667,8 @@ ORDER BY uid;
 
 #### ==SQL27每类试卷得分前3名==
 
+> 这个题目有点难
+
 ~~~SQL
 select
     tid,
