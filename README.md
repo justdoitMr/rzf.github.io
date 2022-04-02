@@ -265,6 +265,7 @@
 7. [Rides面试一](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Rides.md)
 8. [Rides面试二](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/Rides%E9%9D%A2%E8%AF%95.md)
 9. [项目中用到的设计模式](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/%E9%9D%A2%E8%AF%95/%E9%A1%B9%E7%9B%AE%E4%B8%AD%E9%83%BD%E7%94%A8%E5%88%B0%E9%82%A3%E4%BA%9B%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F.md)
+10. [生产者消费者模型]()
 
 ---
 

@@ -28,7 +28,7 @@ on Person.PersonId = Address.PersonId;
 
 ![1646120399451](https://tprzfbucket.oss-cn-beijing.aliyuncs.com/hadoop/202203/01/153959-880648.png)
 
-### [176. 第二高的薪水](https://leetcode-cn.com/problems/second-highest-salary/)
+### ==[176. 第二高的薪水](https://leetcode-cn.com/problems/second-highest-salary/)==
 
 #### **使用排序+limit方法**
 
@@ -63,8 +63,8 @@ select ifNull(
 
 #### ==使用开窗函数==(扩展性强)
 
-使用dense_rank() over（）排序得到薪水排序 ,一层select判断排名 一层判空
-扩展性较强 可以得到第三 第四高薪水 也可以得到前n名薪水
+- 使用dense_rank() over（）排序得到薪水排序 ,一层select判断排名 一层判空
+- 扩展性较强 可以得到第三 第四高薪水 也可以得到前n名薪水
 
 ~~~sql
 select ifnull(
@@ -83,7 +83,7 @@ select ifnull(
 ,null)as SecondHighestSalary ;
 ~~~
 
-#### 如何查询第N高的数据
+### 如何查询第N高的数据
 
 > 找出语文课中成绩第二高的学生成绩。如果不存在第二高成绩的学生，那么查询应返回 null。
 
@@ -282,7 +282,7 @@ from num
 
 > 注意，ntile()里面的参数2表示数据分两组。
 
-### [180. 连续出现的数字](https://leetcode-cn.com/problems/consecutive-numbers/)
+### ==[180. 连续出现的数字](https://leetcode-cn.com/problems/consecutive-numbers/)==
 
 #### 通用解法
 
@@ -944,5 +944,27 @@ from
     from Employee
 )temp
 where nk>=total/2 and nk <=total/2+1;
+~~~
+
+### [570. 至少有5名直接下属的经理](https://leetcode-cn.com/problems/managers-with-at-least-5-direct-reports/)
+
+使用in子句
+
+- 首先查找有5名下属的员工id
+- 然后使用in子句查找id的名字
+
+~~~sql
+select
+    name as name
+from Employee
+where id in
+(
+    select
+        managerId
+    from Employee 
+    where managerId !='None'
+    group by managerId
+    having count(*)>=5
+)
 ~~~
 
