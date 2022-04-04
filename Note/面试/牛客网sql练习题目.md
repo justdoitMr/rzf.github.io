@@ -1294,6 +1294,8 @@ INSERT INTO teacher VALUES('0004' , '');
 
 ##### 查找姓猴的学生名单
 
+> 使用模糊匹配
+
 ~~~sql
 SELECT
 	NAME
@@ -1333,12 +1335,11 @@ WHERE techName LIKE "孟%";
 
 ~~~sql
 --思路分析
-*
+
 分析思路
 select 查询结果 [总成绩:汇总函数sum]
 from 从哪张表中查找数据[成绩表score]
 where 查询条件 [课程号是0002]
-*/
 
 SELECT
 	deptno,
@@ -1347,7 +1348,7 @@ FROM score
 WHERE deptno = '0002';
 ~~~
 
-学会使用聚合函数：sum()
+> 学会使用聚合函数：sum()
 
 ##### 查询选了课程的学生人数
 
@@ -1388,11 +1389,16 @@ from 从课程表查找score;
 */
 select count(distinct 学号) as 学生人数 
 from score;
+
+-- 使用distinct进行去重
+SELECT
+	COUNT(DISTINCT id) AS num
+FROM score;
 ~~~
 
 #### 分组练习
 
-##### 查询各科成绩最高和最低的分
+##### ==查询各科成绩最高和最低的分==
 
 查询各科成绩最高和最低的分， 以如下的形式显示：课程号，最高分，最低分。
 
@@ -1429,20 +1435,18 @@ FROM score
 GROUP BY deptno;
 ~~~
 
-##### 查询男生、女生人数
-
-> /*
-> 分析思路
-> select 查询结果 [性别，对应性别的人数：汇总函数count]
-> from 从哪张表中查找数据 [性别在学生表中，所以查找的是学生表student]
-> where 查询条件 [没有]
-> group by 分组 [男生、女生人数：按性别分组]
-> having 对分组结果指定条件 [没有]
-> order by 对查询结果排序[没有];
-> */
+##### ==查询男生、女生人数==
 
 ~~~sql
-
+/*
+分析思路
+select 查询结果 [性别，对应性别的人数：汇总函数count]
+from 从哪张表中查找数据 [性别在学生表中，所以查找的是学生表student]
+where 查询条件 [没有]
+group by 分组 [男生、女生人数：按性别分组]
+having 对分组结果指定条件 [没有]
+order by 对查询结果排序[没有];
+*/
 SELECT
 	sex,
 	COUNT(sex)
@@ -1650,6 +1654,23 @@ ORDER BY num DESC,deptno ASC;
 
 ##### 首先查询有两门功课在80分以上的同学的学号
 
+###### 思路一，使用join
+
+~~~sql
+SELECT
+	*,
+	ROUND(AVG(e1.score),2) AS avg_score
+FROM score AS e1
+INNER JOIN student AS e2
+ON e1.`id` = e2.`id`
+WHERE e1.`score` >=80
+GROUP BY e1.`id`
+HAVING COUNT(*) >=2
+ORDER BY avg_score DESC,e1.id ASC;
+~~~
+
+###### 思路二
+
 首先求出有那些同学有两门功课成绩大于80
 
 ~~~sql
@@ -1678,12 +1699,11 @@ WHERE id IN
 	HAVING COUNT(id)>=2
 )
 GROUP BY id;
-
 ~~~
 
 - 使用in子查询。
 
-**思路二**
+**思路三**
 
 ~~~sql
 /* 
@@ -1725,14 +1745,13 @@ HAVING COUNT(id)>=2;
 ##### 查询学生的总成绩并进行排名
 
 ~~~sql
-/*
 分析思路
 select 查询结果 [总成绩：sum(成绩), 学号]
 from 从哪张表中查找数据 [成绩表score]
 where 查询条件 [没有]
 group by 分组 [学生的总成绩：按照每个学生学号进行分组]
 order by 排序 [按照总成绩进行排序：sum(成绩)];
-/*
+
 
 SELECT
 	id,
@@ -1745,7 +1764,6 @@ ORDER BY sum_score DESC;
 ##### 查询平均成绩大于60分的学生的学号和平均成绩
 
 ~~~sql
-/*
 分析思路
 select 查询结果 [学号, 平均成绩: avg(成绩)]
 from 从哪张表中查找数据 [成绩表score]
@@ -1753,7 +1771,7 @@ where 查询条件 [没有]
 group by 分组 [学号]
 having 分组条件 [平均成绩大于60分：avg(成绩 ) >60]
 order by 排序 [没有];
-/*
+
 SELECT
 	id,
 	AVG(score) AS avg_score
@@ -1764,7 +1782,9 @@ HAVING avg_score >=70;
 
 #### 复杂查询
 
-##### 查询所有课程成绩大于等于80分学生的学号、姓名
+##### ==查询所有课程成绩大于等于80分学生的学号、姓名==
+
+> 查询某一个人所有成绩是否都大于80，这个条件需要先按照id进行分组，然后在having 后面加上判断条件80.
 
 首先查询所有成绩都大于80分的学生的信息
 
@@ -1841,22 +1861,19 @@ FROM
 
 > 这里注意一下，判断某一个学生所有成绩都大于80分，不能使用where判断，因为where子句只是一个过滤条件，所以我们需要先按照学号分组，然后判断每一个组内成绩是否大于80，所以需要使用having语句。
 
-##### 查询没有学全所有课的学生的学号、姓名
+##### ==查询没有学全所有课的学生的学号、姓名==
 
-```text
-/*
+```sql
 查找出学号，条件：没有学全所有课，也就是该学生选修的课程数 < 总的课程数
 【考察知识点】in，子查询
-*/
 ```
 
 1. 首先从course表中查询一共有多少门功课
 
 ~~~sql
 -- 首先查询一共有多少们功课
-
 SELECT
-	COUNT(*) AS deptNum
+	COUNT(DISTINCT courseId) AS deptNum
 FROM course;
 ~~~
 
@@ -1871,7 +1888,7 @@ FROM score
 GROUP BY id
 HAVING COUNT(deptno)>=(
 	SELECT
-		COUNT(*) AS deptNum
+		COUNT(DISTINCT courseId) AS deptNum
 	FROM course
 );
 ~~~
@@ -1893,7 +1910,7 @@ WHERE id IN
 	GROUP BY id
 	HAVING COUNT(deptno)>=(
 		SELECT
-			COUNT(*) AS deptNum
+			COUNT(DISTINCT courseId) AS deptNum
 		FROM course
 	)
 );
