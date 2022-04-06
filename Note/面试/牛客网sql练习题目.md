@@ -2068,6 +2068,8 @@ WHERE MONTH(DATE)=MONTH(NOW())+2;
 #### Top N问题
 
 > 需要了解一下关联子查询
+>
+> top N 问题的通用做法是使用开窗函数做，先按照某一个字段进行分区操作，然后按照某一个字段进行排序操作，然后选取前N个数据，使用where条件进行过滤即可。
 
 ##### 分组取每组最大值
 
@@ -2079,10 +2081,22 @@ WHERE MONTH(DATE)=MONTH(NOW())+2;
 select 课程号,max(成绩) as 最大成绩
 from score 
 group by 课程号;
+
 SELECT
 	id,
 	deptno,
 	MAX(score) AS max_score
+FROM score
+GROUP BY deptno;
+~~~
+
+##### 计算每一门课程的平均分
+
+~~~sql
+-- 取出每一个课程的平均分
+SELECT
+	deptno,
+	ROUND(AVG(score),2) AS max_score
 FROM score
 GROUP BY deptno;
 ~~~
@@ -2103,6 +2117,8 @@ GROUP BY deptno;
 ~~~
 
 ##### 每组最大的N条记录
+
+###### 使用union all进行操作
 
 **案例：查询各科成绩前两名的记录**
 
@@ -2164,6 +2180,34 @@ WHERE deptno ='0003'
 ORDER BY score DESC
 LIMIT 2
 )
+~~~
+
+###### ==通用做法，使用开窗函数==
+
+~~~sql
+使用row_number()函数进行开窗，然后排序，最后选取若干名即可，是一种通用的做法
+
+-- 更加通用的做法
+
+-- 首先按照课程号分区，然后按照score进行排名操作
+SELECT
+	*,
+	row_number() over(PARTITION BY deptno ORDER BY score DESC) AS rk
+FROM score;
+
+-- 然后获取前几名成绩
+
+SELECT
+	*
+FROM
+(
+	SELECT
+		*,
+		row_number() over(PARTITION BY deptno ORDER BY score DESC) AS rk
+	FROM score
+)
+WHERE rk <=n;
+
 ~~~
 
 #### 多表查询
@@ -2263,7 +2307,7 @@ ON score.`deptno` = course.`courseId`;
 
 ##### 查询出每门课程的及格人数和不及格人数
 
-考察case-when的用法
+>  考察case-when的用法
 
 ~~~sql
 -- 查询出每门课程的及格人数和不及格人数
@@ -2276,7 +2320,18 @@ FROM score
 GROUP BY deptno;
 ~~~
 
-##### 使用分段[100-85],[85-70],[70-60],[<60]来统计各科成绩，分别统计：各分数段人数，课程号和课程名称
+**使用if完成**
+
+~~~sql
+SELECT
+	deptno,
+	SUM(IF(score >=60,1,0)) AS p1,
+	SUM(IF(score<60,1,0))AS p2
+FROM score 
+GROUP BY deptno;
+~~~
+
+##### ==使用分段[100-85],[85-70],[70-60],[<60]来统计各科成绩，分别统计：各分数段人数，课程号和课程名称==
 
 ~~~sql
 -- 考察case表达式
@@ -2692,3 +2747,46 @@ ON student.`id` = tmp.id
 WHERE ranking <3;
 ~~~
 
+#### group by 和over()
+
+Group by 与 Over (Partition by) 都可以实现分组统计功能.
+
+Group by 根据一列或者多列的值或表达式将选定的行进行一个摘要分组,每一个分组都返回一行.
+
+Group by 通常与聚合函数一起使用. Group By 语句后面的item或者表达式必须在select语句中出现，否则就会出现语法错误。
+
+Over (Partition By) 语句 也可以实现分组统计的功能,但是它并不会对统计的结果进行分组.针对每一条记录，它都会返回分组统计的结果。
+
+`group by` 函数主要用来对数据进行分组，`over()`函数则是一个“开窗函数”，它更多的是与聚合函数如：`sum()、max()、min()、avg()、count()`等函数以及排名函数如：`row_number()、rank()、dense_rank()、ntile()`函数结合使用。
+
+**group by和over()函数昏庸问题**
+
+先做group by操作,而后在group by结果的基础上应用分析函数,
+
+所以若要将分析函数提前,需使用嵌套查询,内部嵌套部分实现分析函数,然后外部进行group by.
+
+over(xxx)是分析函数的必然组成部分.
+
+```SQL
+max(max(yyy)) over(xxx)
+```
+
+被sql引擎支持但
+
+```SQL
+max(max(yyy) over(xxx))
+```
+
+是不被支持的，若需实现相应的要求,只能通过如下实现 
+
+```SQL
+select max(columnname) 
+from
+(
+select max(yyy) over(xxx) columnname from tablename
+)
+```
+
+ 只要记得分析函数都是在最终结果上附加去计算的就可以自己分析了
+
+ 先 group by 获得聚合结果集，再在此结果集上执行分析函数，获得分析结果。
