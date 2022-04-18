@@ -968,3 +968,51 @@ where id in
 )
 ~~~
 
+### 留存率计算
+
+> 新增用户表 t1 里有两个字段
+>
+> qq_no bigint comment "QQ 号码"
+> new_day bigint comment "新增日期，格式:yyyyMMdd，如:20190709"
+>
+> 阅读日志表 t2 里有两个字段
+>
+> qq_no bigint comment "QQ 号码"
+> read_day bigint comment "阅读日期，格式:yyyyMMdd，如:20190709"
+>
+> 取出在 20211001到 20211010每日新增用户的 d1,d3,d15,d30 阅读留存。 
+>
+> 输出字段如下:
+>
+> 新增日期，新增用户数，d1 阅读用户数，d3 阅读用户数，d15 阅读用户数，d30 阅读用户数 
+
+**代码**
+
+~~~sql
+select new_day 
+    ,count(distinct t1.qq_no) as new_uv --d0
+    ,count(distinct case when new_day=date_sub(read_day,1) then t2.qq_no end)  as d1_read_uv
+    ,count(distinct case when new_day=date_sub(read_day,3) then t2.qq_no end)  as d3_read_uv
+    ,count(distinct case when new_day=date_sub(read_day,15) then t2.qq_no end) as d15_read_uv
+    ,count(distinct case when new_day=date_sub(read_day,30) then t2.qq_no end) as d30_read_uv
+from ( --取出时间范围内的新增用户
+    select 
+		new_day, 
+		qq_no 
+    from t1
+    where new_day >= 20211001
+    and new_day <= 20211010
+) t1 
+left outer join ( --取出在时间范围内阅读的用户
+    select 
+		read_day, 
+		qq_no 
+    from t2 
+    where read_day >= 20211001
+    and read_day <= date_add(20211010,30)
+) t2 
+on t1.qq_no=t2.qq_no 
+group by new_day 
+order by new_day 
+~~~
+
