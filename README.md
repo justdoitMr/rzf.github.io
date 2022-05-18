@@ -78,14 +78,15 @@
 #### Mysql
 
 1. [Mysql基础](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E5%9F%BA%E7%A1%80.md)
-2. [Mysql基础总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/%E4%B8%80%E5%8D%83%E8%A1%8CMySQL%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md)
-3. [Mysql高级](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E9%AB%98%E7%BA%A7.md)
-4. [Mysql主从复制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8E%9F%E7%90%86.md)
-5. [sql Top N问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/sql%20Top%20N%E9%97%AE%E9%A2%98.md)
-6. [Mysql三大日志](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97.md)
-7. [InnoDB对MVCC的实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/InnoDB%E5%AF%B9MVCC%E7%9A%84%E5%AE%9E%E7%8E%B0.md)
-8. [一条sql语句在mysql中如何执行的](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E5%9C%A8mysql%E4%B8%AD%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84.md)
-9. [mysql日期函数总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/mysql%E6%97%A5%E6%9C%9F%E5%87%BD%E6%95%B0%E6%80%BB%E7%BB%93.md)
+2. [Mysql建立索引](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/mysql%E5%9C%A8%E5%88%9B%E5%BB%BA%E8%A1%A8%E7%9A%84%E6%97%B6%E5%80%99%E5%88%9B%E5%BB%BA%E7%B4%A2%E5%BC%95.md)
+3. [Mysql基础总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/%E4%B8%80%E5%8D%83%E8%A1%8CMySQL%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0.md)
+4. [Mysql高级](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E9%AB%98%E7%BA%A7.md)
+5. [Mysql主从复制](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/Mysql%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E5%8E%9F%E7%90%86.md)
+6. [sql Top N问题](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/sql%20Top%20N%E9%97%AE%E9%A2%98.md)
+7. [Mysql三大日志](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/MySQL%E4%B8%89%E5%A4%A7%E6%97%A5%E5%BF%97.md)
+8. [InnoDB对MVCC的实现](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/InnoDB%E5%AF%B9MVCC%E7%9A%84%E5%AE%9E%E7%8E%B0.md)
+9. [一条sql语句在mysql中如何执行的](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E5%9C%A8mysql%E4%B8%AD%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84.md)
+10. [mysql日期函数总结](https://github.com/justdoitMr/rzf.github.io/blob/main/Note/mysql/mysql%E6%97%A5%E6%9C%9F%E5%87%BD%E6%95%B0%E6%80%BB%E7%BB%93.md)
 
 #### 设计模式
 
